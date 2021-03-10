@@ -1,0 +1,8 @@
+# Ignore packed files
+*.erf
+*.hak
+*.mod
+*.tlk
+
+# Ignore the nasher directory
+.nasher/
