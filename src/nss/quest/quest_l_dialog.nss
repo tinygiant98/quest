@@ -200,11 +200,6 @@ void KillDialog()
 
         case DLG_EVENT_NODE:
         {
-            string sQuests = AddListItem(sQuests, sOrdered);
-                   sQuests = AddListItem(sQuests, sRandom);
-                   sQuests = AddListItem(sQuests, sProtect);
-                   sQuests = AddListItem(sQuests, sTimed);
-
             string sPage = GetDialogPage();
             int nNode = GetDialogNode();
             string sNodeData = GetDialogData(sPage, nNode);
@@ -251,6 +246,7 @@ void GatherDialog()
     int bOrderedComplete = bHasOrdered ? GetIsPCQuestComplete(oPC, nOrderedID) : FALSE;
     int bRandomComplete = bHasRandom ? GetIsPCQuestComplete(oPC, nRandomID) : FALSE;
     int bDeliverComplete = bHasDeliver ? GetIsPCQuestComplete(oPC, nDeliverID) : FALSE;
+    int bReset;
 
     switch (GetDialogEvent())
     {
@@ -275,55 +271,47 @@ void GatherDialog()
             string sPage = GetDialogPage();
             int nNode = GetDialogNode();
 
-            int bHasOrdered = GetPCHasQuest(oPC, sOrdered);
-            int bHasRandom = GetPCHasQuest(oPC, sRandom);
-            int bHasDeliver = GetPCHasQuest(oPC, sDeliver);
-
             if (sPage == GATHER_PAGE_MAIN)
             {
-                if (bHasOrdered)
+                if (bHasOrdered && !bOrderedComplete)
+                {
+                    bReset = TRUE;
                     FilterDialogNodes(0);
+                }
 
-                if (bHasRandom)
+                if (bHasRandom && !bRandomComplete)
+                {
+                    bReset = TRUE;
                     FilterDialogNodes(1);
+                }
 
-                if (bHasDeliver)
+                if (bHasDeliver && !bDeliverComplete)
+                {
+                    bReset = TRUE;
                     FilterDialogNodes(2);
+                }
 
-                if (!bHasOrdered && !bHasRandom && !bHasDeliver)
-                    FilterDialogNodes(3);
+                if (!bReset)
+                    FilterDialogNodes(3); 
             }
         } break;
 
         case DLG_EVENT_NODE:
         {
-            string sQuests = AddListItem(sQuests, sOrdered);
-                   sQuests = AddListItem(sQuests, sRandom);
-                   sQuests = AddListItem(sQuests, sDeliver);
-
             string sPage = GetDialogPage();
             int nNode = GetDialogNode();
             string sNodeData = GetDialogData(sPage, nNode);
 
+            if (bHasOrdered) _ResetPCQuestData(oPC, nOrderedID);
+            if (bHasRandom) _ResetPCQuestData(oPC, nRandomID);
+            if (bHasDeliver) _ResetPCQuestData(oPC, nDeliverID);
+
             if (sNodeData == "ordered")
-            {
-                _UnassignQuestsExcept(sOrdered, sQuests, oPC);
                 AssignQuestToPC(oPC, sOrdered);
-            }
             else if (sNodeData == "random")
-            {
-                _UnassignQuestsExcept(sRandom, sQuests, oPC);
                 AssignQuestToPC(oPC, sRandom);
-            }
-                else if (sNodeData == "deliver")
-            {
-                _UnassignQuestsExcept(sDeliver, sQuests, oPC);
+            else if (sNodeData == "deliver")
                 AssignQuestToPC(oPC, sDeliver);
-            }
-            else if (sNodeData == "unassign")
-            {
-                _UnassignQuestsExcept("", sQuests, oPC);
-            }
             else if (sNodeData == "reset")
                 ResetGatherQuestArea(oPC);
         }

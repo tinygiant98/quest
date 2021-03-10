@@ -66,15 +66,28 @@ void main()
             Notice("Dumping PC Quest data");
 
             string sPCQuestTag, sPCStepStartTime, sPCQuestStartTime, sPCLastCompleteTime;
-            int n, nPCStep, nPCCompletions;
+            int n, nPCStep, nPCCompletions, nPCAttempts;
 
-            string sQuery = "SELECT * FROM quest_pc_data;";
-            sqlquery sql = SqlPrepareQueryObject(oPC, sQuery);
+            sqlquery sql;
+            string sQuery, sRequestedQuest = GetChatArgument(oPC);
+            if (sRequestedQuest == "")
+            {
+                sQuery = "SELECT * FROM quest_pc_data;";
+                sql = SqlPrepareQueryObject(oPC, sQuery);
+            }
+            else
+            {
+                sQuery = "SELECT * FROM quest_pc_data WHERE quest_tag = @tag;";
+                sql = SqlPrepareQueryObject(oPC, sQuery);
+                SqlBindString(sql, "@tag", sRequestedQuest);
+            }
+
             while (SqlStep(sql))
             {
                 n = 0;
                 sPCQuestTag = SqlGetString(sql, n);
                 nPCStep = SqlGetInt(sql, ++n);
+                nPCAttempts = SqlGetInt(sql, ++n);
                 nPCCompletions = SqlGetInt(sql, ++n);
                 sPCQuestStartTime = SqlGetString(sql, ++n);
                 sPCStepStartTime = SqlGetString(sql, ++n);
@@ -82,6 +95,7 @@ void main()
 
                 Notice(HexColorString("Dumping PC data for " + sPCQuestTag, COLOR_CYAN));
                 Notice("  Step  " + ColorValue(IntToString(nPCStep)) +
+                     "\n  Attempts  " + ColorValue(IntToString(nPCAttempts)) +
                      "\n  Completions  " + ColorValue(IntToString(nPCCompletions)) +
                      "\n  Quest Start  " + ColorValue(sPCQuestStartTime) +
                      "\n  Step Start  " + ColorValue(sPCStepStartTime) +
@@ -119,8 +133,22 @@ void main()
             int nStepID, nQuestID, nStep, nPartyCompletion;
             string sJournalEntry, sTimeLimit;
 
-            string sNewQuery, sSubQuery, sQuery = "SELECT * FROM quest_quests;";
-            sqlquery sqlNew, sqlSub, sql = SqlPrepareQueryObject(GetModule(), sQuery);
+            sqlquery sql;
+            string sQuery, sRequestedQuest = GetChatArgument(oPC);
+            if (sRequestedQuest == "")
+            {
+                sQuery = "SELECT * FROM quest_quests;";
+                sql = SqlPrepareQueryObject(GetModule(), sQuery);
+            }
+            else
+            {
+                sQuery = "SELECT * FROM quest_quests WHERE sTag = @tag;";
+                sql = SqlPrepareQueryObject(GetModule(), sQuery);
+                SqlBindString(sql, "@tag", sRequestedQuest);
+            }
+
+            string sNewQuery, sSubQuery;
+            sqlquery sqlNew, sqlSub;
             while (SqlStep(sql))
             {
                 // Display all the quest data

@@ -119,7 +119,6 @@ void SetQuestScriptOnFail(int nQuestID, string sScript = "");
 // ---< RunQuestScript >---
 // Runs the assigned quest script for quest nQuestID and nScriptType with oPC
 // as OBJECT_SELF.
-// TODO script type constants
 void RunQuestScript(object oPC, int nQuestID, int nScriptType);
 
 // ---< [Get|Set]QuestStepOrder >---
@@ -289,7 +288,6 @@ void _SetPCQuestData(object oPC, int nQuestID, string sField, string sValue)
 }
 
 // Should only be called after the quest has been created
-// Done
 void _SetQuestData(int nQuestID, string sField, string sValue)
 {
     if (nQuestID == 0)
@@ -314,7 +312,6 @@ void _SetQuestData(int nQuestID, string sField, string sValue)
             sField, "module", sValue);
 }
 
-// Done
 string _GetQuestData(int nQuestID, string sField)
 {
     string sQuery = "SELECT " + sField + " " +
@@ -335,7 +332,6 @@ string _GetQuestData(int nQuestID, string sField)
     //return SqlStep(sql) ? SqlGetString(sql, 0) : "";
 }
 
-// Done
 void _SetQuestVariable(int nQuestID, string sType, string sVarName, string sValue)
 {
     // Don't create the table unless we need it
@@ -352,7 +348,6 @@ void _SetQuestVariable(int nQuestID, string sType, string sVarName, string sValu
     SqlStep(sql);
 }
 
-// Done
 string _GetQuestVariable(int nQuestID, string sType, string sVarName)
 {
     string sQuery = "SELECT sValue FROM quest_variables " +
@@ -368,7 +363,6 @@ string _GetQuestVariable(int nQuestID, string sType, string sVarName)
     return (SqlStep(sql) ? SqlGetString(sql, 0) : "");
 }
 
-// Done
 void _DeleteQuestVariable(int nQuestID, string sType, string sVarName)
 {
     string sQuery = "DELETE FROM quest_variables " +
@@ -383,7 +377,6 @@ void _DeleteQuestVariable(int nQuestID, string sType, string sVarName)
     SqlStep(sql);
 }
 
-// Accessors for quest variables  -- All Done
 void SetQuestInt(string sTag, string sVarName, int nValue)
 {
     int nQuestID = GetQuestID(sTag);
@@ -440,7 +433,6 @@ void DeleteQuestString(string sTag, string sVarName)
 // Not planning on other types, this is probably of limited use anyway.
 // End accessors for quest variables
 
-// Set quest step data // done
 void _SetQuestStepData(int nQuestID, int nStep, string sField, string sValue)
 {
     string sQuery = "UPDATE quest_steps " +
@@ -459,7 +451,6 @@ void _SetQuestStepData(int nQuestID, int nStep, string sField, string sValue)
             IntToString(nStep), sField, sValue);
 }
 
-// done
 string _GetQuestStepData(int nQuestID, int nStep, string sField)
 {
     string sQuery = "SELECT " + sField + " " +
@@ -482,7 +473,6 @@ string _GetQuestStepData(int nQuestID, int nStep, string sField)
     //return SqlStep(sql) ? SqlGetString(sql, 0) : "";
 }
 
-//done
 int _GetIsPropertyStackable(int nPropertyType)
 {
     if (nPropertyType == QUEST_VALUE_GOLD ||
@@ -494,7 +484,6 @@ int _GetIsPropertyStackable(int nPropertyType)
         return TRUE;
 }
 
-//done
 void _SetQuestStepProperty(int nQuestID, int nStep, int nCategoryType, 
                            int nValueType, string sKey, string sValue, string sData = "")
 {
@@ -559,6 +548,7 @@ void _AssignQuest(object oPC, int nQuestID)
 
     // Set the quest start time
     _SetPCQuestData(oPC, nQuestID, QUEST_PC_QUEST_TIME, GetSystemTime());
+    IncrementPCQuestField(oPC, nQuestID, "nAttempts");
     
     RunQuestScript(oPC, nQuestID, QUEST_SCRIPT_TYPE_ON_ACCEPT);
     // Go to the first step
@@ -1655,13 +1645,8 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
 
 void FindPCQuestStepProgress(object oPC, string sTargetTag, int nObjectiveType, string sData, int bParty = FALSE)
 {
-    int nCountRecords = CountPCIncrementableSteps(oPC, sTargetTag, nObjectiveType, sData);
-    Notice("COUNTING UPDATABLE RECORDS -> " + IntToString(nCountRecords));
-
-    if (nCountRecords)
+    if (IncrementQuestStepQuantity(oPC, sTargetTag, nObjectiveType, sData) > 0)
     {
-        IncrementQuestStepQuantity(oPC, sTargetTag, nObjectiveType, sData);
-    
         sqlquery sqlQuestData = GetPCIncrementableSteps(oPC, sTargetTag, nObjectiveType, sData);
         while (SqlStep(sqlQuestData))
         {    
@@ -1670,7 +1655,10 @@ void FindPCQuestStepProgress(object oPC, string sTargetTag, int nObjectiveType, 
             int nStep = GetPCQuestStep(oPC, nQuestID);
 
             if (GetIsQuestActive(nQuestID) == FALSE)
+            {
+                DecrementQuestStepQuantity(oPC, sQuestTag, sTargetTag, nObjectiveType, sData);
                 continue;
+            }
 
             CheckQuestStepProgress(oPC, nQuestID, nStep);
 

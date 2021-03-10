@@ -112,8 +112,9 @@ void CreatePCQuestTables(object oPC, int bReset = FALSE)
     string sQuest = "CREATE TABLE IF NOT EXISTS quest_pc_data (" +
         "quest_tag TEXT UNIQUE ON CONFLICT IGNORE, " +
         "nStep INTEGER default '0', " +
+        "nAttempts INTEGER default '0', " +
         "nCompletions INTEGER default '0', " +
-        "nFailures INTEGER defaul '0', " +
+        "nFailures INTEGER default '0', " +
         "sQuestStartTime TEXT default '', " +
         "sStepStartTime TEXT default '', " +
         "sLastCompleteTime TEXT default '');";
@@ -121,8 +122,8 @@ void CreatePCQuestTables(object oPC, int bReset = FALSE)
     string sQuestStep = "CREATE TABLE IF NOT EXISTS quest_pc_step (" +
         "quest_tag TEXT, " +
         "nObjectiveType INTEGER, " +
-        "sTag TEXT COLLATE NOCASE, " +
-        "sData TEXT COLLATE NOCASE, " +
+        "sTag TEXT default '' COLLATE NOCASE, " +
+        "sData TEXT default '' COLLATE NOCASE, " +
         "nRequired INTEGER, " +
         "nAcquired INTEGER default '0', " +
         "FOREIGN KEY (quest_tag) REFERENCES quest_pc_data (quest_tag) " +
@@ -214,6 +215,13 @@ string GetQuestTag(int nQuestID)
     SqlBindInt(sql, "@id", nQuestID);
 
     return (SqlStep(sql) ? SqlGetString(sql, 0) : "");
+}
+
+int CountRowChanges(object oTarget)
+{
+    sQuery = "SELECT CHANGES();";
+    sql = SqlPrepareQueryObject(oTarget, sQuery);
+    return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
 }
 
 string QuestToString(int nQuestID)
@@ -687,6 +695,19 @@ void ResetPCQuestData(object oPC, int nQuestID)
     HandleSqlDebugging(sql);
 }
 
+void IncrementPCQuestField(object oPC, int nQuestID, string sField)
+{
+    string sQuestTag = GetQuestTag(nQuestID);
+    sQuery = "UPDATE quest_pc_data " + 
+             "SET " + sField + " = " + sField + " + 1 " +
+             "WHERE quest_tag = @tag;";
+    sql = SqlPrepareQueryObject(oPC, sQuery);
+    SqlBindString(sql, "@tag", sQuestTag);
+    SqlStep(sql);
+
+    HandleSqlDebugging(sql);
+}
+
 void IncrementPCQuestCompletions(object oPC, int nQuestID, string sTime)
 {
     ResetPCQuestData(oPC, nQuestID);
@@ -783,7 +804,7 @@ int CountPCIncrementableSteps(object oPC, string sTargetTag, int nObjectiveType,
 }
 
 //void IncrementQuestStepQuantity(object oPC, string sQuestTag, string sTargetTag, int nObjectiveType, string sData = "")
-void IncrementQuestStepQuantity(object oPC, string sTargetTag, int nObjectiveType, string sData = "")
+int IncrementQuestStepQuantity(object oPC, string sTargetTag, int nObjectiveType, string sData = "")
 
 {
     sQuery = "UPDATE quest_pc_step " +
@@ -800,7 +821,27 @@ void IncrementQuestStepQuantity(object oPC, string sTargetTag, int nObjectiveTyp
         SqlBindString(sql, "@data", sData);
 
     SqlStep(sql);
+    HandleSqlDebugging(sql);
 
+    return CountRowChanges(oPC);
+}
+
+void DecrementQuestStepQuantity(object oPC, string sQuestTag, string sTargetTag, int nObjectiveType, string sData = "")
+{
+    sQuery = "UPDATE quest_pc_step " +
+             "SET nAcquired = min(0, nAcquired - 1) " +
+             "WHERE nObjectiveType = @type " +
+                "AND sTag = @tag" +
+                "AND quest_tag = @quest_tag" +
+                (sData == "" ? ";" : " AND sData = @data;");
+    sql = SqlPrepareQueryObject(oPC, sQuery);
+    SqlBindInt(sql, "@type", nObjectiveType);
+    SqlBindString(sql, "@tag", sTargetTag);
+    SqlBindString(sql, "@quest_tag", sQuestTag);
+    if (sData != "")
+        SqlBindString(sql, "@data", sData);
+
+    SqlStep(sql);
     HandleSqlDebugging(sql);
 }
 
