@@ -1,4 +1,6 @@
 #include "util_i_debug"
+#include "util_i_csvlists"
+#include "util_i_math"
 #include "quest_i_const"
 
 string AlignmentToString(int nAlignment)
@@ -143,9 +145,21 @@ string RaceToString(int nRace)
     return "[NOT FOUND]";
 }
 
-string ColorValue(string sValue)
+string JournalLocationToString(int nJournalLocation)
 {
-    if (sValue == "" )
+    switch (nJournalLocation)
+    {
+        case QUEST_JOURNAL_NONE: return "NONE";
+        case QUEST_JOURNAL_NWN: return "NWN";
+        case QUEST_JOURNAL_NWNX: return "NWNX";
+    }
+
+    return "[NOT FOUND]";
+}
+
+string ColorValue(string sValue, int nZeroIsEmpty = FALSE)
+{
+    if (sValue == "" || (nZeroIsEmpty && sValue == "0"))
         return HexColorString("[EMPTY]", COLOR_GRAY);
     else if (sValue == "[NOT FOUND]")
         return HexColorString(sValue, COLOR_RED_LIGHT);

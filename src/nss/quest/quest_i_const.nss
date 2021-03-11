@@ -25,6 +25,7 @@ const string QUEST_SCRIPT_ON_ADVANCE = "sScriptOnAdvance";
 const string QUEST_SCRIPT_ON_COMPLETE = "sScriptOnComplete";
 const string QUEST_SCRIPT_ON_FAIL = "sScriptOnFail";
 const string QUEST_COOLDOWN = "sCooldown";
+const string QUEST_JOURNAL_LOCATION = "nJournalLocation";
 
 const string QUEST_STEP_JOURNAL_ENTRY = "sJournalEntry";
 const string QUEST_STEP_TIME_LIMIT = "sTimeLimit";
@@ -33,9 +34,9 @@ const string QUEST_STEP_PROXIMITY = "nProximity";
 const string QUEST_STEP_TYPE = "nStepType";
 
 // Quest PC Variable Names
-const string QUEST_PC_QUEST_TIME = "sQuestStartTime";
-const string QUEST_PC_STEP_TIME = "sStepStartTime";
-const string QUEST_PC_LAST_COMPLETE = "sLastCompleteTime";
+const string QUEST_PC_QUEST_TIME = "nQuestStartTime";
+const string QUEST_PC_STEP_TIME = "nStepStartTime";
+const string QUEST_PC_LAST_COMPLETE = "nLastCompleteTime";
 const string QUEST_PC_COMPLETIONS = "nCompletions";
 const string QUEST_PC_STEP = "nStep";
 
@@ -99,6 +100,11 @@ const int QUEST_EVENT_ON_FAIL = 4;
 // Step Order
 const int QUEST_STEP_ORDER_SEQUENTIAL = 1;
 const int QUEST_STEP_ORDER_RANDOM = 2;
+
+// Journal Locations
+const int QUEST_JOURNAL_NONE = 0;
+const int QUEST_JOURNAL_NWN = 1;
+const int QUEST_JOURNAL_NWNX = 2;
 
 // Variable Validity
 const string REQUEST_INVALID = "REQUEST_INVALID";

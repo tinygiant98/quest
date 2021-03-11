@@ -142,6 +142,9 @@ void SetQuestTimeLimit(int nQuestID, string sTime);
 string GetQuestCooldown(int nQuestID);
 void SetQuestCooldown(int nQuestID, string sTime);
 
+int GetQuestJournalLocation(int nQuestID);
+void SetQuestJournalLocation(int nQuestID, int nJournalLocation = QUEST_JOURNAL_NWN);
+
 // ---< SetQuestPrerequisite[Alignment|Class|Gold|Item|LevelMax|LevelMin|Quest|QuestStep|Race] >---
 // Sets a prerequisite for a PC to be able to be assigned a quest.  Prerequisites are used by
 //  GetIsQuestAssignable() to determine if a PC is eligible to be assigned quest sTag
@@ -552,7 +555,7 @@ void _AssignQuest(object oPC, int nQuestID)
         _AddQuestToPC(oPC, nQuestID);
 
     // Set the quest start time
-    _SetPCQuestData(oPC, nQuestID, QUEST_PC_QUEST_TIME, GetSystemTime());
+    _SetPCQuestData(oPC, nQuestID, QUEST_PC_QUEST_TIME, IntToString(GetUnixTimeStamp()));
     IncrementPCQuestField(oPC, nQuestID, "nAttempts");
     
     RunQuestScript(oPC, nQuestID, QUEST_SCRIPT_TYPE_ON_ACCEPT);
@@ -1011,7 +1014,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
     {
         if (GetIsPCQuestComplete(oPC, nQuestID))
         {
-            string sCompleteTime, sCooldownTime = GetQuestCooldown(nQuestID);
+            string sCooldownTime = GetQuestCooldown(nQuestID);
             if (sCooldownTime == "")
             {
                 QuestDebug("There is no cooldown time for this quest");
@@ -1019,9 +1022,9 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
             }
             else
             {
-                sCompleteTime = _GetPCQuestData(oPC, nQuestID, QUEST_PC_LAST_COMPLETE);
-                sCompleteTime = AddSystemTimeVector(sCompleteTime, sCooldownTime);
-                if (GetMinSystemTime(sCompleteTime) == sCompleteTime)
+                int nCompleteTime = StringToInt(_GetPCQuestData(oPC, nQuestID, QUEST_PC_LAST_COMPLETE));
+                nCompleteTime = GetModifiedUnixTimeStamp(nCompleteTime, sCooldownTime);
+                if (GetGreaterUnixTimeStamp(nCompleteTime) == nCompleteTime)
                 {
                     QuestDebug(PCToString(oPC) + " has met the required cooldown time");
                     bAssignable = TRUE;
@@ -1499,11 +1502,24 @@ void CopyQuestStepObjectiveData(object oPC, int nQuestID, int nStep)
 
 void SendJournalQuestEntry(object oPC, int nQuestID, int nStep)
 {
-    QuestDebug("Sending " + PCToString(oPC) + " a journal entry for " +
-        QuestToString(nQuestID));
+    int nDestination = GetQuestJournalLocation(nQuestID);
+    string sQuestTag = GetQuestTag(nQuestID);
 
-    string sTag = GetQuestTag(nQuestID);
-    AddJournalQuestEntry(sTag, nStep, oPC, FALSE, FALSE, TRUE);
+    switch (nDestination)
+    {
+        case QUEST_JOURNAL_NONE:
+            QuestDebug("Journal Quest Entries for " + QuestToString(nQuestID) + " have been suppressed");
+            break;
+        case QUEST_JOURNAL_NWN:
+            QuestDebug("Journal Quest entry for " + QuestToString(nQuestID) + " " + StepToString(nStep) +
+                "has been dispatched to the NWN journal system");
+            AddJournalQuestEntry(sQuestTag, nStep, oPC, FALSE, FALSE, TRUE);
+            break;
+        case QUEST_JOURNAL_NWNX:
+            QuestError("Journal Quest Entries for " + QuestToString(nQuestID) + " have been designated for " +
+                "NWNX, however NWNX functionality has not yet been instituted.");
+            break;
+    }
 }
 
 void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUCCESS)
@@ -1520,13 +1536,12 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
         {
             // Next step is the last step, go to the completion step
             nNextStep = GetQuestCompletionStep(nQuestID);
-            int nJournalStep = nCurrentStep + QUEST_STEP_TYPE_SUCCESS;
 
             DeletePCQuestProgress(oPC, nQuestID);
-            SendJournalQuestEntry(oPC, nQuestID, nJournalStep);
+            SendJournalQuestEntry(oPC, nQuestID, nNextStep);
             _AwardQuestStepAllotments(oPC, nQuestID, nCurrentStep, QUEST_CATEGORY_REWARD);
             _AwardQuestStepAllotments(oPC, nQuestID, nNextStep, QUEST_CATEGORY_REWARD);
-            IncrementPCQuestCompletions(oPC, nQuestID, GetSystemTime());
+            IncrementPCQuestCompletions(oPC, nQuestID, GetUnixTimeStamp());
             RunQuestScript(oPC, nQuestID, QUEST_SCRIPT_TYPE_ON_COMPLETE);
         }
         else
@@ -1538,7 +1553,7 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
             _AwardQuestStepAllotments(oPC, nQuestID, nCurrentStep, QUEST_CATEGORY_REWARD);
             _AwardQuestStepAllotments(oPC, nQuestID, nNextStep, QUEST_CATEGORY_PREWARD);
             _SetPCQuestData(oPC, nQuestID, QUEST_PC_STEP, IntToString(nNextStep));
-            _SetPCQuestData(oPC, nQuestID, QUEST_PC_STEP_TIME, GetSystemTime());
+            _SetPCQuestData(oPC, nQuestID, QUEST_PC_STEP_TIME, IntToString(GetUnixTimeStamp()));
             RunQuestScript(oPC, nQuestID, QUEST_SCRIPT_TYPE_ON_ADVANCE);
         }
 
@@ -1550,7 +1565,7 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
     {
         int nNextStep = GetQuestCompletionStep(nQuestID, QUEST_ADVANCE_FAIL);
         DeletePCQuestProgress(oPC, nQuestID);
-        IncrementPCQuestFailures(oPC, nQuestID, GetSystemTime());
+        IncrementPCQuestFailures(oPC, nQuestID, GetUnixTimeStamp());
 
         if (nNextStep != -1)
         {
@@ -1569,7 +1584,7 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
     int QUEST_STEP_FAIL = 2;
 
     int nRequired, nAcquired, nStatus = QUEST_STEP_INCOMPLETE;
-    string sStartTime, sGoalTime;
+    int nStartTime, nGoalTime;
 
     // Check for time failure first, if there is a time limit
     string sQuestTimeLimit = GetQuestTimeLimit(nQuestID);
@@ -1577,16 +1592,20 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
 
     // Check for quest step time limit ...
     if (sStepTimeLimit != "")
-    {   // There was a time limit assigned
-        sStartTime = _GetPCQuestData(oPC, nQuestID, QUEST_PC_STEP_TIME);
-        sGoalTime = AddSystemTimeVector(sStartTime, sStepTimeLimit);
-        if (GetMinSystemTime(sGoalTime) == sGoalTime)
-            nStatus = QUEST_STEP_FAIL;
+    {
+        int nStartTime = StringToInt(_GetPCQuestData(oPC, nQuestID, QUEST_PC_STEP_TIME));
+        int nGoalTime = GetModifiedUnixTimeStamp(nStartTime, sStepTimeLimit);
 
-        QuestDebug(PCToString(oPC) + " failed to meet the time limit for " +
-            QuestToString(nQuestID) + " " + StepToString(nStep) +
+        if (GetGreaterUnixTimeStamp(nGoalTime) != nGoalTime)
+        {
+            QuestDebug(PCToString(oPC) + " failed to meet the time limit for " +
+                QuestToString(nQuestID) + " " + StepToString(nStep));
+            nStatus = QUEST_STEP_FAIL;
+        }
+
+/* +
             "\n  Completion Requirement -> " + GetSystemTime() +
-            "\n  Completion Time -> " + sGoalTime);
+            "\n  Completion Time -> " + sGoalTime);*/
     }
 
     if (nStatus != QUEST_STEP_FAIL)
@@ -1594,13 +1613,16 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
         // Check for overall quest time limit ...
         if (sQuestTimeLimit != "")
         {
-            sStartTime = _GetPCQuestData(oPC, nQuestID, QUEST_PC_QUEST_TIME);
-            sGoalTime = AddSystemTimeVector(sStartTime, sQuestTimeLimit);
-            if (GetMinSystemTime(sGoalTime) == sGoalTime)
-                nStatus = QUEST_STEP_FAIL;
+            nStartTime = StringToInt(_GetPCQuestData(oPC, nQuestID, QUEST_PC_QUEST_TIME));
+            nGoalTime = GetModifiedUnixTimeStamp(nStartTime, sQuestTimeLimit);
 
-            QuestDebug(PCToString(oPC) + " failed to meet the time limit for " +
-                QuestToString(nQuestID));
+            if (GetGreaterUnixTimeStamp(nGoalTime) != nGoalTime)
+            {
+                nStatus = QUEST_STEP_FAIL;
+                QuestDebug(PCToString(oPC) + " failed to meet the time limit for " +
+                    QuestToString(nQuestID));
+            }
+
         }
     }
 
@@ -1616,10 +1638,12 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
             nAcquired = SqlGetInt(sqlFail, 2);
 
             if (nAcquired > nRequired)
+            {
                 nStatus = QUEST_STEP_FAIL;
+                QuestDebug(PCToString(oPC) + "failed to meet an exclusive quest objective " +
+                    "for " + QuestToString(nQuestID) + " " + StepToString(nStep));
+            }
 
-            QuestDebug(PCToString(oPC) + "failed to meet an exclusive quest objective " +
-                "for " + QuestToString(nQuestID) + " " + StepToString(nStep));
         }
 
         // We passed the exclusive checks, see about the inclusive checks
@@ -1632,11 +1656,13 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
                 nAcquired = SqlGetInt(sqlSums, 2);
 
                 if (nAcquired >= nRequired)
+                {
+                    QuestDebug(PCToString(oPC) + " has met all requirements to " +
+                        "successfully complete " + QuestToString(nQuestID) +
+                        " " + StepToString(nStep));
                     nStatus = QUEST_STEP_COMPLETE;
+                }
 
-                QuestDebug(PCToString(oPC) + " has met all requirements to " +
-                    "successfully complete " + QuestToString(nQuestID) +
-                    " " + StepToString(nStep));
             }
         }
     }
@@ -1721,6 +1747,19 @@ void SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, str
 
         oParty = GetNextFactionMember(oPC, TRUE);
     }
+}
+
+string CreateTimeVector(int nYears = 0, int nMonths = 0, int nDays = 0,
+                        int nHours = 0, int nMinutes = 0, int nSeconds = 0)
+{
+    string sResult = AddListItem(sResult, IntToString(nYears));
+           sResult = AddListItem(sResult, IntToString(nMonths));
+           sResult = AddListItem(sResult, IntToString(nDays));
+           sResult = AddListItem(sResult, IntToString(nHours));
+           sResult = AddListItem(sResult, IntToString(nMinutes));
+           sResult = AddListItem(sResult, IntToString(nSeconds));
+
+    return sResult;
 }
 
 // These two functions are used to access temporary variables to
@@ -1866,6 +1905,17 @@ void SetQuestScriptAll(int nQuestID, string sScript = "")
     SetQuestScriptOnAdvance(nQuestID, sScript);
     SetQuestScriptOnComplete(nQuestID, sScript);
     SetQuestScriptOnFail(nQuestID, sScript);
+}
+
+int GetQuestJournalLocation(int nQuestID)
+{
+    string sResult = _GetQuestData(nQuestID, QUEST_JOURNAL_LOCATION);
+    return StringToInt(sResult);
+}
+
+void SetQuestJournalLocation(int nQuestID, int nLocation = QUEST_JOURNAL_NWN)
+{
+    _SetQuestData(nQuestID, QUEST_JOURNAL_LOCATION, IntToString(nLocation));
 }
 
 string GetQuestStepJournalEntry(int nQuestID, int nStep)

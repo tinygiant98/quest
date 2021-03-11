@@ -42,10 +42,11 @@ void CreateModuleQuestTables(int bReset = FALSE)
                         "sScriptOnAccept TEXT default NULL, " +
                         "sScriptOnAdvance TEXT default NULL, " +
                         "sScriptOnComplete TEXT default NULL, " + 
-                        "sScriptOnFail TEXT defaul NULL, " +
+                        "sScriptOnFail TEXT default NULL, " +
                         "nStepOrder TEXT default '" + IntToString(QUEST_STEP_ORDER_SEQUENTIAL) + "', " +
                         "sTimeLimit TEXT default NULL, " +
-                        "sCooldown TEXT default NULL);";
+                        "sCooldown TEXT default NULL, " +
+                        "nJournalLocation TEXT default '1');";
 
     string sQuestPrerequisites = "CREATE TABLE IF NOT EXISTS quest_prerequisites (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -116,9 +117,9 @@ void CreatePCQuestTables(object oPC, int bReset = FALSE)
         "nAttempts INTEGER default '0', " +
         "nCompletions INTEGER default '0', " +
         "nFailures INTEGER default '0', " +
-        "sQuestStartTime TEXT default '', " +
-        "sStepStartTime TEXT default '', " +
-        "sLastCompleteTime TEXT default '');";
+        "nQuestStartTime INTEGER default '0', " +
+        "nStepStartTime INTEGER default '0', " +
+        "nLastCompleteTime INTEGER default '0');";
 
     string sQuestStep = "CREATE TABLE IF NOT EXISTS quest_pc_step (" +
         "quest_tag TEXT, " +
@@ -223,6 +224,133 @@ int CountRowChanges(object oTarget)
     sQuery = "SELECT CHANGES();";
     sql = SqlPrepareQueryObject(oTarget, sQuery);
     return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
+}
+
+string GetTimeStamp()
+{
+    //sQuery = "SELECT strftime('%s', 'now')";
+    sQuery = "SELECT CURRENT_TIMESTAMP;";
+    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlStep(sql);
+    
+    return SqlGetString(sql, 0);
+}
+
+int GetUnixTimeStamp()
+{
+    sQuery = "SELECT strftime('%s', 'now')";
+    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlStep(sql);
+
+    return SqlGetInt(sql, 0);
+}
+
+string GetGreaterTimeStamp(string sTime1, string sTime2)
+{
+    sQuery = "SELECT strftime('%s', '" + sTime1 + "');";
+    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlStep(sql);
+
+    int nTime1 = SqlGetInt(sql, 0);
+
+    sQuery = "SELECT strftime('%s', '" + sTime2 + "');";
+    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlStep(sql);
+
+    int nTime2 = SqlGetInt(sql, 0);
+
+    if (nTime1 == nTime2)
+        return sTime1;
+    else if (nTime1 < nTime2)
+        return sTime2;
+    else if (nTime1 > nTime2)
+        return sTime1;
+    else 
+        return "";
+}
+
+int GetGreaterUnixTimeStamp(int nTime1, int nTime2 = 0)
+{
+    if (nTime2 == 0)
+        nTime2 = GetUnixTimeStamp();
+
+    Notice("nTime1 -> " + GetFormattedTimeSinceEpoch(nTime1));
+    Notice("nTime2 -> " + GetFormattedTimeSinceEpoch(nTime2));
+
+    if (nTime1 == nTime2 || nTime1 > nTime2)
+        return nTime1;
+    else
+        return nTime2;
+}
+
+int GetModifiedUnixTimeStamp(int nTimeStamp, string sTimeVector)
+{
+    string sUnit, sUnits = "years, months, days, hours, minutes, seconds";
+    string sTime, sResult;
+
+    int n, nTime, nCount = CountList(sTimeVector);
+    for (n = 0; n < nCount; n++)
+    {
+        sUnit = GetListItem(sUnits, n);         // units
+        sTime = GetListItem(sTimeVector, n);    // time vector value
+        nTime = StringToInt(sTime);
+
+        if (nTime != 0)
+        {
+            if (nTime < 0)
+                sTime = "-" + sTime;
+            else if (nTime > 0)
+                sTime = "+" + sTime;
+            else
+                break;
+
+            sResult += (sResult == "" ? "" : ",") + "'" + sTime + " " + sUnit + "'";
+        }
+    }
+
+    if (sResult == "")
+        return nTimeStamp;
+
+    sQuery = "SELECT strftime('%s', datetime(" + IntToString(nTimeStamp) + ",'unixepoch', " + sResult + "));";
+    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlStep(sql);
+
+    return SqlGetInt(sql, 0);   
+}
+
+string GetModifiedTimeStamp(string sTimeStamp, string sTimeVector)
+{
+    string sUnit, sUnits = "years, months, days, hours, minutes, seconds";
+    string sTime, sResult;
+
+    int n, nTime, nCount = CountList(sTimeVector);
+    for (n = 0; n < nCount; n++)
+    {
+        sUnit = GetListItem(sUnits, n);         // units
+        sTime = GetListItem(sTimeVector, n);    // time vector value
+        nTime = StringToInt(sTime);
+
+        if (nTime != 0)
+        {
+            if (nTime < 0)
+                sTime = "-" + sTime;
+            else if (nTime > 0)
+                sTime = "+" + sTime;
+            else
+                break;
+
+            sResult += (sResult == "" ? "" : ",") + "'" + sTime + " " + sUnit + "'";
+        }
+    }
+
+    if (sResult == "")
+        return sTimeStamp;
+
+    sQuery = "SELECT datetime('" + sTimeStamp + "', " + sResult + ");";
+    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlStep(sql);
+
+    return SqlGetString(sql, 0);
 }
 
 string QuestToString(int nQuestID)
@@ -682,14 +810,14 @@ void ResetPCQuestData(object oPC, int nQuestID)
     string sQuestTag = GetQuestTag(nQuestID);
     string sQuery = "UPDATE quest_pc_data " +
                     "SET nStep = @step, " +
-                        "sQuestStartTime = @quest_start, " +
-                        "sStepStartTime = @step_start " +
+                        "nQuestStartTime = @quest_start, " +
+                        "nStepStartTime = @step_start " +
                     "WHERE quest_tag = @tag;";
     sqlquery sql = SqlPrepareQueryObject(oPC, sQuery);
     SqlBindString(sql, "@tag", sQuestTag);
     SqlBindInt(sql, "@step", 0);
-    SqlBindString(sql, "@quest_start", "");
-    SqlBindString(sql, "@step_start", "");
+    SqlBindInt(sql, "@quest_start", 0);
+    SqlBindInt(sql, "@step_start", 0);
 
     SqlStep(sql);
 
@@ -709,35 +837,35 @@ void IncrementPCQuestField(object oPC, int nQuestID, string sField)
     HandleSqlDebugging(sql);
 }
 
-void IncrementPCQuestCompletions(object oPC, int nQuestID, string sTime)
+void IncrementPCQuestCompletions(object oPC, int nQuestID, int nTimeStamp)
 {
     ResetPCQuestData(oPC, nQuestID);
 
     string sQuestTag = GetQuestTag(nQuestID);
     sQuery = "UPDATE quest_pc_data " +
              "SET nCompletions = nCompletions + 1, " +
-                 "sLastCompleteTime = @time " +
+                 "nLastCompleteTime = @time " +
              "WHERE quest_tag = @tag;";
     sql = SqlPrepareQueryObject(oPC, sQuery);
     SqlBindString(sql, "@tag", sQuestTag);
-    SqlBindString(sql, "@time", sTime);
+    SqlBindInt(sql, "@time", nTimeStamp);
     SqlStep(sql);
 
     HandleSqlDebugging(sql);
 }
 
-void IncrementPCQuestFailures(object oPC, int nQuestID, string sTime)
+void IncrementPCQuestFailures(object oPC, int nQuestID, int nTimeStamp)
 {
     ResetPCQuestData(oPC, nQuestID);
 
     string sQuestTag = GetQuestTag(nQuestID);
     sQuery = "UPDATE quest_pc_data " +
-             "SET nFailure = nFailures + 1, " +
-                 "sLastCompleteTime = @time " +
+             "SET nFailures = nFailures + 1, " +
+                 "nLastCompleteTime = @time " +
              "WHERE quest_tag = @tag;";
     sql = SqlPrepareQueryObject(oPC, sQuery);
     SqlBindString(sql, "@tag", sQuestTag);
-    SqlBindString(sql, "@time", sTime);
+    SqlBindInt(sql, "@time", nTimeStamp);
     SqlStep(sql);
 
     HandleSqlDebugging(sql);

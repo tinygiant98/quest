@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 #include "util_i_chat"
+#include "util_i_time"
 #include "quest_i_database"
 #include "quest_i_main"
 #include "quest_i_debug"
@@ -41,6 +42,11 @@ void main()
 {
     object oPC = GetPCChatSpeaker();
 
+    if (HasChatOption(oPC, "time"))
+    {
+
+    }
+
     if (HasChatOption(oPC, "load"))
         ExecuteScript("quest_define", GetModule());
 
@@ -65,8 +71,9 @@ void main()
         {
             Notice("Dumping PC Quest data");
 
-            string sPCQuestTag, sPCStepStartTime, sPCQuestStartTime, sPCLastCompleteTime;
-            int n, nPCStep, nPCCompletions, nPCAttempts;
+            string sPCQuestTag;
+            int nPCStepStartTime, nPCQuestStartTime, nPCLastCompleteTime;
+            int n, nPCStep, nPCCompletions, nPCAttempts, nPCFailures;
 
             sqlquery sql;
             string sQuery, sRequestedQuest = GetChatArgument(oPC);
@@ -89,17 +96,19 @@ void main()
                 nPCStep = SqlGetInt(sql, ++n);
                 nPCAttempts = SqlGetInt(sql, ++n);
                 nPCCompletions = SqlGetInt(sql, ++n);
-                sPCQuestStartTime = SqlGetString(sql, ++n);
-                sPCStepStartTime = SqlGetString(sql, ++n);
-                sPCLastCompleteTime = SqlGetString(sql, ++n);
+                nPCFailures = SqlGetInt(sql, ++n);
+                nPCQuestStartTime = SqlGetInt(sql, ++n);
+                nPCStepStartTime = SqlGetInt(sql, ++n);
+                nPCLastCompleteTime = SqlGetInt(sql, ++n);
 
                 Notice(HexColorString("Dumping PC data for " + sPCQuestTag, COLOR_CYAN));
                 Notice("  Step  " + ColorValue(IntToString(nPCStep)) +
                      "\n  Attempts  " + ColorValue(IntToString(nPCAttempts)) +
                      "\n  Completions  " + ColorValue(IntToString(nPCCompletions)) +
-                     "\n  Quest Start  " + ColorValue(sPCQuestStartTime) +
-                     "\n  Step Start  " + ColorValue(sPCStepStartTime) +
-                     "\n  Last Completion  " + ColorValue(sPCLastCompleteTime)); 
+                     "\n  Failures  " + ColorValue(IntToString(nPCFailures)) + 
+                     "\n  Quest Start  " + ColorValue(IntToString(nPCQuestStartTime), TRUE) +
+                     "\n  Step Start  " + ColorValue(IntToString(nPCStepStartTime), TRUE) +
+                     "\n  Last Completion  " + ColorValue(IntToString(nPCLastCompleteTime), TRUE)); 
 
                 string sQuery1 = "SELECT * FROM quest_pc_step " +
                                  "WHERE quest_tag = @tag;";
@@ -130,7 +139,7 @@ void main()
             string sTag, sTitle, sAccept, sAdvance, sComplete, sFail;
             string sTime, sCooldown;
 
-            int nStepID, nQuestID, nStep, nPartyCompletion, nProximity, nStepType;
+            int nStepID, nQuestID, nStep, nPartyCompletion, nProximity, nStepType, nJournalLocation;
             string sJournalEntry, sTimeLimit;
 
             sqlquery sql;
@@ -165,6 +174,7 @@ void main()
                 nStepOrder = SqlGetInt(sql, ++n);
                 sTime = SqlGetString(sql, ++n);
                 sCooldown = SqlGetString(sql, ++n);
+                nJournalLocation = SqlGetInt(sql, ++n);
             
                 Notice(HexColorString("Dumping data for " + QuestToString(nID), COLOR_CYAN));
                 Notice("  Tag  " + ColorValue(sTag) +
@@ -177,7 +187,8 @@ void main()
                     "\n  Fail Script  " + ColorValue(sFail) +
                     "\n  Step Order  " + ColorValue(StepOrderToString(nStepOrder)) +
                     "\n  Time Limit  " + ColorValue(sTime) +
-                    "\n  Cooldown Time  " + ColorValue(sCooldown));
+                    "\n  Cooldown Time  " + ColorValue(sCooldown) +
+                    "\n  Journal Location  " + ColorValue(JournalLocationToString(nJournalLocation)));
 
                 if (CountQuestPrerequisites(nID) > 0)
                 {
