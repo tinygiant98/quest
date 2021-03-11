@@ -12,6 +12,7 @@
 // Variable names for event scripts
 const string QUEST_CURRENT_QUEST = "QUEST_CURRENT_QUEST";
 const string QUEST_CURRENT_STEP = "QUEST_CURRENT_STEP";
+const string QUEST_CURRENT_EVENT = "QUEST_CURRENT_EVENT";
 
 // Table column names
 const string QUEST_ACTIVE = "nActive";
@@ -28,6 +29,7 @@ const string QUEST_COOLDOWN = "sCooldown";
 const string QUEST_STEP_JOURNAL_ENTRY = "sJournalEntry";
 const string QUEST_STEP_TIME_LIMIT = "sTimeLimit";
 const string QUEST_STEP_PARTY_COMPLETION = "nPartyCompletion";
+const string QUEST_STEP_PROXIMITY = "nProximity";
 const string QUEST_STEP_TYPE = "nStepType";
 
 // Quest PC Variable Names
@@ -87,6 +89,12 @@ const int QUEST_SCRIPT_TYPE_ON_ACCEPT = 1;
 const int QUEST_SCRIPT_TYPE_ON_ADVANCE = 2;
 const int QUEST_SCRIPT_TYPE_ON_COMPLETE = 3;
 const int QUEST_SCRIPT_TYPE_ON_FAIL = 4;
+
+// Quest Events
+const int QUEST_EVENT_ON_ACCEPT = 1;
+const int QUEST_EVENT_ON_ADVANCE = 2;
+const int QUEST_EVENT_ON_COMPLETE = 3;
+const int QUEST_EVENT_ON_FAIL = 4;
 
 // Step Order
 const int QUEST_STEP_ORDER_SEQUENTIAL = 1;

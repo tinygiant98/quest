@@ -180,6 +180,18 @@ string ObjectiveTypeToString(int nObjectiveType)
     return "[NOT FOUND]";
 }
 
+string StepTypeToString(int nStepType)
+{
+    switch (nStepType)
+    {
+        case QUEST_STEP_TYPE_PROGRESS: return "PROGRESS";
+        case QUEST_STEP_TYPE_SUCCESS: return "SUCCESS";
+        case QUEST_STEP_TYPE_FAIL: return "FAIL";
+    }
+
+    return "[NOT FOUND]";
+}
+
 string ValueTypeToString(int nValueType, int nCategoryType = QUEST_CATEGORY_PREREQUISITE)
 {
     if (nCategoryType != QUEST_CATEGORY_OBJECTIVE)

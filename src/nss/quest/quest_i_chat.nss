@@ -130,7 +130,7 @@ void main()
             string sTag, sTitle, sAccept, sAdvance, sComplete, sFail;
             string sTime, sCooldown;
 
-            int nStepID, nQuestID, nStep, nPartyCompletion;
+            int nStepID, nQuestID, nStep, nPartyCompletion, nProximity, nStepType;
             string sJournalEntry, sTimeLimit;
 
             sqlquery sql;
@@ -222,14 +222,18 @@ void main()
                         sJournalEntry = SqlGetString(sqlSub, ++n);
                         sTimeLimit = SqlGetString(sqlSub, ++n);
                         nPartyCompletion = SqlGetInt(sqlSub, ++n);
+                        nProximity = SqlGetInt(sqlSub, ++n);
+                        nStepType = SqlGetInt(sqlSub, ++n);
 
                         string sStep = HexColorString(IntToString(nStep), COLOR_CYAN);
                         Notice("    " + sStep + "  Journal  " + ColorValue(sJournalEntry) +
                             "\n        Time Limit  " + ColorValue(sTimeLimit == "" ? "" : "(" + sTimeLimit + ")") +
-                            "\n        Party Completion  " + ColorValue((nPartyCompletion ? "TRUE":"FALSE")));
+                            "\n        Party Completion  " + ColorValue((nPartyCompletion ? "TRUE":"FALSE")) +
+                            "\n        Proximity Required  " + ColorValue((nProximity ? "TRUE":"FALSE")) +
+                            "\n        Step Type  " + StepTypeToString(nStepType));
                     
                         // Another inside loop for the step objectives/properties
-                        Notice(HexColorString("        Dumping step properties for Step " + IntToString(nStep), COLOR_CYAN));
+                        Notice(HexColorString("        Dumping step properties for " + StepToString(nStep), COLOR_CYAN));
                         sNewQuery = "SELECT quest_step_properties.* FROM quest_steps INNER JOIN quest_step_properties " +
                                         "ON quest_steps.id = quest_step_properties.quest_steps_id " +
                                     "WHERE quest_steps.quests_id = @id " +

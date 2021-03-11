@@ -176,6 +176,13 @@ void SetQuestStepTimeLimit(int nQuestID, int nStep, string sTime = "");
 int GetQuestStepPartyCompletion(int nQuestID, int nStep);
 void SetQuestStepPartyCompletion(int nQuestID, int nStep, int nParty);
 
+// ---< [Get|Set]QuestStepProximity >---
+// Sets whether a party member has to be within the same area as a triggering PC
+// to qualify that party member to receive credit for an objective.  Has not effect
+// if nPartyCompletion = FALSE.
+int GetQuestStepProximity(int nQuesTID, int nStep);
+void SetQuestStepProximity(int nQuestID, int nStep, int nRequired = TRUE);
+
 // ---< [AddQuestResolution[Success|Fail] >---
 // Adds the final quest step to quest nQuestID.
 int AddQuestResolutionSuccess(int nQuestID, string sJournalEntry = "", int nStep = -1);
@@ -430,8 +437,6 @@ void DeleteQuestString(string sTag, string sVarName)
 
     _DeleteQuestVariable(nQuestID, "STRING", sVarName);
 }
-// Not planning on other types, this is probably of limited use anyway.
-// End accessors for quest variables
 
 void _SetQuestStepData(int nQuestID, int nStep, string sField, string sValue)
 {
@@ -1006,7 +1011,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
     {
         if (GetIsPCQuestComplete(oPC, nQuestID))
         {
-            string sCompleteTime, sCooldownTime = _GetQuestData(nQuestID, QUEST_COOLDOWN);
+            string sCompleteTime, sCooldownTime = GetQuestCooldown(nQuestID);
             if (sCooldownTime == "")
             {
                 QuestDebug("There is no cooldown time for this quest");
@@ -1263,7 +1268,6 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
             }
             case QUEST_VALUE_QUEST:
             {
-                // TODO Add quest failure count requirements
                 string sQuestTag;
                 int nRequiredCompletions;
                 int bQualifies, bPCHasQuest, nPCCompletions, nPCFailures;
@@ -1290,7 +1294,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                     {
                         if (bPCHasQuest == TRUE && nPCCompletions == 0)
                             bQualifies = TRUE;
-                    }   // TODO where does failure fit in here and how is it designated without changing the assignment function?
+                    }
                     else if (nRequiredCompletions < 0)
                     {
                         if (bPCHasQuest == TRUE)
@@ -1443,12 +1447,15 @@ void RunQuestScript(object oPC, int nQuestID, int nScriptType)
     if (sScript == "")
         return;
     
+    object oModule = GetModule();
+
     // Set values that the script has available to it
-    SetLocalString(GetModule(), QUEST_CURRENT_QUEST, sQuestTag);
+    SetLocalString(oModule, QUEST_CURRENT_QUEST, sQuestTag);
+    SetLocalInt(oModule, QUEST_CURRENT_EVENT, nScriptType);
     if (bSetStep)
     {
         int nStep = GetPCQuestStep(oPC, nQuestID);
-        SetLocalInt(GetModule(), QUEST_CURRENT_STEP, nStep);
+        SetLocalInt(oModule, QUEST_CURRENT_STEP, nStep);
     }
 
     QuestDebug("Running '" + ScriptTypeToString(nScriptType) + "' script " +
@@ -1456,8 +1463,9 @@ void RunQuestScript(object oPC, int nQuestID, int nScriptType)
     
     ExecuteScript(sScript, oPC);
 
-    DeleteLocalInt(GetModule(), QUEST_CURRENT_QUEST);
-    DeleteLocalInt(GetModule(), QUEST_CURRENT_STEP);
+    DeleteLocalString(oModule, QUEST_CURRENT_QUEST);
+    DeleteLocalInt(oModule, QUEST_CURRENT_STEP);
+    DeleteLocalInt(oModule, QUEST_CURRENT_EVENT);
 }
 
 void UnassignQuest(object oPC, int nQuestID)
@@ -1523,6 +1531,7 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
         }
         else
         {
+            // There is another step to complete, press...
             DeletePCQuestProgress(oPC, nQuestID);
             CopyQuestStepObjectiveData(oPC, nQuestID, nNextStep);
             SendJournalQuestEntry(oPC, nQuestID, nNextStep);
@@ -1534,19 +1543,14 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
         }
 
         QuestDebug("Advanced quest " + QuestToString(nQuestID) + " for " +
-            PCToString(oPC) + " from step " + IntToString(nCurrentStep) +
-            " to step " + IntToString(nNextStep));
+            PCToString(oPC) + " from step " + StepToString(nCurrentStep) +
+            " to step " + StepToString(nNextStep));
     }
     else if (nRequestType == QUEST_ADVANCE_FAIL)
     {
-        Notice("Advance Quest - Fail!");
-
         int nNextStep = GetQuestCompletionStep(nQuestID, QUEST_ADVANCE_FAIL);
         DeletePCQuestProgress(oPC, nQuestID);
         IncrementPCQuestFailures(oPC, nQuestID, GetSystemTime());
-
-        QuestDebug(PCToString(oPC) + " failed to complete quest " + QuestToString(nQuestID) +
-            " due to a quest objective failure");
 
         if (nNextStep != -1)
         {
@@ -1560,9 +1564,9 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
 
 void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
 {
-    int QUEST_STEP_INCOMPLETE = 1;
-    int QUEST_STEP_COMPLETE = 2;
-    int QUEST_STEP_FAIL = 3;
+    int QUEST_STEP_INCOMPLETE = 0;
+    int QUEST_STEP_COMPLETE = 1;
+    int QUEST_STEP_FAIL = 2;
 
     int nRequired, nAcquired, nStatus = QUEST_STEP_INCOMPLETE;
     string sStartTime, sGoalTime;
@@ -1637,54 +1641,13 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
         }
     }
 
-    if (nStatus == QUEST_STEP_COMPLETE)
-        AdvanceQuest(oPC, nQuestID);
-    else if (nStatus == QUEST_STEP_FAIL)
-        AdvanceQuest(oPC, nQuestID, QUEST_ADVANCE_FAIL);
-}
-
-void FindPCQuestStepProgress(object oPC, string sTargetTag, int nObjectiveType, string sData, int bParty = FALSE)
-{
-    if (IncrementQuestStepQuantity(oPC, sTargetTag, nObjectiveType, sData) > 0)
-    {
-        sqlquery sqlQuestData = GetPCIncrementableSteps(oPC, sTargetTag, nObjectiveType, sData);
-        while (SqlStep(sqlQuestData))
-        {    
-            string sQuestTag = SqlGetString(sqlQuestData, 0);
-            int nQuestID = GetQuestID(sQuestTag);
-            int nStep = GetPCQuestStep(oPC, nQuestID);
-
-            if (GetIsQuestActive(nQuestID) == FALSE)
-            {
-                DecrementQuestStepQuantity(oPC, sQuestTag, sTargetTag, nObjectiveType, sData);
-                continue;
-            }
-
-            CheckQuestStepProgress(oPC, nQuestID, nStep);
-
-            // TODO This won't work
-            /*
-            if (!bParty && GetQuestStepPartyCompletion(nQuestID, nStep) == TRUE)
-            {
-                object oParty = GetFirstFactionMember(oPC, TRUE);
-                while (GetIsObjectValid(oParty))
-                {  
-                    if (oParty == oPC)
-                    {
-                        oParty = GetNextFactionMember(oPC, TRUE);
-                        continue;
-                    }
-
-                    FindPCQuestStepProgress(oParty, sTargetTag, nObjectiveType, sData, TRUE);
-                    oParty = GetNextFactionMember(oPC, TRUE);
-                }
-            }*/
-        }
-    }
+    if (nStatus != QUEST_STEP_INCOMPLETE)
+        AdvanceQuest(oPC, nQuestID, nStatus);
 }
 
 void SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, string sData = "")
 {
+    // This prevents the false-positives that occur during login events such as OnItemAcquire
     if (GetIsObjectValid(GetArea(oPC)) == FALSE)
         return;
 
@@ -1701,16 +1664,12 @@ void SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, str
     if (GetIsPC(oPC) == FALSE)
         return;
 
-    FindPCQuestStepProgress(oPC, sTargetTag, nObjectiveType, sData);
-
-    /*
-    int nCountRecords = CountPCIncrementableSteps(oPC, sTargetTag, nObjectiveType, sData);
-    Notice("COUNTING UPDATABLE RECORDS -> " + IntToString(nCountRecords));
-
-    if (nCountRecords)
+    // Deal with the subject PC
+    if (IncrementQuestStepQuantity(oPC, sTargetTag, nObjectiveType, sData) > 0)
     {
-        IncrementQuestStepQuantity(oPC, sQuestTag, sTargetTag, nObjectiveType, sData);
-    
+        // oPC has at least one quest that is satisfied with sTargetTag, sData, nObjectiveType
+        // Loop through them and ensure the quest is active before awarding credit and checking
+        // for quest advancement
         sqlquery sqlQuestData = GetPCIncrementableSteps(oPC, sTargetTag, nObjectiveType, sData);
         while (SqlStep(sqlQuestData))
         {    
@@ -1718,154 +1677,50 @@ void SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, str
             int nQuestID = GetQuestID(sQuestTag);
             int nStep = GetPCQuestStep(oPC, nQuestID);
 
+            if (GetIsQuestActive(nQuestID) == FALSE)
+            {
+                QuestDebug(QuestToString(nQuestID) + " is currently invactive and cannot be " +
+                    "credited to " + PCToString(oPC));
+                DecrementQuestStepQuantity(oPC, sQuestTag, sTargetTag, nObjectiveType, sData);
+                continue;
+            }
+
             CheckQuestStepProgress(oPC, nQuestID, nStep);
         }
-    }*/
-
-    /*
-    // Get the database records from the pc that are associated with
-    // the target and objective type
-    //sqlquery sqlQuestData = GetTargetQuestData(oPC, sTargetTag, nObjectiveType, sData);
-    sqlquery sqlQuestData = GetPCIncrementableSteps(oPC, sTargetTag, nObjectiveType, sData);
-    while (SqlStep(sqlQuestData))
-    {
-        string sQuestTag = SqlGetString(sqlQuestData, 0);
-        int nQuestID = GetQuestID(sQuestTag);
-        int nStep = GetPCQuestStep(oPC, nQuestID);
-
-        Notice("FOUND QUEST STEP DATA FOR " + PCToString(oPC) +
-            "\n  Quest -> " + QuestToString(nQuestID) +
-            "\n  Step -> " + StepToString(nStep));
     }
+    else
+        QuestDebug(PCToString(oPC) + " does not have a quest associated with " + sTargetTag + 
+            (sData == "" ? "" : " and " + sData));
 
-    sqlQuestData = GetPCIncrementableSteps(oPC, sTargetTag, nObjectiveType, sData);
-    // See if there are any records to look at it
-    while (SqlStep(sqlQuestData))
-    {   
-        // If this loop doesn't execute, then there are no records to retrieve
-        // that involve that target and objective type
-        //string sQuestTag = SqlGetString(sql, 0);
-        //int nStep = SqlGetInt(sql, 1);
-        //int nQuestID = GetQuestID(sQuestTag);
-        string sQuestTag = SqlGetString(sql, 0);
-        int nQuestID = GetQuestID(sQuestTag);
-        int nStep = GetPCQuestStep(oPC, nQuestID);
-
-        Notice("Attempting to increment: " +
-            "\n  Quest -> " + QuestToString(nQuestID) +
-            "\n  Step -> " + StepToString(nStep));
-
-        // Check the quest is currently active
-        if (GetIsQuestActive(nQuestID) == FALSE)
-        {
-            QuestWarning("Quest " + QuestToString(nQuestID) + " is not active  and " +
-                "cannot be progressed" +
-                "\n  PC -> " + PCToString(oPC) +
-                "\n  Target -> " + GetName(oTarget) + " (tag: " + GetTag(oTarget) + ") " +
-                "\n  ObjectiveType -> " + ObjectiveTypeToString(nObjectiveType) +
-                "\n  Trigger Status -> Self");
-            continue;
-        }
-
-        // Probably need to put some of this in another function for recursion
-        // we'll figure that out after the basic logic works
-
-        // Since we're here, that means that this pc has at least one quest
-        // active associated with oTarget and objective type.  Since we only 
-        // have active steps in this table, it should be safe to simply increment 
-        // those values without a further check
-        IncrementQuestStepQuantity(oPC, sQuestTag, sTargetTag, nObjectiveType, sData);
-        
-        // Check the new status of the quest, this checks to see if the quest step
-        // is now complete, incomplete or failed and takes the appropriate action.
-        // None of those actions, however should prevent us from completing these
-        // checks, however, so press on
-        CheckQuestStepProgress(oPC, nQuestID, nStep);
-
-        // See if this can be done with party members
-        // this will have to be optioned out so if we're already looping
-        // party members from another pc, we don't loop the same party over
-        // again, do that if/when we get to recursion.
-
-        QuestDebug("Quest handling for triggering PC complete, checking for party status");
-        if (GetQuestStepPartyCompletion(nQuestID, nStep) == TRUE)
-        {
-            object oParty = GetFirstFactionMember(oPC, TRUE);
-            while (GetIsObjectValid(oParty))
-            {
-                // Don't need to do a bunch of checking here, if they have the
-                // data, they get it incremented
-                IncrementQuestStepQuantity(oParty, sQuestTag, sTargetTag, nObjectiveType);
-                CheckQuestStepProgress(oPC, nQuestID, nStep);
-                oParty = GetNextFactionMember(oPC, TRUE);
-            }
-        }
-
-        bPCFound = TRUE;
-    }*/
-
-    // TODO get back to this 
-    if (bPCFound)
-        return;
-
-    // if we're here, the original acting pc (oPC) didnt' have any quests
-    // associated with oTarget and nObjectiveType
-/*
-    QuestDebug(PCToString(oPC) + " does not have a quest associated with " + sTargetTag + 
-    "; checking party members");
-
-    // Loop the party to see if anyone has a quest that does
+    // Deal with the subject PC's party
     object oParty = GetFirstFactionMember(oPC, TRUE);
     while (GetIsObjectValid(oParty))
     {
-        // We already checked the current pc, skip!
-        if (oParty == oPC)
+        if (CountPCIncrementableSteps(oParty, sTargetTag, nObjectiveType, sData) > 0)
         {
-            oParty = GetNextFactionMember(oPC, TRUE);
-            continue;
-        }
-        
-        // Get the quest data for that pc to see if they have any qualifying
-        // quests ... we can re-use slqQuestData from above, so might be able
-        // to recurse this
-        sqlquery sqlPartyData = GetTargetQuestData(oParty, sTargetTag, nObjectiveType);
-        while (SqlStep(sqlPartyData))
-        {
-            // If we're in here, they do have at least one qualifying quest...
-            int nQuestID = SqlGetInt(sql, 0);
-            int nStep = SqlGetInt(sql, 1);
-
-            Notice("Attempting to increment: " +
-                "\n  Quest -> " + QuestToString(nQuestID) +
-                "\n  Step -> " + StepToString(nStep));
-
-            string sQuestTag = GetQuestTag(nQuestID);
-
-            // This isn't the original actor, so we need party completion before
-            // we can increment
-            if (GetQuestStepPartyCompletion(nQuestID, nStep) == TRUE)
+            sqlquery sqlCandidates = GetPCIncrementableSteps(oParty, sTargetTag, nObjectiveType, sData);
+            while (SqlStep(sqlCandidates))
             {
-                
-                // Check the quest is currently active
-                if (GetIsQuestActive(nQuestID) == FALSE)
+                string sQuestTag = SqlGetString(sqlCandidates, 0);
+                int nQuestID = GetQuestID(sQuestTag);
+                int nStep = GetPCQuestStep(oParty, nQuestID);
+                int bActive = GetIsQuestActive(nQuestID);
+                int bPartyCompletion = GetQuestStepPartyCompletion(nQuestID, nStep);
+                int bProximity = GetQuestStepProximity(nQuestID, nStep);
+
+                if (bActive && bPartyCompletion)
                 {
-                    QuestWarning("Quest " + QuestToString(nQuestID) + " is not active and " +
-                        "cannot be progressed" +
-                        "\n  PC -> " + PCToString(oParty) +
-                        "\n  Current PC Step -> " + StepToString(nStep) +
-                        "\n  Target -> " + GetName(oTarget) + " (tag: " + GetTag(oTarget) + ") " +
-                        "\n  ObjectiveType -> " + ObjectiveTypeToString(nObjectiveType) +
-                        "\n  Trigger Status -> Party (Orignally triggered by " + PCToString(oPC) + ")");
-                    continue;
+                    if (bProximity ? GetArea(oParty) == GetArea(oPC) : TRUE)
+                    {
+                        IncrementQuestStepQuantityByQuest(oParty, sQuestTag, sTargetTag, nObjectiveType, sData);
+                        CheckQuestStepProgress(oParty, nQuestID, nStep);
+                    }
                 }
-                
-                IncrementQuestStepQuantity(oParty, sQuestTag, sTargetTag, nObjectiveType);
-                CheckQuestStepProgress(oPC, nQuestID, nStep);
             }
         }
 
         oParty = GetNextFactionMember(oPC, TRUE);
-    } */
+    }
 }
 
 // These two functions are used to access temporary variables to
@@ -1878,6 +1733,11 @@ string GetCurrentQuest()
 int GetCurrentQuestStep()
 {
     return GetLocalInt(GetModule(), QUEST_CURRENT_STEP);
+}
+
+int GetCurrentQuestEvent()
+{
+    return GetLocalInt(GetModule(), QUEST_CURRENT_EVENT);
 }
 
 void AwardQuestStepPrewards(object oPC, int nQuestID, int nStep, int bParty = FALSE, int nAwardType = AWARD_ALL)
@@ -2000,6 +1860,14 @@ void SetQuestScriptOnFail(int nQuestID, string sScript = "")
     _SetQuestData(nQuestID, QUEST_SCRIPT_ON_FAIL, sScript);
 }
 
+void SetQuestScriptAll(int nQuestID, string sScript = "")
+{
+    SetQuestScriptOnAccept(nQuestID, sScript);
+    SetQuestScriptOnAdvance(nQuestID, sScript);
+    SetQuestScriptOnComplete(nQuestID, sScript);
+    SetQuestScriptOnFail(nQuestID, sScript);
+}
+
 string GetQuestStepJournalEntry(int nQuestID, int nStep)
 {
     return _GetQuestStepData(nQuestID, nStep, QUEST_STEP_JOURNAL_ENTRY);
@@ -2030,6 +1898,18 @@ void SetQuestStepPartyCompletion(int nQuestID, int nStep, int nParty)
 {
     string sData = IntToString(nParty);
     _SetQuestStepData(nQuestID, nStep, QUEST_STEP_PARTY_COMPLETION, sData);
+}
+
+int GetQuestStepProximity(int nQuestID, int nStep)
+{
+    string sData = _GetQuestStepData(nQuestID, nStep, QUEST_STEP_PROXIMITY);
+    return StringToInt(sData);
+}
+
+void SetQuestStepProximity(int nQuestID, int nStep, int nRequired = TRUE)
+{
+    string sData = IntToString(nRequired);
+    _SetQuestStepData(nQuestID, nStep, QUEST_STEP_PROXIMITY, sData);
 }
 
 void SetQuestPrerequisiteAlignment(int nQuestID, int nKey, int nValue = FALSE)
@@ -2149,7 +2029,6 @@ void SetQuestStepPrewardMessage(int nQuestID, int nStep, string sValue)
     _SetQuestPreward(nQuestID, nStep, QUEST_VALUE_MESSAGE, "", sValue);
 }
 
-// TODO party rewards/prewards
 void SetQuestStepRewardAlignment(int nQuestID, int nStep, int nKey, int nValue)
 {
     string sKey = IntToString(nKey);

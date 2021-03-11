@@ -63,6 +63,7 @@ void CreateModuleQuestTables(int bReset = FALSE)
                         "sJournalEntry TEXT default NULL, " +
                         "sTimeLimit TEXT default NULL, " +
                         "nPartyCompletion TEXT default '0', " +
+                        "nProximity INTEGER default '1', " +
                         "nStepType INTEGER default '0', " +
                         "FOREIGN KEY (quests_id) REFERENCES quest_quests (id) " +
                             "ON DELETE CASCADE ON UPDATE CASCADE);";
@@ -73,7 +74,7 @@ void CreateModuleQuestTables(int bReset = FALSE)
                         "nValueType INTEGER NOT NULL default '0', " +
                         "sKey TEXT NOT NULL default '~' COLLATE NOCASE, " +
                         "sValue INTEGER default NULL, " +
-                        "sData TEXT default NULL, " +
+                        "sData TEXT default '', " +
                         "FOREIGN KEY (quest_steps_id) REFERENCES quest_steps (id) " +
                             "ON DELETE CASCADE ON UPDATE CASCADE);";
 
@@ -805,7 +806,6 @@ int CountPCIncrementableSteps(object oPC, string sTargetTag, int nObjectiveType,
 
 //void IncrementQuestStepQuantity(object oPC, string sQuestTag, string sTargetTag, int nObjectiveType, string sData = "")
 int IncrementQuestStepQuantity(object oPC, string sTargetTag, int nObjectiveType, string sData = "")
-
 {
     sQuery = "UPDATE quest_pc_step " +
              "SET nAcquired = nAcquired + 1 " +
@@ -817,6 +817,27 @@ int IncrementQuestStepQuantity(object oPC, string sTargetTag, int nObjectiveType
     SqlBindInt(sql, "@type", nObjectiveType);
     SqlBindString(sql, "@tag", sTargetTag);
     //SqlBindString(sql, "@quest_tag", sQuestTag);
+    if (sData != "")
+        SqlBindString(sql, "@data", sData);
+
+    SqlStep(sql);
+    HandleSqlDebugging(sql);
+
+    return CountRowChanges(oPC);
+}
+
+int IncrementQuestStepQuantityByQuest(object oPC, string sQuestTag, string sTargetTag, int nObjectiveType, string sData = "")
+{
+    sQuery = "UPDATE quest_pc_step " +
+             "SET nAcquired = nAcquired + 1 " +
+             "WHERE nObjectiveType = @type " +
+                "AND quest_tag = @quest_tag " +
+                "AND sTag = @tag" +
+                (sData == "" ? ";" : " AND sData = @data;");
+    sql = SqlPrepareQueryObject(oPC, sQuery);
+    SqlBindInt(sql, "@type", nObjectiveType);
+    SqlBindString(sql, "@tag", sTargetTag);
+    SqlBindString(sql, "@quest_tag", sQuestTag);
     if (sData != "")
         SqlBindString(sql, "@data", sData);
 
