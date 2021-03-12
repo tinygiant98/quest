@@ -42,9 +42,14 @@ void main()
 {
     object oPC = GetPCChatSpeaker();
 
-    if (HasChatOption(oPC, "time"))
+    if (HasChatOption(oPC, "item"))
     {
+        object oItem = CreateItemOnObject("nw_aarcl001", oPC, 1, "quest_gather_armor");
+        SetIdentified(oItem, TRUE);
 
+        SendChatResult("Created item {tag} " + GetTag(oItem) +
+                       " {name} " + GetName(oItem) + " on " + GetName(oPC), oPC);
+        return;
     }
 
     if (HasChatOption(oPC, "load"))
@@ -139,7 +144,8 @@ void main()
             string sTag, sTitle, sAccept, sAdvance, sComplete, sFail;
             string sTime, sCooldown;
 
-            int nStepID, nQuestID, nStep, nPartyCompletion, nProximity, nStepType, nJournalLocation, nDeleteOnComplete;
+            int nStepID, nQuestID, nStep, nPartyCompletion, nProximity, nStepType;
+            int nJournalLocation, nDeleteOnComplete, nAllowPrecollected;
             string sJournalEntry, sTimeLimit;
 
             sqlquery sql;
@@ -176,6 +182,7 @@ void main()
                 sCooldown = SqlGetString(sql, ++n);
                 nJournalLocation = SqlGetInt(sql, ++n);
                 nDeleteOnComplete = SqlGetInt(sql, ++n);
+                nAllowPrecollected = SqlGetInt(sql, ++n);
             
                 Notice(HexColorString("Dumping data for " + QuestToString(nID), COLOR_CYAN));
                 Notice("  Tag  " + ColorValue(sTag) +
@@ -190,7 +197,8 @@ void main()
                     "\n  Time Limit  " + ColorValue(sTime) +
                     "\n  Cooldown Time  " + ColorValue(sCooldown) +
                     "\n  Journal Handler  " + ColorValue(JournalLocationToString(nJournalLocation)) +
-                    "\n  Delete Journal on Quest Completion  " + ColorValue((nDeleteOnComplete ? "TRUE":"FALSE")));
+                    "\n  Delete Journal on Quest Completion  " + ColorValue((nDeleteOnComplete ? "TRUE":"FALSE")) +
+                    "\n  Allow Precollected Items  " + ColorValue((nAllowPrecollected ? "TRUE":"FALSE")));
 
                 if (CountQuestPrerequisites(nID) > 0)
                 {
@@ -208,7 +216,6 @@ void main()
                         int nValueType = SqlGetInt(sqlSub, 2);
                         string sKey = SqlGetString(sqlSub, 3);
                         string sValue = SqlGetString(sqlSub, 4);
-
 
                         Notice(HexColorString("    " + IntToString(nPrereqID), COLOR_CYAN) +
                                 TranslateValue(nValueType, sKey, sValue));
@@ -243,7 +250,7 @@ void main()
                             "\n        Time Limit  " + ColorValue(sTimeLimit == "" ? "" : "(" + sTimeLimit + ")") +
                             "\n        Party Completion  " + ColorValue((nPartyCompletion ? "TRUE":"FALSE")) +
                             "\n        Proximity Required  " + ColorValue((nProximity ? "TRUE":"FALSE")) +
-                            "\n        Step Type  " + StepTypeToString(nStepType));
+                            "\n        Step Type  " + ColorValue(StepTypeToString(nStepType)));
                     
                         // Another inside loop for the step objectives/properties
                         Notice(HexColorString("        Dumping step properties for " + StepToString(nStep), COLOR_CYAN));

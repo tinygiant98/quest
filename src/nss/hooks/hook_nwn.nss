@@ -32,12 +32,10 @@ void SetObjectEvents()
     StripPlaceableEvents(oWagon);
     SetEventScript(oWagon, EVENT_SCRIPT_PLACEABLE_ON_CLOSED, "hook_placeable02");
     
-
     // Setup Dialogs
     SetLocalString(GetObjectByTag("discovery_quest_sign"), "*Dialog", "DiscoveryDialog");
     SetLocalString(GetObjectByTag("kill_quest_sign"), "*Dialog", "KillDialog");
     SetLocalString(GetObjectByTag("gather_quest_sign"), "*Dialog", "GatherDialog");
-
 }
 
 void main()
@@ -46,9 +44,11 @@ void main()
 
     if (sEvent == "OnModuleLoad")
     {
+        Notice("Running MODULE LOAD");
+
         SetDebugLevel(DEBUG_LEVEL_DEBUG, GetModule());
         SetDebugLogging(DEBUG_LOG_ALL);
-
+        
         LoadLibrary("quest_l_dialog");
 
         SetObjectEvents();
@@ -102,7 +102,11 @@ void main()
     }
     else if (sEvent == "OnUnAcquireItem")
     {
-        
+        object oItem = GetModuleItemLost();
+        object oPC = GetModuleItemLostBy();
+
+        if (GetIsPC(oPC))
+            SignalQuestStepRegress(oPC, oItem, QUEST_OBJECTIVE_GATHER);
     }
     else if (sEvent == "OnCreatureConversation")
     {

@@ -47,7 +47,8 @@ void CreateModuleQuestTables(int bReset = FALSE)
                         "sTimeLimit TEXT default NULL, " +
                         "sCooldown TEXT default NULL, " +
                         "nJournalLocation TEXT default '1', " +
-                        "nRemoveJournalOnComplete TEXT default '0');";
+                        "nRemoveJournalOnComplete TEXT default '0', " +
+                        "nAllowPrecollectedItems TEXT default '1');";
 
     string sQuestPrerequisites = "CREATE TABLE IF NOT EXISTS quest_prerequisites (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -976,10 +977,31 @@ int IncrementQuestStepQuantityByQuest(object oPC, string sQuestTag, string sTarg
     return CountRowChanges(oPC);
 }
 
-void DecrementQuestStepQuantity(object oPC, string sQuestTag, string sTargetTag, int nObjectiveType, string sData = "")
+int DecrementQuestStepQuantity(object oPC, string sTargetTag, int nObjectiveType, string sData = "")
 {
     sQuery = "UPDATE quest_pc_step " +
-             "SET nAcquired = min(0, nAcquired - 1) " +
+             "SET nAcquired = max(0, nAcquired - 1) " +
+             "WHERE nObjectiveType = @type " +
+                //"AND quest_tag = @quest_tag " +
+                "AND sTag = @tag" +
+                (sData == "" ? ";" : " AND sData = @data;");
+    sql = SqlPrepareQueryObject(oPC, sQuery);
+    SqlBindInt(sql, "@type", nObjectiveType);
+    SqlBindString(sql, "@tag", sTargetTag);
+    //SqlBindString(sql, "@quest_tag", sQuestTag);
+    if (sData != "")
+        SqlBindString(sql, "@data", sData);
+
+    SqlStep(sql);
+    HandleSqlDebugging(sql);
+
+    return CountRowChanges(oPC);
+}
+
+void DecrementQuestStepQuantityByQuest(object oPC, string sQuestTag, string sTargetTag, int nObjectiveType, string sData = "")
+{
+    sQuery = "UPDATE quest_pc_step " +
+             "SET nAcquired = max(0, nAcquired - 1) " +
              "WHERE nObjectiveType = @type " +
                 "AND sTag = @tag" +
                 "AND quest_tag = @quest_tag" +

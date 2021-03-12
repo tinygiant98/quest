@@ -199,6 +199,10 @@ void SetQuestStepPartyCompletion(int nQuestID, int nStep, int nParty);
 int GetQuestStepProximity(int nQuesTID, int nStep);
 void SetQuestStepProximity(int nQuestID, int nStep, int nRequired = TRUE);
 
+//TODO
+int GetQuestAllowPrecollectedItems(int nQuest);
+void SetQuestAllowPrecollectedItems(int nQuest, int nAllow = TRUE);
+
 // ---< [AddQuestResolution[Success|Fail] >---
 // Adds the final quest step to quest nQuestID.
 int AddQuestResolutionSuccess(int nQuestID, string sJournalEntry = "", int nStep = -1);
@@ -226,8 +230,7 @@ void SetQuestStepRewardXP(int nQuestID, int nStep, int nValue);
 void SetQuestStepRewardMessage(int nQuestID, int nStep, string sValue);
 
 // ---< GetIsQuestAssignable >---
-// Returns whether oPC meets all prerequisites for quest sTag.  If nStep is passed,
-// will evaluate reprequisites for a specific step.  Quest prerequisites can only
+// Returns whether oPC meets all prerequisites for quest sTag.  Quest prerequisites can only
 // be satisfied by the PC object, not party members.
 int GetIsQuestAssignable(object oPC, string sTag);
 
@@ -248,6 +251,7 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
 // Called from module/game object scripts to signal the quest system to advance the quest, if
 // the PC has completed all required objectives for the current step.
 void SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, string sData = "");
+void SignalQuestStepRegress(object oPC, object oTarget, int ObjectiveType, string sData = "");
 
 // ---< GetCurrentQuest[Step|Event] >---
 // Global accessors to retrieve the current quest tag (all events), step number (OnAdvance only) 
@@ -264,7 +268,6 @@ int GetCurrentQuestEvent();
 int GetQuestInt(string sTag, string sVarName);
 void SetQuestInt(string sTag, string sVarName, int nValue);
 void DeleteQuestInt(string sTag, string sVarName);
-
 string GetQuestString(string sTag, string sVarName);
 void SetQuestString(string sTag, string sVarName, string sValue);
 void DeleteQuestString(string sTag, string sVarName);
@@ -648,7 +651,7 @@ int _HasMinimumItemCount(object oPC, string sItemTag, int nMinQuantity = 1, int 
     return bHasMinimum;
 }
 
-int GetPCItemCount(object oPC, string sItemTag)
+int GetPCItemCount(object oPC, string sItemTag, int bIncludeParty = FALSE)
 {
     int nItemCount = 0;
     object oItem = GetFirstItemInInventory(oPC);
@@ -656,11 +659,30 @@ int GetPCItemCount(object oPC, string sItemTag)
     {
         if (GetTag(oItem) == sItemTag)
             nItemCount += GetNumStackedItems(oItem);
+        
         oItem = GetNextItemInInventory(oPC);
     }
 
+    if (bIncludeParty)
+    {
+        object oPartyMember = GetFirstFactionMember(oPC, TRUE);
+        while (GetIsObjectValid(oPartyMember))
+        {
+            oItem = GetFirstItemInInventory(oPartyMember);
+            while (GetIsObjectValid(oItem))
+            {
+                if (GetTag(oItem) == sItemTag)
+                    nItemCount += GetItemStackSize(oItem);
+
+                oItem = GetNextItemInInventory(oPartyMember);
+            }
+
+            oPartyMember = GetNextFactionMember(oPC, TRUE);
+        }
+    }
+
     QuestDebug("Found " + IntToString(nItemCount) + " " + sItemTag + " on " +
-        PCToString(oPC));
+        PCToString(oPC) + (bIncludeParty ? " and party" : ""));
 
     return nItemCount;
 }
@@ -1565,6 +1587,8 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
             _AwardQuestStepAllotments(oPC, nQuestID, nNextStep, QUEST_CATEGORY_REWARD);
             IncrementPCQuestCompletions(oPC, nQuestID, GetUnixTimeStamp());
             RunQuestScript(oPC, nQuestID, QUEST_SCRIPT_TYPE_ON_COMPLETE);
+
+
         }
         else
         {
@@ -1577,6 +1601,36 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
             _SetPCQuestData(oPC, nQuestID, QUEST_PC_STEP, IntToString(nNextStep));
             _SetPCQuestData(oPC, nQuestID, QUEST_PC_STEP_TIME, IntToString(GetUnixTimeStamp()));
             RunQuestScript(oPC, nQuestID, QUEST_SCRIPT_TYPE_ON_ADVANCE);
+
+            if (GetQuestAllowPrecollectedItems(nQuestID) == TRUE)
+            {
+                sqlquery sObjectiveData = GetQuestStepObjectiveData(nQuestID, nNextStep);
+                while (SqlStep(sObjectiveData))
+                {
+                    int nValueType = SqlGetInt(sObjectiveData, 0);
+                    if (nValueType == QUEST_OBJECTIVE_GATHER)
+                    {
+                        string sItemTag = SqlGetString(sObjectiveData, 1);
+                        int nQuantity = SqlGetInt(sObjectiveData, 2);
+                        string sData = SqlGetString(sObjectiveData, 3);
+                        int bParty = GetQuestStepPartyCompletion(nQuestID, nNextStep);
+                        int n, nPCCount = GetPCItemCount(oPC, sItemTag, bParty);
+                        object oItem = GetObjectByTag(sItemTag);
+
+                        if (nPCCount == 0)
+                            QuestDebug(PCToString(oPC) + " does not have any precollected items that " +
+                                "satisfy requirements for " + QuestToString(nQuestID) + " " + StepToString(nNextStep));
+                        else
+                            QuestDebug("Applying " + IntToString(nPCCount) + " precollected items toward " +
+                                "requirements for " + QuestToString(nQuestID) + " " + StepToString(nNextStep));
+
+                        for (n = 0; n < nPCCount; n++)
+                            SignalQuestStepProgress(oPC, oItem, QUEST_OBJECTIVE_GATHER, sData);
+                    }
+                }
+            }
+            else
+                QuestDebug("Precollected items are not authorized for " + QuestToString(nQuestID) + " " + StepToString(nNextStep));
         }
 
         QuestDebug("Advanced quest " + QuestToString(nQuestID) + " for " +
@@ -1700,11 +1754,10 @@ void SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, str
         return;
 
     QuestDebug(GetName(oTarget) + " (tag: " + GetTag(oTarget) + ") is signalling " +
-        "quest progress triggered by " + PCToString(oPC) + " for objective " +
+        "quest " + HexColorString("progress", COLOR_GREEN_LIGHT) + " triggered by " + PCToString(oPC) + " for objective " +
         "type " + ObjectiveTypeToString(nObjectiveType) + (sData == "" ? "" : " (sData -> " + sData + ")"));
 
     string sTargetTag = GetTag(oTarget);
-    int bPCFound = FALSE;
 
     while (GetIsObjectValid(GetMaster(oPC)))
         oPC = GetMaster(oPC);
@@ -1729,7 +1782,7 @@ void SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, str
             {
                 QuestDebug(QuestToString(nQuestID) + " is currently invactive and cannot be " +
                     "credited to " + PCToString(oPC));
-                DecrementQuestStepQuantity(oPC, sQuestTag, sTargetTag, nObjectiveType, sData);
+                DecrementQuestStepQuantityByQuest(oPC, sQuestTag, sTargetTag, nObjectiveType, sData);
                 continue;
             }
 
@@ -1769,6 +1822,51 @@ void SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, str
 
         oParty = GetNextFactionMember(oPC, TRUE);
     }
+}
+
+void SignalQuestStepRegress(object oPC, object oTarget, int nObjectiveType, string sData = "")
+{
+    if (GetIsObjectValid(GetArea(oPC)) == FALSE)
+        return;
+
+    QuestDebug(GetName(oTarget) + " (tag: " + GetTag(oTarget) + ") is signalling " +
+        "quest " + HexColorString("regress", COLOR_RED_LIGHT) + " triggered by " + PCToString(oPC) + " for objective " +
+        "type " + ObjectiveTypeToString(nObjectiveType) + (sData == "" ? "" : " (sData -> " + sData + ")"));
+
+    string sTargetTag = GetTag(oTarget);
+
+    while (GetIsObjectValid(GetMaster(oPC)))
+        oPC = GetMaster(oPC);
+
+    if (GetIsPC(oPC) == FALSE)
+        return;
+
+    if (DecrementQuestStepQuantity(oPC, sTargetTag, nObjectiveType, sData) > 0)
+    {
+        // oPC has at least one quest that is satisfied with sTargetTag, sData, nObjectiveType
+        // Loop through them and ensure the quest is active before awarding credit and checking
+        // for quest advancement
+        sqlquery sqlQuestData = GetPCIncrementableSteps(oPC, sTargetTag, nObjectiveType, sData);
+        while (SqlStep(sqlQuestData))
+        {    
+            string sQuestTag = SqlGetString(sqlQuestData, 0);
+            int nQuestID = GetQuestID(sQuestTag);
+            int nStep = GetPCQuestStep(oPC, nQuestID);
+
+            if (GetIsQuestActive(nQuestID) == FALSE)
+            {
+                QuestDebug(QuestToString(nQuestID) + " is currently invactive and cannot be " +
+                    "debited to " + PCToString(oPC));
+                IncrementQuestStepQuantityByQuest(oPC, sQuestTag, sTargetTag, nObjectiveType, sData);
+                continue;
+            }
+
+            CheckQuestStepProgress(oPC, nQuestID, nStep);
+        }
+    }
+    else
+        QuestDebug(PCToString(oPC) + " does not have a quest associated with " + sTargetTag + 
+            (sData == "" ? "" : " and " + sData));
 }
 
 string CreateTimeVector(int nYears = 0, int nMonths = 0, int nDays = 0,
@@ -1954,6 +2052,18 @@ void RetainQuestJournalEntriesOnCompletion(int nQuestID)
 {
     string sData = IntToString(FALSE);
     _SetQuestData(nQuestID, QUEST_JOURNAL_DELETE, sData);
+}
+
+int GetQuestAllowPrecollectedItems(int nQuestID)
+{
+    string sData = _GetQuestData(nQuestID, QUEST_PRECOLLECTED_ITEMS);
+    return StringToInt(sData);
+}
+
+void SetQuestAllowPrecollectedItems(int nQuestID, int nAllow = TRUE)
+{
+    string sData = IntToString(nAllow);
+    _SetQuestData(nQuestID, QUEST_PRECOLLECTED_ITEMS, sData);
 }
 
 string GetQuestStepJournalEntry(int nQuestID, int nStep)
