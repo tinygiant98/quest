@@ -104,8 +104,8 @@ void SetQuestTitle(int nQuestID, string sTitle);
 int GetQuestRepetitions(int nQuestID);  // TODO sQuestTag?
 void SetQuestRepetitions(int nQuestID, int nRepetitions = 1);
 
-// ---< [Get|Set]QuestScriptOn[Accept|Advance|Complete|Fail] >---
-// Gets or sets the script associated with quest events OnAccept|Advance|Complete|Fail for
+// ---< [Get|Set]QuestScriptOn[Accept|Advance|Complete|Fail|All] >---
+// Gets or sets the script associated with quest events OnAccept|Advance|Complete|Fail|All for
 //  quest sTag.
 string GetQuestScriptOnAccept(int nQuestID);
 string GetQuestScriptOnAdvance(int nQuestID);
@@ -115,6 +115,7 @@ void SetQuestScriptOnAccept(int nQuestID, string sScript = "");
 void SetQuestScriptOnAdvance(int nQuestID, string sScript = "");
 void SetQuestScriptOnComplete(int nQuestID, string sScript = "");
 void SetQuestScriptOnFail(int nQuestID, string sScript = "");
+void SetQuestScriptOnAll(int nQuestID, string sScript = "");
 
 // ---< RunQuestScript >---
 // Runs the assigned quest script for quest nQuestID and nScriptType with oPC
@@ -248,11 +249,12 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
 // the PC has completed all required objectives for the current step.
 void SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, string sData = "");
 
-// ---< GetCurrentQuest[Step] >---
-// Global accessors to retrieve the current quest tag and step number when quest scripts are
-// running.
+// ---< GetCurrentQuest[Step|Event] >---
+// Global accessors to retrieve the current quest tag (all events), step number (OnAdvance only) 
+// and Event (all events) when quest scripts are running.
 string GetCurrentQuest();
 int GetCurrentQuestStep();
+int GetCurrentQuestEvent();
 
 // ---< [Get|Set|Delete]Quest[Int|String] >---
 // Gets|Sets|Deletes a variable from a database table associated with nQuestID.  These variables
@@ -1782,8 +1784,6 @@ string CreateTimeVector(int nYears = 0, int nMonths = 0, int nDays = 0,
     return sResult;
 }
 
-// These two functions are used to access temporary variables to
-// allow script access for quest events
 string GetCurrentQuest()
 {
     return GetLocalString(GetModule(), QUEST_CURRENT_QUEST);
@@ -1919,7 +1919,7 @@ void SetQuestScriptOnFail(int nQuestID, string sScript = "")
     _SetQuestData(nQuestID, QUEST_SCRIPT_ON_FAIL, sScript);
 }
 
-void SetQuestScriptAll(int nQuestID, string sScript = "")
+void SetQuestScriptOnAll(int nQuestID, string sScript = "")
 {
     SetQuestScriptOnAccept(nQuestID, sScript);
     SetQuestScriptOnAdvance(nQuestID, sScript);
