@@ -46,7 +46,8 @@ void CreateModuleQuestTables(int bReset = FALSE)
                         "nStepOrder TEXT default '" + IntToString(QUEST_STEP_ORDER_SEQUENTIAL) + "', " +
                         "sTimeLimit TEXT default NULL, " +
                         "sCooldown TEXT default NULL, " +
-                        "nJournalLocation TEXT default '1');";
+                        "nJournalLocation TEXT default '1', " +
+                        "nRemoveJournalOnComplete TEXT default '0');";
 
     string sQuestPrerequisites = "CREATE TABLE IF NOT EXISTS quest_prerequisites (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +

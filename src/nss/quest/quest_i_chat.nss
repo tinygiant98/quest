@@ -139,7 +139,7 @@ void main()
             string sTag, sTitle, sAccept, sAdvance, sComplete, sFail;
             string sTime, sCooldown;
 
-            int nStepID, nQuestID, nStep, nPartyCompletion, nProximity, nStepType, nJournalLocation;
+            int nStepID, nQuestID, nStep, nPartyCompletion, nProximity, nStepType, nJournalLocation, nDeleteOnComplete;
             string sJournalEntry, sTimeLimit;
 
             sqlquery sql;
@@ -175,6 +175,7 @@ void main()
                 sTime = SqlGetString(sql, ++n);
                 sCooldown = SqlGetString(sql, ++n);
                 nJournalLocation = SqlGetInt(sql, ++n);
+                nDeleteOnComplete = SqlGetInt(sql, ++n);
             
                 Notice(HexColorString("Dumping data for " + QuestToString(nID), COLOR_CYAN));
                 Notice("  Tag  " + ColorValue(sTag) +
@@ -188,7 +189,8 @@ void main()
                     "\n  Step Order  " + ColorValue(StepOrderToString(nStepOrder)) +
                     "\n  Time Limit  " + ColorValue(sTime) +
                     "\n  Cooldown Time  " + ColorValue(sCooldown) +
-                    "\n  Journal Location  " + ColorValue(JournalLocationToString(nJournalLocation)));
+                    "\n  Journal Handler  " + ColorValue(JournalLocationToString(nJournalLocation)) +
+                    "\n  Delete Journal on Quest Completion  " + ColorValue((nDeleteOnComplete ? "TRUE":"FALSE")));
 
                 if (CountQuestPrerequisites(nID) > 0)
                 {

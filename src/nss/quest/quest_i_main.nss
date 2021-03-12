@@ -142,8 +142,20 @@ void SetQuestTimeLimit(int nQuestID, string sTime);
 string GetQuestCooldown(int nQuestID);
 void SetQuestCooldown(int nQuestID, string sTime);
 
-int GetQuestJournalLocation(int nQuestID);
-void SetQuestJournalLocation(int nQuestID, int nJournalLocation = QUEST_JOURNAL_NWN);
+// ---< [Get|Set]QuestJournalLocation >---
+// Gets or sets which system will handle journal entries for nQuestID.  By default, the base
+// game will handle journal entries, however, a mixture of NWNX journal functions and the
+// NWN journal system can be used to handle various journal entries.  Setting nJournalHandler
+// to QUEST_JOURNAL_NONE will suppress all journal entries.
+int GetQuestJournalHandler(int nQuestID);
+void SetQuestJournalHandler(int nQuestID, int nJournalHandler = QUEST_JOURNAL_NWN);
+
+// ---< [Delete|Retain]JournalEntriesOnCompletion >---
+// Allows users to delete journal entries upon quest completion.  Designed primarily for 
+// small, multi-use (i.e. throw-away) quests that you don't want filling up the player's journal.
+int GetQuestJournalDeleteOnComplete(int nQuestID);
+void DeleteQuestJournalEntriesOnCompletion(int nQuestID);
+void RetainQuestJournalEntriesOnCompletion(int nQuestID);
 
 // ---< SetQuestPrerequisite[Alignment|Class|Gold|Item|LevelMax|LevelMin|Quest|QuestStep|Race] >---
 // Sets a prerequisite for a PC to be able to be assigned a quest.  Prerequisites are used by
@@ -1500,10 +1512,14 @@ void CopyQuestStepObjectiveData(object oPC, int nQuestID, int nStep)
     }
 }
 
-void SendJournalQuestEntry(object oPC, int nQuestID, int nStep)
+void SendJournalQuestEntry(object oPC, int nQuestID, int nStep, int bComplete = FALSE)
 {
-    int nDestination = GetQuestJournalLocation(nQuestID);
+    int nDestination = GetQuestJournalHandler(nQuestID);
     string sQuestTag = GetQuestTag(nQuestID);
+    int bDelete;
+    
+    if (bComplete)
+        bDelete = GetQuestJournalDeleteOnComplete(nQuestID);
 
     switch (nDestination)
     {
@@ -1511,9 +1527,13 @@ void SendJournalQuestEntry(object oPC, int nQuestID, int nStep)
             QuestDebug("Journal Quest Entries for " + QuestToString(nQuestID) + " have been suppressed");
             break;
         case QUEST_JOURNAL_NWN:
+            if (bComplete && bDelete)
+                RemoveJournalQuestEntry(sQuestTag, oPC, FALSE, FALSE);
+            else
+                AddJournalQuestEntry(sQuestTag, nStep, oPC, FALSE, FALSE, TRUE);
+            
             QuestDebug("Journal Quest entry for " + QuestToString(nQuestID) + " " + StepToString(nStep) +
                 "has been dispatched to the NWN journal system");
-            AddJournalQuestEntry(sQuestTag, nStep, oPC, FALSE, FALSE, TRUE);
             break;
         case QUEST_JOURNAL_NWNX:
             QuestError("Journal Quest Entries for " + QuestToString(nQuestID) + " have been designated for " +
@@ -1538,7 +1558,7 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
             nNextStep = GetQuestCompletionStep(nQuestID);
 
             DeletePCQuestProgress(oPC, nQuestID);
-            SendJournalQuestEntry(oPC, nQuestID, nNextStep);
+            SendJournalQuestEntry(oPC, nQuestID, nNextStep, TRUE);
             _AwardQuestStepAllotments(oPC, nQuestID, nCurrentStep, QUEST_CATEGORY_REWARD);
             _AwardQuestStepAllotments(oPC, nQuestID, nNextStep, QUEST_CATEGORY_REWARD);
             IncrementPCQuestCompletions(oPC, nQuestID, GetUnixTimeStamp());
@@ -1569,7 +1589,7 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
 
         if (nNextStep != -1)
         {
-            SendJournalQuestEntry(oPC, nQuestID, nNextStep);
+            SendJournalQuestEntry(oPC, nQuestID, nNextStep, TRUE);
             _AwardQuestStepAllotments(oPC, nQuestID, nNextStep, QUEST_CATEGORY_REWARD);
         }
 
@@ -1907,15 +1927,33 @@ void SetQuestScriptAll(int nQuestID, string sScript = "")
     SetQuestScriptOnFail(nQuestID, sScript);
 }
 
-int GetQuestJournalLocation(int nQuestID)
+int GetQuestJournalHandler(int nQuestID)
 {
     string sResult = _GetQuestData(nQuestID, QUEST_JOURNAL_LOCATION);
     return StringToInt(sResult);
 }
 
-void SetQuestJournalLocation(int nQuestID, int nLocation = QUEST_JOURNAL_NWN)
+void SetQuestJournalHandler(int nQuestID, int nJournalHandler = QUEST_JOURNAL_NWN)
 {
-    _SetQuestData(nQuestID, QUEST_JOURNAL_LOCATION, IntToString(nLocation));
+    _SetQuestData(nQuestID, QUEST_JOURNAL_LOCATION, IntToString(nJournalHandler));
+}
+
+int GetQuestJournalDeleteOnComplete(int nQuestID)
+{
+    string sResult = _GetQuestData(nQuestID, QUEST_JOURNAL_DELETE);
+    return StringToInt(sResult);
+}
+
+void DeleteQuestJournalEntriesOnCompletion(int nQuestID)
+{
+    string sData = IntToString(TRUE);
+    _SetQuestData(nQuestID, QUEST_JOURNAL_DELETE, sData);
+}
+
+void RetainQuestJournalEntriesOnCompletion(int nQuestID)
+{
+    string sData = IntToString(FALSE);
+    _SetQuestData(nQuestID, QUEST_JOURNAL_DELETE, sData);
 }
 
 string GetQuestStepJournalEntry(int nQuestID, int nStep)

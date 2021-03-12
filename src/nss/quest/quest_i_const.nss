@@ -26,6 +26,7 @@ const string QUEST_SCRIPT_ON_COMPLETE = "sScriptOnComplete";
 const string QUEST_SCRIPT_ON_FAIL = "sScriptOnFail";
 const string QUEST_COOLDOWN = "sCooldown";
 const string QUEST_JOURNAL_LOCATION = "nJournalLocation";
+const string QUEST_JOURNAL_DELETE = "nRemoveJournalOnComplete";
 
 const string QUEST_STEP_JOURNAL_ENTRY = "sJournalEntry";
 const string QUEST_STEP_TIME_LIMIT = "sTimeLimit";
