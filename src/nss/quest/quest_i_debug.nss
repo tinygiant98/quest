@@ -206,6 +206,21 @@ string StepTypeToString(int nStepType)
     return "[NOT FOUND]";
 }
 
+string AbilityToString(int nAbility)
+{
+    switch (nAbility)
+    {
+        case ABILITY_CHARISMA: return "CHARISMA";
+        case ABILITY_CONSTITUTION: return "CONSTITUTION";
+        case ABILITY_DEXTERITY: return "DEXTERITY";
+        case ABILITY_INTELLIGENCE: return "INTELLIGENCE";
+        case ABILITY_STRENGTH: return "STRENGTH";
+        case ABILITY_WISDOM: return "WISDOM";
+    }
+
+    return "[NOT FOUND]";
+}
+
 string ValueTypeToString(int nValueType, int nCategoryType = QUEST_CATEGORY_PREREQUISITE)
 {
     if (nCategoryType != QUEST_CATEGORY_OBJECTIVE)
@@ -225,6 +240,8 @@ string ValueTypeToString(int nValueType, int nCategoryType = QUEST_CATEGORY_PRER
             case QUEST_VALUE_FACTION: return "FACTION";
             case QUEST_VALUE_MESSAGE: return "MESSAGE";
             case QUEST_VALUE_QUEST_STEP: return "QUEST_STEP";
+            case QUEST_VALUE_SKILL: return "SKILL";
+            case QUEST_VALUE_ABILITY: return "ABILITY";
         }
     }
     else
@@ -302,6 +319,44 @@ string ResolutionToString(int bQualifies)
         return HexColorString(sResult, COLOR_GREEN_LIGHT);
     else
         return HexColorString("NOT " + sResult, COLOR_RED_LIGHT);
+}
+
+string SkillToString(int nSkill)
+{
+    switch (nSkill)
+    {
+        case SKILL_ALL_SKILLS: return "ALL";
+        case SKILL_ANIMAL_EMPATHY: return "ANIMAL EMPATHY";
+        case SKILL_APPRAISE: return "APPRAISE";
+        case SKILL_BLUFF: return "BLUFF";
+        case SKILL_CONCENTRATION: return "CONCENTRATION";
+        case SKILL_CRAFT_ARMOR: return "CRAFT ARMOR";
+        case SKILL_CRAFT_TRAP: return "CRAFT TRAP";
+        case SKILL_CRAFT_WEAPON: return "CRAFT WEAPON";
+        case SKILL_DISABLE_TRAP: return "DISABLE TRAP";
+        case SKILL_DISCIPLINE: return "DISCIPLINE";
+        case SKILL_HEAL: return "HEAL";
+        case SKILL_HIDE: return "HIDE";
+        case SKILL_INTIMIDATE: return "INTIMIDATE";
+        case SKILL_LISTEN: return "LISTEN";
+        case SKILL_LORE: return "LORE";
+        case SKILL_MOVE_SILENTLY: return "MOVE SILENTLY";
+        case SKILL_OPEN_LOCK: return "OPEN LOCK";
+        case SKILL_PARRY: return "PARRY";
+        case SKILL_PERFORM: return "PERFORM";
+        case SKILL_PERSUADE: return "PERSUADE";
+        case SKILL_PICK_POCKET: return "PICK POCKET";
+        case SKILL_RIDE: return "RIDE";
+        case SKILL_SEARCH: return "SEARCH";
+        case SKILL_SET_TRAP: return "SET TRAP";
+        case SKILL_SPELLCRAFT: return "SPELLCRAFT";
+        case SKILL_SPOT: return "SPOT";
+        case SKILL_TAUNT: return "TAUNT";
+        case SKILL_TUMBLE: return "TUMBLE";
+        case SKILL_USE_MAGIC_DEVICE: return "USE MAGIC DEVICE";
+    }
+
+    return "[NOT FOUND]";
 }
 
 string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, int nValue, string sData)

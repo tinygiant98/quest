@@ -61,6 +61,8 @@ const int QUEST_VALUE_XP = 9;
 const int QUEST_VALUE_FACTION = 10;
 const int QUEST_VALUE_MESSAGE = 11;
 const int QUEST_VALUE_QUEST_STEP = 12;
+const int QUEST_VALUE_SKILL = 13;
+const int QUEST_VALUE_ABILITY = 14;
 
 // Quest Step Types
 const int QUEST_STEP_TYPE_PROGRESS = 0;

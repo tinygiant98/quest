@@ -158,7 +158,7 @@ int GetQuestJournalDeleteOnComplete(int nQuestID);
 void DeleteQuestJournalEntriesOnCompletion(int nQuestID);
 void RetainQuestJournalEntriesOnCompletion(int nQuestID);
 
-// ---< SetQuestPrerequisite[Alignment|Class|Gold|Item|LevelMax|LevelMin|Quest|QuestStep|Race] >---
+// ---< SetQuestPrerequisite[Alignment|Class|Gold|Item|LevelMax|LevelMin|Quest|QuestStep|Race|XP|Skill|Ability] >---
 // Sets a prerequisite for a PC to be able to be assigned a quest.  Prerequisites are used by
 //  GetIsQuestAssignable() to determine if a PC is eligible to be assigned quest sTag
 void SetQuestPrerequisiteAlignment(int nQuestID, int nKey, int nValue = FALSE);
@@ -169,6 +169,9 @@ void SetQuestPrerequisiteLevelMax(int nQuestID, int nValue);
 void SetQuestPrerequisiteLevelMin(int nQuestID, int nValue);
 void SetQuestPrerequisiteQuest(int nQuestID, string sKey, int nValue = 0);
 void SetQuestPrerequisiteRace(int nQuestID, int nKey, int nValue = TRUE);
+void SetQuestPrerequisiteXP(int nQuestID, int nXP);
+void SetQuestPrerequisiteSkill(int nQuestID, int nSkill, int nRank);
+void SetQuestPrerequisiteAbility(int nQuestID, int nAbility, int nScore);
 
 // ---< AddQuestStep >---
 // Adds a new quest step to quest sTag with Journal Entry sJournalEntry.  The quest
@@ -1434,6 +1437,99 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
 
                 break;
             }
+            case QUEST_VALUE_XP:
+            {
+                SqlStep(sqlPrerequisitesByType);
+                int bQualifies, nXP = SqlGetInt(sqlPrerequisitesByType, 1);
+                int nPC = GetXP(oPC);
+                
+                QuestDebug("  PC XP -> " + IntToString(nPC) + "xp");
+                QuestDebug("  XP | " + (nXP >= 0 ? ">= " : "<= ") + IntToString(abs(nXP)) + "xp");
+
+                if (nXP >= 0 && nPC >= nXP)
+                    bQualifies = TRUE;
+                else if (nXP < 0 && nXP <= nXP)
+                    bQualifies = TRUE;
+                else
+                    bQualifies = FALSE;
+
+                QuestDebug("  XP resolution -> " + ResolutionToString(bQualifies));
+
+                if (bQualifies == TRUE)
+                    bAssignable = TRUE;
+                else
+                    sErrors = AddListItem(sErrors, IntToString(nValueType));
+
+                break;
+            }
+            case QUEST_VALUE_ABILITY:
+            {
+                int bQualifies;
+                while (SqlStep(sqlPrerequisitesByType))
+                {
+
+                    int nAbility = SqlGetInt(sqlPrerequisitesByType, 0);
+                    int nScore = SqlGetInt(sqlPrerequisitesByType, 1);
+                    int nPC = GetAbilityScore(oPC, nAbility, FALSE);
+
+                    QuestDebug("  PC " + AbilityToString(nAbility) + " Score -> " + IntToString(nPC));
+                    QuestDebug("  ABILITY | " + AbilityToString(nAbility) + " | Score " + 
+                        (nScore >= 0 ? ">= " : "<= ") + IntToString(nScore));
+
+                    if (nScore >= 0 && nPC >= nScore)
+                        bQualifies = TRUE;
+                    else if (nScore < 0 && nScore <= nScore)
+                        bQualifies = TRUE;
+                    else
+                    {
+                        bQualifies = FALSE;
+                        break;
+                    }
+                }
+
+                QuestDebug("  ABILITY resolution -> " + ResolutionToString(bQualifies));
+
+                if (bQualifies == TRUE)
+                    bAssignable = TRUE;
+                else
+                    sErrors = AddListItem(sErrors, IntToString(nValueType));
+
+                break;
+            }
+            case QUEST_VALUE_SKILL:
+            {
+                int bQualifies;
+                while (SqlStep(sqlPrerequisitesByType))
+                {
+
+                    int nSkill = SqlGetInt(sqlPrerequisitesByType, 0);
+                    int nRank = SqlGetInt(sqlPrerequisitesByType, 1);
+                    int nPC = GetSkillRank(nSkill, oPC, TRUE);
+
+                    QuestDebug("  PC " + SkillToString(nSkill) + " Rank -> " + IntToString(nPC));
+                    QuestDebug("  SKILL | " + SkillToString(nSkill) + " | Score " + 
+                        (nRank >= 0 ? ">= " : "<= ") + IntToString(nRank));
+
+                    if (nRank >= 0 && nPC >= nRank)
+                        bQualifies = TRUE;
+                    else if (nRank < 0 && nPC <= nRank)
+                        bQualifies = TRUE;
+                    else
+                    {
+                        bQualifies = FALSE;
+                        break;
+                    }
+                }
+
+                QuestDebug("  SKILL resolution -> " + ResolutionToString(bQualifies));
+
+                if (bQualifies == TRUE)
+                    bAssignable = TRUE;
+                else
+                    sErrors = AddListItem(sErrors, IntToString(nValueType));
+
+                break;
+            }
         }
     }
 
@@ -2165,6 +2261,26 @@ void SetQuestPrerequisiteRace(int nQuestID, int nKey, int nValue = TRUE)
     string sKey = IntToString(nKey);
     string sValue = IntToString(nValue);    
     AddQuestPrerequisite(nQuestID, QUEST_VALUE_RACE, sKey, sValue);
+}
+
+void SetQuestPrerequisiteXP(int nQuestID, int nXP)
+{
+    string sXP = IntToString(nXP);
+    AddQuestPrerequisite(nQuestID, QUEST_VALUE_XP, "", sXP);
+}
+
+void SetQuestPrerequisiteSkill(int nQuestID, int nSkill, int nRank)
+{
+    string sSkill = IntToString(nSkill);
+    string sRank = IntToString(nRank);
+    AddQuestPrerequisite(nQuestID, QUEST_VALUE_SKILL, sSkill, sRank);
+}
+
+void SetQuestPrerequisteAbility(int nQuestID, int nAbility, int nScore)
+{
+    string sAbility = IntToString(nAbility);
+    string sScore = IntToString(nScore);
+    AddQuestPrerequisite(nQuestID, QUEST_VALUE_ABILITY, sAbility, sScore);
 }
 
 void SetQuestStepObjectiveKill(int nQuestID, int nStep, string sKey, int nValue = 1)
