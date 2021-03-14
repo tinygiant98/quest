@@ -3,21 +3,6 @@
 #include "util_i_math"
 #include "quest_i_const"
 
-string AlignmentToString(int nAlignment)
-{
-    switch (nAlignment)
-    {
-        case ALIGNMENT_ALL: return "ALL";
-        case ALIGNMENT_CHAOTIC: return "CHAOTIC";
-        case ALIGNMENT_EVIL: return "EVIL";
-        case ALIGNMENT_GOOD: return "GOOD";
-        case ALIGNMENT_LAWFUL: return "LAWFUL";
-        case ALIGNMENT_NEUTRAL: return "NEUTRAL";
-    }
-
-    return "[NOT FOUND]";
-}
-
 string AwardTypeToString(int nAwardType)
 {
     switch (nAwardType)
@@ -373,7 +358,7 @@ string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, in
         switch (nValueType)
         {
             case QUEST_VALUE_ALIGNMENT:
-                sKey = AlignmentToString(StringToInt(sKey));
+                sKey = AlignmentAxisToString(StringToInt(sKey));
                 if (nValue == 0)
                     sValue = "Any";
                 break;
@@ -446,7 +431,7 @@ string TranslateValue(int nValueType, string sKey, string sValue)
     switch (nValueType)
     {
         case QUEST_VALUE_ALIGNMENT:
-            sKey = AlignmentToString(StringToInt(sKey));
+            sKey = AlignmentAxisToString(StringToInt(sKey));
             if (sValue == "0")
                 sValue = "Any";
             break;

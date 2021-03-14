@@ -37,7 +37,6 @@ void _UnassignQuestFromPC(object oPC)
     }
 }
 
-//void quest_OnPlayerChat()
 void main()
 {
     object oPC = GetPCChatSpeaker();
