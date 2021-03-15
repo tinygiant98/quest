@@ -276,9 +276,6 @@ int GetGreaterUnixTimeStamp(int nTime1, int nTime2 = 0)
     if (nTime2 == 0)
         nTime2 = GetUnixTimeStamp();
 
-    Notice("nTime1 -> " + GetFormattedTimeSinceEpoch(nTime1));
-    Notice("nTime2 -> " + GetFormattedTimeSinceEpoch(nTime2));
-
     if (nTime1 == nTime2 || nTime1 > nTime2)
         return nTime1;
     else
