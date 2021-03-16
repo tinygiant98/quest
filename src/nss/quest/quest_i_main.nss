@@ -208,8 +208,8 @@ int GetQuestAllowPrecollectedItems(int nQuest);
 void SetQuestAllowPrecollectedItems(int nQuest, int nAllow = TRUE);
 
 //TODO
-int GetQuestStepObjectiveCount(int nQuestID, int nStep);
-void SetQuestStepObjectiveCount(int nQuestID, int nStep, int nCount = -1);
+int GetQuestStepObjectiveMinimum(int nQuestID, int nStep);
+void SetQuestStepObjectiveMinimum(int nQuestID, int nStep, int nCount = -1);
 
 // ---< [AddQuestResolution[Success|Fail] >---
 // Adds the final quest step to quest nQuestID.
@@ -1859,7 +1859,7 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
         // We passed the exclusive checks, see about the inclusive checks
         if (nStatus != QUEST_STEP_FAIL)
         {
-            int nObjectiveCount = GetQuestStepObjectiveCount(nQuestID, nStep);
+            int nObjectiveCount = GetQuestStepObjectiveMinimum(nQuestID, nStep);
             if (nObjectiveCount == -1)
             {
                 // Check for success, all step objectives must be completed
@@ -2266,13 +2266,13 @@ void SetQuestStepProximity(int nQuestID, int nStep, int nRequired = TRUE)
     _SetQuestStepData(nQuestID, nStep, QUEST_STEP_PROXIMITY, sData);
 }
 
-int GetQuestStepObjectiveCount(int nQuestID, int nStep)
+int GetQuestStepObjectiveMinimum(int nQuestID, int nStep)
 {
     string sData = _GetQuestStepData(nQuestID, nStep, QUEST_STEP_OBJECTIVE_COUNT);
     return StringToInt(sData);
 }
 
-void SetQuestStepObjectiveCount(int nQuestID, int nStep, int nCount = -1)
+void SetQuestStepObjectiveMinimum(int nQuestID, int nStep, int nCount = -1)
 {
     string sData = IntToString(nCount);
     _SetQuestStepData(nQuestID, nStep, QUEST_STEP_OBJECTIVE_COUNT, sData);
