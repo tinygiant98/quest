@@ -68,6 +68,7 @@ void CreateModuleQuestTables(int bReset = FALSE)
                         "nPartyCompletion TEXT default '0', " +
                         "nProximity INTEGER default '1', " +
                         "nStepType INTEGER default '0', " +
+                        "nObjectiveCount INTEGER default '-1', " +
                         "FOREIGN KEY (quests_id) REFERENCES quest_quests (id) " +
                             "ON DELETE CASCADE ON UPDATE CASCADE);";
 
@@ -683,18 +684,16 @@ int GetQuestStepObjectiveType(int nQuestID, int nStep)
     //return SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
 }
 
-int CountQuestStepObjectivePairs(int nQuestID, int nStep)
+int CountQuestStepObjectives(int nQuestID, int nStep)
 {
-    sQuery = "SELECT COUNT(sValues) " +
-             "FROM quest_steps INNER JOIN quest_step_properties " +
-                "ON quest_steps.id = quest_step_properties.quest_steps_id " +
-             "WHERE quest_step_properties.nCategoryType = @category " +
-                "AND quest_steps.nStep = @step " +
-                "AND quest_steps.quests_id = @id;";
-    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    string sQuery = "SELECT COUNT(quest_steps_id) " +
+                    "FROM quest_step_properties " +
+                    "WHERE nCategoryType = @category " +
+                        "AND quest_steps_id = @id;";
+
+    sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
     SqlBindInt(sql, "@category", QUEST_CATEGORY_OBJECTIVE);
-    SqlBindInt(sql, "@step", nStep);
-    SqlBindInt(sql, "@id", nQuestID);
+    SqlBindInt(sql, "@id", GetQuestStepID(nQuestID, nStep));
     
     int nCount;
     if (SqlStep(sql))
@@ -1012,6 +1011,25 @@ void DecrementQuestStepQuantityByQuest(object oPC, string sQuestTag, string sTar
 
     SqlStep(sql);
     HandleSqlDebugging(sql);
+}
+
+int CountPCStepObjectivesCompleted(object oPC, int nQuestID, int nStep)
+{
+    string sQuestTag = GetQuestTag(nQuestID);
+    int nCount;
+
+    sQuery = "SELECT COUNT(quest_tag) " +
+             "FROM quest_pc_step " +
+             "WHERE quest_tag = @quest_tag " +
+                "AND nAcquired >= nRequired;";
+    sql = SqlPrepareQueryObject(oPC, sQuery);
+    SqlBindString(sql, "@quest_tag", sQuestTag);
+    
+    if (SqlStep(sql))
+        nCount = SqlGetInt(sql, 0);
+
+    HandleSqlDebugging(sql);
+    return nCount;
 }
 
 sqlquery GetQuestStepSums(object oPC, int nQuestID)

@@ -67,6 +67,7 @@ void DefineRandomDiscoveryQuest()
 
     nStep = AddQuestStep(nQuestID);
     SetQuestStepPrewardMessage(nQuestID, nStep, "You've been assigned the Random Discovery Quest");
+    SetQuestStepObjectiveCount(nQuestID, nStep, 1);
     SetQuestStepObjectiveDiscover(nQuestID, nStep, "quest_trigger_2");
     SetQuestStepObjectiveDiscover(nQuestID, nStep, "quest_trigger_3");
     SetQuestStepObjectiveDiscover(nQuestID, nStep, "quest_trigger_1");

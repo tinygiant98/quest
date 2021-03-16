@@ -34,6 +34,7 @@ const string QUEST_STEP_TIME_LIMIT = "sTimeLimit";
 const string QUEST_STEP_PARTY_COMPLETION = "nPartyCompletion";
 const string QUEST_STEP_PROXIMITY = "nProximity";
 const string QUEST_STEP_TYPE = "nStepType";
+const string QUEST_STEP_OBJECTIVE_COUNT = "nObjectiveCount";
 
 // Quest PC Variable Names
 const string QUEST_PC_QUEST_TIME = "nQuestStartTime";

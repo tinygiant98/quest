@@ -14,12 +14,17 @@
 #include "quest_i_main"
 #include "quest_i_debug"
 
-#include "quest_support"
-
 void _AssignQuestToPC(object oPC)
 {
     string sQuestTag = GetChatKeyValue(oPC, "assign");
-    AssignQuestToPC(oPC, sQuestTag);
+
+    if (GetIsQuestAssignable(oPC, sQuestTag))
+    {
+        QuestDebug(HexColorString("Quest " + sQuestTag + " is assignable", COLOR_GREEN_LIGHT));
+        AssignQuest(oPC, sQuestTag);
+    }
+    else
+        QuestDebug(HexColorString("Quest " + sQuestTag + " is NOT assignable", COLOR_RED_LIGHT));
 }
 
 void _UnassignQuestFromPC(object oPC)
