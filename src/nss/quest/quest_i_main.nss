@@ -17,6 +17,8 @@
 //                          Database Function Prototypes
 // -----------------------------------------------------------------------------
 
+const string QUEST_SYSTEM_VERSION = "1.0.1";
+
 /*
     The following prototype are listed separately from the primary quest system
     prototypes because they are database-related direct-access functions.  These
@@ -757,6 +759,7 @@ void _AwardQuest(object oPC, int nQuestID, int nFlag = TRUE, int bParty = FALSE)
                     _AssignQuest(oPartyMember, nQuestID);
             }
             else
+                // TODO probably not appropriate?
                 UnassignQuest(oPartyMember, nQuestID);
             
             oPartyMember = GetNextFactionMember(oPC, TRUE);
@@ -958,6 +961,8 @@ void _AwardQuestStepAllotments(object oPC, int nQuestID, int nStep, int nCategor
 
 int AddQuest(string sQuestTag, string sTitle = "")
 {
+    QuestDebug("QUEST SYSTEM VERSION: " + QUEST_SYSTEM_VERSION);
+
     int nQuestID;
     if (GetQuestExists(sQuestTag) == TRUE)
     {
@@ -1027,6 +1032,8 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
             "\n  Quest Tag -> " + sQuestTag);
         return FALSE;
     }
+    else
+        QuestDebug(QuestToString(nQuestID) + " EXISTS");
 
     // Check if the quest is active
     if (GetIsQuestActive(nQuestID) == FALSE)
@@ -1035,6 +1042,8 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
             " cannot be assigned");
         return FALSE;
     }
+    else
+        QuestDebug(QuestToString(nQuestID) + " is ACTIVE");
 
     // Check that the creator add that minimum number of steps
     // At least one resolution step is required, the rest are optional
@@ -1050,8 +1059,9 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
 
     if (GetPCHasQuest(oPC, sQuestTag) == TRUE)
     {
-        if (GetIsPCQuestComplete(oPC, nQuestID))
+        if (GetIsPCQuestComplete(oPC, nQuestID) == TRUE)
         {
+            // Check for cooldown
             string sCooldownTime = GetQuestCooldown(nQuestID);
             if (sCooldownTime == "")
             {
@@ -1074,12 +1084,38 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                     sErrors = AddListItem(sErrors, "COOLDOWN TIME");
                 }
             }
+
+            // Check for repetitions
+            int nReps = GetQuestRepetitions(nQuestID);
+            if (nReps == 0)
+                bAssignable = TRUE;
+            else if (nReps > 0)
+            {
+                int nCompletions = GetPCQuestCompletions(oPC, sQuestTag);
+                if (nCompletions < nReps)
+                    bAssignable = TRUE;
+                else
+                {
+                    QuestError(PCToString(oPC) + " has completed " + QuestToString(nQuestID) + 
+                        " successfully the maximum number of times; quest cannot be re-assigned" +
+                        "\n  PC Quest Completion Count -> " + IntToString(nCompletions) +
+                        "\n  Quest Repetitions Setting -> " + IntToString(nReps));
+                    return FALSE;
+                }
+            }
+            else
+            {
+                QuestError(QuestToString(nQuestID) + " has been assigned an invalid " +
+                    "number of repetitions; must be >= 0" +
+                    "\n  Repetitions -> " + IntToString(nReps));
+                return FALSE;
+            }
         }
         else
         {
-            QuestDebug(PCToString(oPC) + " is still completing this quest, it cannot be " +
+            QuestDebug(PCToString(oPC) + " is still completing " + QuestToString(nQuestID) + "; quest cannot be " +
                 "reassigned until the current attempt is complete");
-            sErrors = AddListItem(sErrors, "QUEST COMPLETION");
+            return FALSE;
         }
     }
     else
@@ -1087,6 +1123,8 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
         QuestDebug(PCToString(oPC) + " does not have " + QuestToString(nQuestID) + " assigned");
         bAssignable = TRUE;
     }
+
+    QuestDebug("System pre-assignment check successfully completed; starting quest prerequisite checks");
 
     int nPrerequisites = CountQuestPrerequisites(nQuestID);
     if (nPrerequisites = 0)
@@ -1104,7 +1142,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
         int nValueType = SqlGetInt(sqlPrerequisites, 0);
         int nTypeCount = SqlGetInt(sqlPrerequisites, 1);
 
-        QuestDebug(HexColorString("Checking quest prerequisite " + ValueTypeToString(nValueType) + " " + IntToString(nTypeCount), COLOR_CYAN));
+        QuestDebug(HexColorString("Checking quest prerequisite " + ValueTypeToString(nValueType), COLOR_CYAN));
 
         if (_GetIsPropertyStackable(nValueType) == FALSE && nTypeCount > 1)
         {

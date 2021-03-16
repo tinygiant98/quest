@@ -159,7 +159,10 @@ void DiscoveryDialog()
             else
             {
                 if (sNodeData == "ordered")
-                    AssignQuestToPC(oPC, sOrdered);
+                {
+                    if (GetIsQuestAssignable(oPC, "quest_discovery_ordered"))
+                        AssignQuestToPC(oPC, sOrdered);
+                }
                 else if (sNodeData == "random")
                     AssignQuestToPC(oPC, sRandom);
                 else if (sNodeData == "both")

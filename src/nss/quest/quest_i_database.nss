@@ -784,7 +784,7 @@ int GetPCQuestCompletions(object oPC, string sQuestTag)
         nCount = SqlGetInt(sql, 0);
 
     HandleSqlDebugging(sql);
-    return nCount;
+    return nCount;`
 
     //return SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
 }

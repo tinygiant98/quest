@@ -40,6 +40,9 @@ void main()
 {
     object oPC = GetPCChatSpeaker();
 
+    if (HasChatOption(oPC, "v, version"))
+        QuestDebug("Quest System Version -> " + ColorValue(QUEST_SYSTEM_VERSION));
+
     if (HasChatOption(oPC, "item"))
     {
         object oItem = CreateItemOnObject("nw_aarcl001", oPC, 1, "quest_gather_armor");
@@ -72,11 +75,12 @@ void main()
     {
         if (HasChatOption(oPC, "pc"))
         {
-            Notice("Dumping PC Quest data");
+            QuestNotice("Dumping PC Quest data");
+            QuestNotice("  Quest System Version -> " + ColorValue(QUEST_SYSTEM_VERSION));
 
             string sPCQuestTag;
             int nPCStepStartTime, nPCQuestStartTime, nPCLastCompleteTime;
-            int n, nPCStep, nPCCompletions, nPCAttempts, nPCFailures;
+            int n, nPCStep, nPCCompletions, nPCAttempts, nPCFailures, bDataFound;
 
             sqlquery sql;
             string sQuery, sRequestedQuest = GetChatArgument(oPC);
@@ -134,16 +138,24 @@ void main()
                          "\n    Required  " + ColorValue(sRequired) +
                          "\n    Acquired  " + ColorValue(sAcquired));
                 }
+
+                bDataFound = TRUE;
             }
+
+            if (!bDataFound)
+                QuestDebug("  No quest data found for " + PCToString(oPC));
         }
         else 
         {
+            QuestNotice("Dumping Quest data");
+            QuestNotice("  Quest System Version -> " + ColorValue(QUEST_SYSTEM_VERSION));
+
             int n, nID, nActive, nRepetitions, nStepOrder;
             string sTag, sTitle, sAccept, sAdvance, sComplete, sFail;
             string sTime, sCooldown;
 
             int nStepID, nQuestID, nStep, nPartyCompletion, nProximity, nStepType;
-            int nJournalLocation, nDeleteOnComplete, nAllowPrecollected;
+            int nJournalLocation, nDeleteOnComplete, nAllowPrecollected, bDataFound;
             string sJournalEntry, sTimeLimit;
 
             sqlquery sql;
@@ -181,6 +193,8 @@ void main()
                 nJournalLocation = SqlGetInt(sql, ++n);
                 nDeleteOnComplete = SqlGetInt(sql, ++n);
                 nAllowPrecollected = SqlGetInt(sql, ++n);
+
+                bDataFound = TRUE;
             
                 Notice(HexColorString("Dumping data for " + QuestToString(nID), COLOR_CYAN));
                 Notice("  Tag  " + ColorValue(sTag) +
@@ -200,6 +214,8 @@ void main()
 
                 if (CountQuestPrerequisites(nID) > 0)
                 {
+                    n = 0;
+
                     Notice(HexColorString("  Dumping prerequisites for " + QuestToString(nID), COLOR_CYAN));
                     
                     sSubQuery = "SELECT * FROM quest_prerequisites " +
@@ -208,14 +224,13 @@ void main()
                     SqlBindInt(sqlSub, "@id", nID);
                     while (SqlStep(sqlSub))
                     {
-                        n = 0;
                         int nPrereqID = SqlGetInt(sqlSub, 0);
                         int nPrereqQuest = SqlGetInt(sqlSub, 1);
                         int nValueType = SqlGetInt(sqlSub, 2);
                         string sKey = SqlGetString(sqlSub, 3);
                         string sValue = SqlGetString(sqlSub, 4);
 
-                        Notice(HexColorString("    " + IntToString(nPrereqID), COLOR_CYAN) +
+                        Notice(HexColorString("    " + IntToString(++n), COLOR_CYAN) +
                                 TranslateValue(nValueType, sKey, sValue));
                     }
                 }
@@ -264,16 +279,19 @@ void main()
                         {
                             int nCategoryType = SqlGetInt(sqlNew, 1);
                             int nValueType = SqlGetInt(sqlNew, 2);
-                            string sTag = SqlGetString(sqlNew, 3);
-                            int nRequired = SqlGetInt(sqlNew, 4);
+                            string sKey = SqlGetString(sqlNew, 3);
+                            string sValue = SqlGetString(sqlNew, 4);
                             string sData = SqlGetString(sqlNew, 5);
-                            Notice(TranslateCategoryValue(nCategoryType, nValueType, sTag, nRequired, sData));
+                            Notice(TranslateCategoryValue(nCategoryType, nValueType, sKey, sValue, sData));
                         }
                     }       
                 }
                 else
-                    Notice(HexColorString("  No step data found for " + QuestToString(nID), COLOR_RED_LIGHT));
+                    Notice(HexColorString("    No step data found for " + QuestToString(nID), COLOR_RED_LIGHT));
             }
+
+            if (!bDataFound)
+                QuestDebug("  No quest data found");
         }
     }
 }

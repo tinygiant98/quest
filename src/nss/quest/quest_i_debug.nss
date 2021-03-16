@@ -3,6 +3,8 @@
 #include "util_i_math"
 #include "quest_i_const"
 
+const int DISPLAY_DB_RETRIEVALS = FALSE;
+
 string AwardTypeToString(int nAwardType)
 {
     switch (nAwardType)
@@ -344,11 +346,11 @@ string SkillToString(int nSkill)
     return "[NOT FOUND]";
 }
 
-string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, int nValue, string sData)
+string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, string sValue, string sData)
 {
     string sIndent = "            ";
     string sDelimiter = HexColorString(" | ", COLOR_GRAY);
-    string sValue;
+    int nValue;
 
     string sCategory = HexColorString(CategoryTypeToString(nCategoryType), COLOR_GREEN_LIGHT);
     string sValueType = ColorValue(ValueTypeToString(nValueType, nCategoryType));
@@ -359,11 +361,13 @@ string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, in
         {
             case QUEST_VALUE_ALIGNMENT:
                 sKey = AlignmentAxisToString(StringToInt(sKey));
+                nValue = StringToInt(sValue);
                 if (nValue == 0)
                     sValue = "Any";
                 break;
             case QUEST_VALUE_CLASS:
                 sKey = ClassToString(StringToInt(sKey));
+                nValue = StringToInt(sValue);
                 if (nValue == -1)
                     sValue = "Any";
                 else if (nValue == 0)
@@ -373,6 +377,7 @@ string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, in
                 break;
             case QUEST_VALUE_RACE:
                 sKey = RaceToString(StringToInt(sKey));
+                nValue = StringToInt(sValue);
                 if (nValue == 1)
                     sValue = "Included";
                 else
@@ -380,22 +385,25 @@ string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, in
                 break;
             case QUEST_VALUE_GOLD:
                 sKey = " ";
-                sValue = IntToString(nValue) + "gp";
+                sValue += "gp";
                 break;
             case QUEST_VALUE_LEVEL_MAX:
                 sKey = " ";
-                sValue = "<= " + IntToString(nValue);
+                sValue = "<= " + sValue;
                 break;
             case QUEST_VALUE_LEVEL_MIN:
                 sKey = " ";
-                sValue = ">= " + IntToString(nValue);
+                sValue = ">= " + sValue;
                 break;
             case QUEST_VALUE_ITEM:
-                sValue = ">= " + IntToString(nValue);
+                sValue = ">= " + sValue;
                 break;
             case QUEST_VALUE_XP:
                 sKey = " ";
-                sValue = IntToString(nValue) + "xp";
+                sValue += "xp";
+                break;
+            case QUEST_VALUE_MESSAGE:
+                sKey = " ";
                 break;
         }
     }
@@ -619,7 +627,7 @@ void HandleDebugging(string sType, string s1 = "", string s2 = "", string s3 = "
         }
     }
 
-    if (sResult != "")
+    if (sResult != "" && DISPLAY_DB_RETRIEVALS)
         QuestDebug(sResult);
 }
 
