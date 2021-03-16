@@ -4,7 +4,7 @@ sm-utils.  These utilities can be obtained from
 https://github.com/squattingmonk/nwn-core-framework/tree/master/src/utils.
 
 Specificially, the following files are required:  util_i_color.nss, util_i_csvlists.nss,
-util_i_debug.nss, util_i_math.nss, util_i_string.nss, util_i_time.nss
+util_i_debug.nss, util_i_math.nss, util_i_string.nss
 
 *** WARNING *** This documentation is still a work-in-progress.  If anything in this documentation
     doesn't work the way you expect, refer to the code or find me on Discord...
@@ -72,9 +72,6 @@ Usage Notes:
     and quest steps.  These properties include quest prerequisites, step rewards, step prewards and step
     objectives.  Most properties can be "stacked" (more than one added).  Examples of this will follow.
     
-
-    TODO Move Warnings and Notes for Time Usage here.
-
 Custom Quest-Assocated Variables:
     There are several functions that allow the user to associated Int and String variables with any
     quest.  These variables are stored in the volatile module-associated sqlite database in a separate
@@ -121,15 +118,7 @@ Property Descriptions:
             the PC.  Failure to complete the quest within the required time will result in unassignment of the
             quest and removal of all prewards.  Rewards for completing steps will be kept by the PC.
 
-            *** WARNING *** Timing functions require consistent server time.  If you are running a single player
-                server or your persistent world time is not consistent across resets, timing functions will
-                not work correctly and should be avoided.
-
-            *** Note *** Timing functions use the util_i_time include, which stores all times as string.  If you
-                use different time control and storage methods, you'll have to modify these functions to fit your
-                methodologies.  To make this easier, the following functions have been included and are meant
-                for custom methodologies:
-                    // TODO create convenience functions for time management
+            *** WARNING *** Timing functions are "real-time" using SQL-based time.  These are not game/server times.
 
         Prerequisites - Requirements a PC must meet before a quest can be assigned.  You can add any number of
             prerequisites to each quest to narrow down which PCs can be assigned specific quests.  All
@@ -279,13 +268,9 @@ Property Descriptions:
             may be necessary to allow someone other than the PC that holds the quest to complete a step.  For example,
             if a step's objective is to kill a target and the target is killed by a member of the player's party
             while the player is present, the player would normally be able to get quest credit for the kill.
-        Time Limit - The total in-game time a PC has to complete a quest step from the time the previous step is
+        Time Limit - The total real-world time a PC has to complete a quest step from the time the previous step is
             successfully accomplished.  Failure to complete the quest step within  the required time will result
             in reversion of the quest to the previous step and removal of all prewards for the lost step.
-
-            *** WARNING *** Timing functions require consistent server time.  If you are running a single player
-                server or your persistent world time is not consistent across resets, timing functions will
-                not work correctly and should be avoided.
 
         Prerequisites - Prerequisites cannot be assigned to invdividual steps.  It is assumed that the prerequisite
             for a sequential quest is the completion of all steps in-order.  For non-sequential quests, there are no
@@ -478,7 +463,7 @@ Usage Example:
         - Requires the PC to be a 3rd-level halfling rogue
         - Requires the PC to break into three houses
         - Requires the PC collect two maps
-        - Limits the PC to 24 hours of game time
+        - Limits the PC to 24 hours of real-world time
         - Provides the PC with a set of advanced lockpicks after the find the maps
         - Rewards the PC with Gold, XP and Alignment Shift upon completion
         - Requires the PC report back to the NPC that assigned the quest
@@ -502,7 +487,7 @@ Usage Example:
 
         SetQuestPrerequisiteRace(nQuestID, RACIAL_TYPE_HALFLING);
         SetQuestPrerequisiteClass(nQuestID, CLASS_TYPE_ROGUE, 3);
-        SetQuestTimeLimit(nQuestID, CreateDifferenceVector(0, 0, 0, 24, 0, 0));
+        SetQuestTimeLimit(nQuestID, CreateTimeVector(0, 0, 0, 24, 0, 0));
 
         // Step 1 - Find Maps
         nStep = AddQuestStep(nQuestID);
