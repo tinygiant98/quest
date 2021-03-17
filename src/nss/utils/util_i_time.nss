@@ -1151,8 +1151,8 @@ int IsLeapYear(int nYear)
     return ((nYear % 4 == 0 && nYear % 100 != 0) || nYear % 400 == 0);
 }
 
-string GetFormattedTimeSinceEpoch(int nSeconds, string sFormat = DEFAULT_FORMAT,
-                                  string sWeekDayNames = "", string sMonthNames = "")
+string FormatUnixTimestamp(int nSeconds, string sFormat = DEFAULT_FORMAT,
+                           string sWeekDayNames = "", string sMonthNames = "")
 {
     if (nSeconds < 0)
         return TIME_INVALID;
@@ -1162,9 +1162,9 @@ string GetFormattedTimeSinceEpoch(int nSeconds, string sFormat = DEFAULT_FORMAT,
     int SecondsPerDay = 86400;
     int DaysPerYear = 365;
     int DaysPerLeapYear = 366;
-    string sMonth = "0,31,59,90,120,151,181,212,243,273,304,334";
+    string sMonths = "0,31,59,90,120,151,181,212,243,273,304,334";
     string sLeapMonths = "-1,30,59,90,120,151,181,212,243,273,304,334";
-    string sMonths;
+    //string sMonths;
 
     int nMonth, nTempDays, nYear = 1970;
     float fDays = nSeconds / IntToFloat(SecondsPerDay);
@@ -1201,8 +1201,11 @@ string GetFormattedTimeSinceEpoch(int nSeconds, string sFormat = DEFAULT_FORMAT,
 
     nTempDays -= StringToInt(GetListItem(sMonths, nMonth));
 
-    int nHours = FloatToInt(IntToFloat(nSeconds/60/60)) % 24;
-    int nMinutes = FloatToInt(IntToFloat(nSeconds/60)) % 60;
+    //int nHours = FloatToInt(IntToFloat(nSeconds/60/60)) % 24;
+    //int nMinutes = FloatToInt(IntToFloat(nSeconds/60)) % 60;
+
+    int nHours = (nSeconds/60/60) % 24;
+    int nMinutes = (nSeconds/60) % 60;
     int nSecs = nSeconds % 60;
 
     string sTime = AddListItem(sTime, IntToString(nYear));

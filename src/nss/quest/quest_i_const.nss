@@ -117,3 +117,6 @@ const string REQUEST_INVALID = "REQUEST_INVALID";
 // Odds & Ends
 const int QUEST_PAIR_KEYS = 1;
 const int QUEST_PAIR_VALUES = 2;
+
+// Time Format
+const string QUEST_TIME_FORMAT = "MMM d, yyyy @ HH:mm:ss";

@@ -17,7 +17,7 @@
 //                          Database Function Prototypes
 // -----------------------------------------------------------------------------
 
-const string QUEST_SYSTEM_VERSION = "1.0.1";
+const string QUEST_SYSTEM_VERSION = "1.0.2";
 
 /*
     The following prototype are listed separately from the primary quest system
@@ -74,6 +74,7 @@ int GetNextPCQuestStep(int nQuestID, int nCurrentStep);
 
 #include "util_i_csvlists"
 #include "util_i_debug"
+#include "util_i_time"
 
 #include "quest_i_const"
 #include "quest_i_debug"
@@ -1068,23 +1069,26 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
             string sCooldownTime = GetQuestCooldown(nQuestID);
             if (sCooldownTime == "")
             {
-                QuestDebug("There is no cooldown time for this quest");
+                QuestDebug("There is no cooldown time set for this quest");
                 bAssignable = TRUE;
             }
             else
             {
                 int nCompleteTime = StringToInt(_GetPCQuestData(oPC, nQuestID, QUEST_PC_LAST_COMPLETE));
-                nCompleteTime = GetModifiedUnixTimeStamp(nCompleteTime, sCooldownTime);
-                if (GetGreaterUnixTimeStamp(nCompleteTime) == nCompleteTime)
+                int nAvailableTime = GetModifiedUnixTimeStamp(nCompleteTime, sCooldownTime);
+                if (GetGreaterUnixTimeStamp(nAvailableTime) != nAvailableTime)
                 {
-                    QuestDebug(PCToString(oPC) + " has met the required cooldown time");
+                    QuestDebug(PCToString(oPC) + " has met the required cooldown time for " + QuestToString(nQuestID));
                     bAssignable = TRUE;
                 }
                 else
                 {
-                    QuestDebug(PCToString(oPC) + " has not met the required cooldown time" +
-                        "for this quest");
-                    sErrors = AddListItem(sErrors, "COOLDOWN TIME");
+                    QuestDebug(PCToString(oPC) + " has not met the required cooldown time for " + QuestToString(nQuestID) +
+                        "\n  Quest Completion Time -> " + ColorValue(FormatUnixTimestamp(nCompleteTime, QUEST_TIME_FORMAT) + " UTC") +
+                        "\n  Cooldown Time -> " + ColorValue(TimeVectorToString(sCooldownTime)) + 
+                        "\n  Earliest Assignment Time -> " + ColorValue(FormatUnixTimestamp(nAvailableTime, QUEST_TIME_FORMAT) + " UTC") +
+                        "\n  Attemped Assignment Time -> " + ColorValue(FormatUnixTimestamp(GetUnixTimeStamp(), QUEST_TIME_FORMAT) + " UTC"));
+                    return FALSE;
                 }
             }
 
@@ -1810,7 +1814,11 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
         if (GetGreaterUnixTimeStamp(nGoalTime) != nGoalTime)
         {
             QuestDebug(PCToString(oPC) + " failed to meet the time limit for " +
-                QuestToString(nQuestID) + " " + StepToString(nStep));
+                QuestToString(nQuestID) + " " + StepToString(nStep) +
+                "\n  Step Start Time -> " + ColorValue(FormatUnixTimestamp(nStartTime, QUEST_TIME_FORMAT) + " UTC") +
+                "\n  Allowed Time -> " + ColorValue(TimeVectorToString(sStepTimeLimit)) +
+                "\n  Goal Time -> " + ColorValue(FormatUnixTimestamp(nGoalTime, QUEST_TIME_FORMAT) + " UTC") + 
+                "\n  Completion Time -> " + ColorValue(FormatUnixTimestamp(GetUnixTimeStamp(), QUEST_TIME_FORMAT) + " UTC"));
             nStatus = QUEST_STEP_FAIL;
         }
     }
@@ -1830,7 +1838,11 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
             {
                 nStatus = QUEST_STEP_FAIL;
                 QuestDebug(PCToString(oPC) + " failed to meet the time limit for " +
-                    QuestToString(nQuestID));
+                    QuestToString(nQuestID) +
+                "\n  Quest Start Time -> " + ColorValue(FormatUnixTimestamp(nStartTime, QUEST_TIME_FORMAT) + " UTC") +
+                "\n  Allowed Time -> " + ColorValue(TimeVectorToString(sQuestTimeLimit)) +
+                "\n  Goal Time -> " + ColorValue(FormatUnixTimestamp(nGoalTime, QUEST_TIME_FORMAT) + " UTC") +
+                "\n  Completion Time -> " + ColorValue(FormatUnixTimestamp(GetUnixTimeStamp(), QUEST_TIME_FORMAT) + " UTC"));
             }
         }
         else

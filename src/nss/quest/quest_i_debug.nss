@@ -491,6 +491,23 @@ string TranslateValue(int nValueType, string sKey, string sValue)
         sValue;
 }
 
+string TimeVectorToString(string sTimeVector)
+{
+    string sUnit, sResult, sElement, sUnits = "Year, Month, Day, Hour, Minute, Second";
+
+    int n, nCount = CountList(sTimeVector);
+    for (n = 0; n < nCount; n++)
+    {
+        sElement = GetListItem(sTimeVector, n);
+        sUnit = GetListItem(sUnits, n);
+
+        if (sElement != "0")
+            sResult += (sResult == "" ? "" : ", ") + sElement + " " + sUnit + (sElement == "1" ? "" : "s");
+    }
+
+    return sResult;
+}
+
 string _GetKey(string sPair)
 {
     int nIndex;

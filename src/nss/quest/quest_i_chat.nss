@@ -45,6 +45,16 @@ void main()
 {
     object oPC = GetPCChatSpeaker();
 
+    if (HasChatOption(oPC, "time"))
+    {
+        int nTime = GetUnixTimeStamp();
+        Notice(FormatUnixTimestamp(nTime));
+
+        nTime = GetModifiedUnixTimeStamp(nTime, CreateTimeVector(0,0,0,1,5,0));
+        Notice(FormatUnixTimestamp(nTime));
+        return;
+    }
+
     if (HasChatOption(oPC, "v, version"))
         QuestDebug("Quest System Version -> " + ColorValue(QUEST_SYSTEM_VERSION));
 

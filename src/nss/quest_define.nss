@@ -66,11 +66,13 @@ void DefineRandomDiscoveryQuest()
     SetQuestScripts(nQuestID);
 
     nStep = AddQuestStep(nQuestID);
+    SetQuestRepetitions(nQuestID, 0);
     SetQuestStepPrewardMessage(nQuestID, nStep, "You've been assigned the Random Discovery Quest");
     SetQuestStepObjectiveMinimum(nQuestID, nStep, 1);
     SetQuestStepObjectiveDiscover(nQuestID, nStep, "quest_trigger_2");
     SetQuestStepObjectiveDiscover(nQuestID, nStep, "quest_trigger_3");
     SetQuestStepObjectiveDiscover(nQuestID, nStep, "quest_trigger_1");
+    SetQuestCooldown(nQuestID, CreateTimeVector(0,0,0,0,3,0));
 
     nStep = AddQuestResolutionSuccess(nQuestID);
     SetQuestStepRewardMessage(nQuestID, nStep, "Congratulations, you've completed the Random Discovery sample quest");
