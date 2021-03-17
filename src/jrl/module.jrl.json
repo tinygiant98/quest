@@ -1,0 +1,76 @@
+{
+  "__data_type": "JRL ",
+  "Categories": {
+    "type": "list",
+    "value": [
+      {
+        "__struct_id": 0,
+        "Comment": {
+          "type": "cexostring",
+          "value": ""
+        },
+        "EntryList": {
+          "type": "list",
+          "value": [
+            {
+              "__struct_id": 0,
+              "End": {
+                "type": "word",
+                "value": 0
+              },
+              "ID": {
+                "type": "dword",
+                "value": 1
+              },
+              "Text": {
+                "type": "cexolocstring",
+                "value": {
+                  "0": "Find one of the 3 locations behind the sign"
+                }
+              }
+            },
+            {
+              "__struct_id": 1,
+              "End": {
+                "type": "word",
+                "value": 1
+              },
+              "ID": {
+                "type": "dword",
+                "value": 2
+              },
+              "Text": {
+                "type": "cexolocstring",
+                "value": {
+                  "0": "You found one!  Look at you, you big stud."
+                }
+              }
+            }
+          ]
+        },
+        "Name": {
+          "type": "cexolocstring",
+          "value": {
+            "0": "Random Discovery Quest"
+          }
+        },
+        "Picture": {
+          "type": "word",
+          "value": 65535
+        },
+        "Priority": {
+          "type": "dword",
+          "value": 4
+        },
+        "Tag": {
+          "type": "cexostring",
+          "value": "quest_discovery_random"
+        },
+        "XP": {
+          "type": "dword",
+          "value": 0
+        }
+      }
+    ]
+  }
+}

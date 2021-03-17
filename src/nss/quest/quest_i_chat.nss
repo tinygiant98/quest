@@ -32,7 +32,7 @@ void _UnassignQuestFromPC(object oPC)
     string sQuestTag = GetChatKeyValue(oPC, "unassign");
     if (sQuestTag == "")
     {
-        CreatePCQuestTables(oPC, TRUE);
+        CreatePCQuestTables(oPC);
     }
     else
     {
@@ -44,16 +44,6 @@ void _UnassignQuestFromPC(object oPC)
 void main()
 {
     object oPC = GetPCChatSpeaker();
-
-    if (HasChatOption(oPC, "time"))
-    {
-        int nTime = GetUnixTimeStamp();
-        Notice(FormatUnixTimestamp(nTime));
-
-        nTime = GetModifiedUnixTimeStamp(nTime, CreateTimeVector(0,0,0,1,5,0));
-        Notice(FormatUnixTimestamp(nTime));
-        return;
-    }
 
     if (HasChatOption(oPC, "v, version"))
         QuestDebug("Quest System Version -> " + ColorValue(QUEST_SYSTEM_VERSION));
@@ -73,9 +63,16 @@ void main()
 
     if (HasChatOption(oPC, "reset"))
     {
-        CreateModuleQuestTables(TRUE);
-        CreatePCQuestTables(oPC, TRUE);
-        ExecuteScript("quest_define", GetModule());
+        if (HasChatOption(oPC, "pc"))
+        {
+            CreatePCQuestTables(oPC, TRUE);
+            return;
+        }
+        else
+        {
+            CreatePCQuestTables(oPC, TRUE);
+            ExecuteScript("quest_define", GetModule());
+        }
     }
 
     if (HasChatKey(oPC, "assign"))
@@ -94,7 +91,7 @@ void main()
             QuestNotice("  Quest System Version -> " + ColorValue(QUEST_SYSTEM_VERSION));
 
             string sPCQuestTag;
-            int nPCStepStartTime, nPCQuestStartTime, nPCLastCompleteTime;
+            int nPCStepStartTime, nPCQuestStartTime, nPCLastCompleteTime, nPCLastCompleteType;
             int n, nPCStep, nPCCompletions, nPCAttempts, nPCFailures, bDataFound;
 
             sqlquery sql;
@@ -122,6 +119,7 @@ void main()
                 nPCQuestStartTime = SqlGetInt(sql, ++n);
                 nPCStepStartTime = SqlGetInt(sql, ++n);
                 nPCLastCompleteTime = SqlGetInt(sql, ++n);
+                nPCLastCompleteType = SqlGetInt(sql, ++n);
 
                 Notice(HexColorString("Dumping PC data for " + sPCQuestTag, COLOR_CYAN));
                 Notice("  Step  " + ColorValue(IntToString(nPCStep)) +
@@ -130,7 +128,10 @@ void main()
                      "\n  Failures  " + ColorValue(IntToString(nPCFailures)) + 
                      "\n  Quest Start  " + ColorValue(IntToString(nPCQuestStartTime), TRUE) +
                      "\n  Step Start  " + ColorValue(IntToString(nPCStepStartTime), TRUE) +
-                     "\n  Last Completion  " + ColorValue(IntToString(nPCLastCompleteTime), TRUE)); 
+                     "\n  Last Completion  " + ColorValue(IntToString(nPCLastCompleteTime), TRUE) + 
+                     "\n  Last Completion Type  " + ColorValue(StepTypeToString(nPCLastCompleteType)));
+
+                Notice("NW_JOURNAL_ENTRY status -> " + IntToString(GetLocalInt(oPC, "NW_JOURNAL_ENTRY" + sPCQuestTag)));
 
                 string sQuery1 = "SELECT * FROM quest_pc_step " +
                                  "WHERE quest_tag = @tag;";

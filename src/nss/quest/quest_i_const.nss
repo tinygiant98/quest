@@ -40,6 +40,7 @@ const string QUEST_STEP_OBJECTIVE_COUNT = "nObjectiveCount";
 const string QUEST_PC_QUEST_TIME = "nQuestStartTime";
 const string QUEST_PC_STEP_TIME = "nStepStartTime";
 const string QUEST_PC_LAST_COMPLETE = "nLastCompleteTime";
+const string QUEST_PC_LAST_COMPLETE_TYPE = "nLastCompleteType";
 const string QUEST_PC_COMPLETIONS = "nCompletions";
 const string QUEST_PC_STEP = "nStep";
 

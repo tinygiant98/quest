@@ -122,7 +122,8 @@ void CreatePCQuestTables(object oPC, int bReset = FALSE)
         "nFailures INTEGER default '0', " +
         "nQuestStartTime INTEGER default '0', " +
         "nStepStartTime INTEGER default '0', " +
-        "nLastCompleteTime INTEGER default '0');";
+        "nLastCompleteTime INTEGER default '0', " +
+        "nLastCompleteType INTEGER default NULL);";
 
     string sQuestStep = "CREATE TABLE IF NOT EXISTS quest_pc_step (" +
         "quest_tag TEXT, " +
@@ -137,8 +138,8 @@ void CreatePCQuestTables(object oPC, int bReset = FALSE)
     // Destroy if required
     if (bReset)
     {
-            QuestDebug(HexColorString("Resetting", COLOR_RED_LIGHT) + " quest database tables for " +
-                PCToString(oPC));
+        QuestDebug(HexColorString("Resetting", COLOR_RED_LIGHT) + " quest database tables for " +
+            PCToString(oPC));
 
         string sTable, sTables = "data,step";
         int n, nCount = CountList(sTables);  
@@ -192,6 +193,9 @@ void CleanPCQuestTables(object oPC)
     if (SqlStep(sql))
     {
         string sQuestTags = SqlGetString(sql, 0);
+
+        Notice(sQuestTags);
+
         sQuery = "DELETE FROM quest_pc_data " +
                  "WHERE quest_tag NOT IN (@tags);";
         sql = SqlPrepareQueryObject(oPC, sQuery);
@@ -842,11 +846,13 @@ void IncrementPCQuestCompletions(object oPC, int nQuestID, int nTimeStamp)
     string sQuestTag = GetQuestTag(nQuestID);
     sQuery = "UPDATE quest_pc_data " +
              "SET nCompletions = nCompletions + 1, " +
-                 "nLastCompleteTime = @time " +
+                 "nLastCompleteTime = @time, " +
+                 "nLastCompleteType = @type " +
              "WHERE quest_tag = @tag;";
     sql = SqlPrepareQueryObject(oPC, sQuery);
     SqlBindString(sql, "@tag", sQuestTag);
     SqlBindInt(sql, "@time", nTimeStamp);
+    SqlBindInt(sql, "@type", QUEST_STEP_TYPE_SUCCESS);
     SqlStep(sql);
 
     HandleSqlDebugging(sql);
@@ -860,10 +866,12 @@ void IncrementPCQuestFailures(object oPC, int nQuestID, int nTimeStamp)
     sQuery = "UPDATE quest_pc_data " +
              "SET nFailures = nFailures + 1, " +
                  "nLastCompleteTime = @time " +
+                 "nLastCompleteType = @type " +
              "WHERE quest_tag = @tag;";
     sql = SqlPrepareQueryObject(oPC, sQuery);
     SqlBindString(sql, "@tag", sQuestTag);
     SqlBindInt(sql, "@time", nTimeStamp);
+    SqlBindInt(sql, "@type", QUEST_STEP_TYPE_FAIL);
     SqlStep(sql);
 
     HandleSqlDebugging(sql);
@@ -1119,6 +1127,14 @@ int GetNextPCQuestStep(int nQuestID, int nCurrentStep)
     return nStep;
 
     //return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
+}
+
+sqlquery GetPCQuestData(object oPC)
+{
+    sQuery = "SELECT quest_tag, nStep, nCompletions, nLastCompleteType " +
+             "FROM quest_pc_data;";
+    sql = SqlPrepareQueryObject(oPC, sQuery);
+    return sql;
 }
 
 void AddQuestStepObjectiveData(object oPC, int nQuestID, int nObjectiveType, 

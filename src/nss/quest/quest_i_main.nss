@@ -1688,7 +1688,7 @@ void SendJournalQuestEntry(object oPC, int nQuestID, int nStep, int bComplete = 
     switch (nDestination)
     {
         case QUEST_JOURNAL_NONE:
-            QuestDebug("Journal Quest Entries for " + QuestToString(nQuestID) + " have been suppressed");
+            QuestDebug("Journal Quest entries for " + QuestToString(nQuestID) + " have been suppressed");
             break;
         case QUEST_JOURNAL_NWN:
             if (bComplete && bDelete)
@@ -1700,9 +1700,37 @@ void SendJournalQuestEntry(object oPC, int nQuestID, int nStep, int bComplete = 
                 " has been dispatched to the NWN journal system");
             break;
         case QUEST_JOURNAL_NWNX:
-            QuestError("Journal Quest Entries for " + QuestToString(nQuestID) + " have been designated for " +
+            QuestError("Journal Quest entries for " + QuestToString(nQuestID) + " have been designated for " +
                 "NWNX, however NWNX functionality has not yet been instituted.");
             break;
+    }
+
+    // test
+    int nEntry = GetLocalInt(oPC, "NW_JOURNAL_ENTRY" + sQuestTag);
+    Notice("nEntry -> " + IntToString(nEntry));
+}
+
+void UpdateJournalQuestEntries(object oPC)
+{
+    sqlquery sqlPCQuestData = GetPCQuestData(oPC);
+    while (SqlStep(sqlPCQuestData))
+    {
+        string sQuestTag = SqlGetString(sqlPCQuestData, 0);
+        int nStep = SqlGetInt(sqlPCQuestData, 1);
+        int nCompletions = SqlGetInt(sqlPCQuestData, 2);
+        int nLastCompleteType = SqlGetInt(sqlPCQuestData, 3);
+
+        int nQuestID = GetQuestID(sQuestTag);
+
+        if (nStep == 0)
+        {
+            if (nCompletions == 0)
+                continue;
+            else
+                nStep = GetQuestCompletionStep(nQuestID, nLastCompleteType);
+        }
+
+        SendJournalQuestEntry(oPC, nQuestID, nStep);
     }
 }
 
