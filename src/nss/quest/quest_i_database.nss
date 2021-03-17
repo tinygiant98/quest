@@ -1200,3 +1200,13 @@ int GetPCQuestStepAcquired(object oPC, int nQuestID)
 
     //return SqlStep(sql) ? SqlGetString(sql, 0) : "";
 }
+
+void UpdatePCQuestTable(object oPC)
+{
+    sQuery = "ALTER TABLE quest_pc_data " +
+             "ADD COLUMN nLastCompleteType INTEGER default NULL;";
+    sql = SqlPrepareQueryObject(oPC, sQuery);
+    SqlStep(sql);
+
+    HandleSqlDebugging(sql);
+}
