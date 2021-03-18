@@ -120,6 +120,12 @@ const string REQUEST_INVALID = "REQUEST_INVALID";
 const int QUEST_PAIR_KEYS = 1;
 const int QUEST_PAIR_VALUES = 2;
 
+// Quest Matching
+const int QUEST_MATCH_NONE = 0;
+const int QUEST_MATCH_PC = 1;
+const int QUEST_MATCH_PARTY = 2;
+const int QUEST_MATCH_ALL = 3;
+
 // Time Format
 const string QUEST_TIME_FORMAT = "MMM d, yyyy @ HH:mm:ss";
 

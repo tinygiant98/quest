@@ -277,8 +277,8 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
 // ---< SignalQuestStepProgress >---
 // Called from module/game object scripts to signal the quest system to advance the quest, if
 // the PC has completed all required objectives for the current step.
-void SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, string sData = "");
-void SignalQuestStepRegress(object oPC, object oTarget, int ObjectiveType, string sData = "");
+int SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, string sData = "");
+int SignalQuestStepRegress(object oPC, object oTarget, int ObjectiveType, string sData = "");
 
 // ---< GetCurrentQuest[Step|Event] >---
 // Global accessors to retrieve the current quest tag (all events), step number (OnAdvance only) 
@@ -1991,8 +1991,10 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
         AdvanceQuest(oPC, nQuestID, nStatus);
 }
 
-void SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, string sData = "")
+int SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, string sData = "")
 {
+    int nMatch = QUEST_MATCH_NONE;
+
     // This prevents the false-positives that occur during login events such as OnItemAcquire
     if (GetIsObjectValid(GetArea(oPC)) == FALSE)
         return;
@@ -2029,7 +2031,8 @@ void SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, str
                 DecrementQuestStepQuantityByQuest(oPC, sQuestTag, sTargetTag, nObjectiveType, sData);
                 continue;
             }
-
+        
+            nMatch = QUEST_MATCH_PC;
             CheckQuestStepProgress(oPC, nQuestID, nStep);
         }
     }
@@ -2059,6 +2062,11 @@ void SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, str
                     {
                         IncrementQuestStepQuantityByQuest(oParty, sQuestTag, sTargetTag, nObjectiveType, sData);
                         CheckQuestStepProgress(oParty, nQuestID, nStep);
+
+                        if (nMatch == QUEST_MATCH_PC)
+                            nMatch = QUEST_MATCH_ALL;
+                        else
+                            nMatch = QUEST_MATCH_PARTY;
                     }
                 }
             }
@@ -2066,10 +2074,14 @@ void SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, str
 
         oParty = GetNextFactionMember(oPC, TRUE);
     }
+
+    return nMatch;
 }
 
-void SignalQuestStepRegress(object oPC, object oTarget, int nObjectiveType, string sData = "")
+int SignalQuestStepRegress(object oPC, object oTarget, int nObjectiveType, string sData = "")
 {
+    int nMatch = QUEST_MATCH_NONE;
+
     if (GetIsObjectValid(GetArea(oPC)) == FALSE)
         return;
 
@@ -2105,6 +2117,7 @@ void SignalQuestStepRegress(object oPC, object oTarget, int nObjectiveType, stri
                 continue;
             }
 
+            nMatch = QUEST_MATCH_PC;
             CheckQuestStepProgress(oPC, nQuestID, nStep);
         }
     }
