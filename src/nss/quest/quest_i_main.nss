@@ -17,7 +17,7 @@
 //                          Database Function Prototypes
 // -----------------------------------------------------------------------------
 
-const string QUEST_SYSTEM_VERSION = "1.0.2";
+const string QUEST_SYSTEM_VERSION = "1.0.3";
 
 /*
     The following prototype are listed separately from the primary quest system
@@ -1744,8 +1744,16 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
         {
             // Next step is the last step, go to the completion step
             nNextStep = GetQuestCompletionStep(nQuestID);
-
             DeletePCQuestProgress(oPC, nQuestID);
+            
+            if (nNextStep == -1)
+            {
+                QuestDebug("Could not locate success completion step for " + QuestToString(nQuestID) +
+                    "; ensure you've assigned one via AddQuestResolutionSuccess(); aborting quest " +
+                    "advance attempt");
+                return;
+            }
+            
             SendJournalQuestEntry(oPC, nQuestID, nNextStep, TRUE);
             _AwardQuestStepAllotments(oPC, nQuestID, nCurrentStep, QUEST_CATEGORY_REWARD);
             _AwardQuestStepAllotments(oPC, nQuestID, nNextStep, QUEST_CATEGORY_REWARD);
@@ -1811,6 +1819,10 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
             SendJournalQuestEntry(oPC, nQuestID, nNextStep, TRUE);
             _AwardQuestStepAllotments(oPC, nQuestID, nNextStep, QUEST_CATEGORY_REWARD);
         }
+        else
+            QuestDebug(QuestToString(nQuestID) + " has a failure mode but no failure completion step assigned; " +
+                "all quests that have failure modes should have a failure completion step assigned with " +
+                "AddQuestResolutionFail()";
 
         RunQuestScript(oPC, nQuestID, QUEST_SCRIPT_TYPE_ON_FAIL);
     }
