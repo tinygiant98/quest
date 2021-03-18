@@ -123,7 +123,7 @@ void CreatePCQuestTables(object oPC, int bReset = FALSE)
         "nQuestStartTime INTEGER default '0', " +
         "nStepStartTime INTEGER default '0', " +
         "nLastCompleteTime INTEGER default '0', " +
-        "nLastCompleteType INTEGER default NULL);";
+        "nLastCompleteType INTEGER default '0');";
 
     string sQuestStep = "CREATE TABLE IF NOT EXISTS quest_pc_step (" +
         "quest_tag TEXT, " +
@@ -1203,10 +1203,25 @@ int GetPCQuestStepAcquired(object oPC, int nQuestID)
 
 void UpdatePCQuestTable(object oPC)
 {
-    sQuery = "ALTER TABLE quest_pc_data " +
-             "ADD COLUMN nLastCompleteType INTEGER default NULL;";
+    sQuery = "SELECT nLastCompleteType " +
+             "FROM quest_pc_data;";
     sql = SqlPrepareQueryObject(oPC, sQuery);
     SqlStep(sql);
 
-    HandleSqlDebugging(sql);
+    string sError = SqlGetError(sql);
+    if (sError != "")
+    {
+        sQuery = "ALTER TABLE quest_pc_data " +
+                 "ADD COLUMN nLastCompleteType INTEGER default '0';";
+        sql = SqlPrepareQueryObject(oPC, sQuery);
+        SqlStep(sql);
+
+        sError = SqlGetError(sql);
+        if (sError == "")
+            QuestDebug(PCToString(oPC) + "'s quest tables updated to 1.0.2");
+        else
+            Notice("Error: " + sError);
+    }
+    else
+        QuestDebug(PCToString(oPC) + "'s quest tables verified at 1.0.2");
 }

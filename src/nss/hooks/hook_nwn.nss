@@ -44,8 +44,6 @@ void main()
 
     if (sEvent == "OnModuleLoad")
     {
-        Notice("Running MODULE LOAD");
-
         SetDebugLevel(DEBUG_LEVEL_DEBUG, GetModule());
         SetDebugLogging(DEBUG_LOG_ALL);
         
@@ -60,7 +58,7 @@ void main()
     {
         object oPC = GetEnteringObject();
         CreatePCQuestTables(oPC);
-        //CleanPCQuestTables(oPC);
+        UpdatePCQuestTable(oPC);
         UpdateJournalQuestEntries(oPC);
     }
     else if (sEvent == "OnPlayerChat")

@@ -1704,10 +1704,6 @@ void SendJournalQuestEntry(object oPC, int nQuestID, int nStep, int bComplete = 
                 "NWNX, however NWNX functionality has not yet been instituted.");
             break;
     }
-
-    // test
-    int nEntry = GetLocalInt(oPC, "NW_JOURNAL_ENTRY" + sQuestTag);
-    Notice("nEntry -> " + IntToString(nEntry));
 }
 
 void UpdateJournalQuestEntries(object oPC)
@@ -1801,8 +1797,8 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
         }
 
         QuestDebug("Advanced " + QuestToString(nQuestID) + " for " +
-            PCToString(oPC) + " from step " + StepToString(nCurrentStep) +
-            " to step " + StepToString(nNextStep));
+            PCToString(oPC) + " from " + StepToString(nCurrentStep) +
+            " to " + StepToString(nNextStep));
     }
     else if (nRequestType == QUEST_ADVANCE_FAIL)
     {

@@ -45,6 +45,12 @@ void main()
 {
     object oPC = GetPCChatSpeaker();
 
+    if (HasChatOption(oPC, "update"))
+    {
+        UpdatePCQuestTable(oPC);
+    }
+
+
     if (HasChatOption(oPC, "v, version"))
         QuestDebug("Quest System Version -> " + ColorValue(QUEST_SYSTEM_VERSION));
 
