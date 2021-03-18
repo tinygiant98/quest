@@ -347,9 +347,9 @@ void _SetQuestData(int nQuestID, string sField, string sValue)
     if (nQuestID == 0)
     {
         QuestError("Attempt to set quest data when quest does not exist" +
-              "\n  Quest ID -> " + IntToString(nQuestID) +
-              "\n  Field    -> " + sField +
-              "\n  Value    -> " + sValue);
+              "\n  Quest ID -> " + ColorValue(IntToString(nQuestID)) +
+              "\n  Field    -> " + ColorValue(sField) +
+              "\n  Value    -> " + ColorValue(sValue));
         return;
     }
 
@@ -900,7 +900,7 @@ void _AwardQuestStepAllotments(object oPC, int nQuestID, int nStep, int nCategor
         sValue = SqlGetString(sPairs, 2);
 
         QuestDebug("  " + HexColorString("Allotment #" + IntToString(nAllotmentCount), COLOR_CYAN) + " " +
-            "  Value Type -> " + ValueTypeToString(nValueType));            
+            "  Value Type -> " + ColorValue(ValueTypeToString(nValueType)));            
 
         switch (nValueType)
         {
@@ -968,8 +968,8 @@ void _AwardQuestStepAllotments(object oPC, int nQuestID, int nStep, int nCategor
     {
         QuestDebug("Found " + IntToString(nAllotmentCount) + " allotments for " + QuestToString(nQuestID) + " " + StepToString(nStep) +
             (nAllotmentCount > 0 ?          
-                "\n  Category -> " + CategoryTypeToString(nCategoryType) +
-                "\n  Award -> " + AwardTypeToString(nAwardType) : ""));
+                "\n  Category -> " + ColorValue(CategoryTypeToString(nCategoryType)) +
+                "\n  Award -> " + ColorValue(AwardTypeToString(nAwardType)) : ""));
         
         if (nAllotmentCount > 0)
             QuestDebug("Awarded " + IntToString(nAllotmentCount) + " allotments to " + PCToString(oPC) + (bParty ? " and party members" : ""));
@@ -1049,7 +1049,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
         QuestWarning("Quest " + sQuestTag + " does not exist and " +
             "cannot be assigned" +
             "\n  PC -> " + PCToString(oPC) +
-            "\n  Area -> " + GetName(GetArea(oPC)));
+            "\n  Area -> " + ColorValue(GetName(GetArea(oPC))));
         return FALSE;
     }
     else
@@ -1121,8 +1121,8 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 {
                     QuestError(PCToString(oPC) + " has completed " + QuestToString(nQuestID) + 
                         " successfully the maximum number of times; quest cannot be re-assigned" +
-                        "\n  PC Quest Completion Count -> " + IntToString(nCompletions) +
-                        "\n  Quest Repetitions Setting -> " + IntToString(nReps));
+                        "\n  PC Quest Completion Count -> " + ColorValue(IntToString(nCompletions)) +
+                        "\n  Quest Repetitions Setting -> " + ColorValue(IntToString(nReps)));
                     return FALSE;
                 }
             }
@@ -1130,7 +1130,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
             {
                 QuestError(QuestToString(nQuestID) + " has been assigned an invalid " +
                     "number of repetitions; must be >= 0" +
-                    "\n  Repetitions -> " + IntToString(nReps));
+                    "\n  Repetitions -> " + ColorValue(IntToString(nReps)));
                 return FALSE;
             }
         }
@@ -1172,9 +1172,9 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
             QuestError("GetIsQuestAssignable found multiple entries for a " +
                 "non-stackable property" +
                 "\n  Quest -> " + QuestToString(nQuestID) + 
-                "\n  Category -> " + CategoryTypeToString(QUEST_CATEGORY_PREREQUISITE) +
-                "\n  Value -> " + ValueTypeToString(nValueType) +
-                "\n  Entries -> " + IntToString(nTypeCount));
+                "\n  Category -> " + ColorValue(CategoryTypeToString(QUEST_CATEGORY_PREREQUISITE)) +
+                "\n  Value -> " + ColorValue(ValueTypeToString(nValueType)) +
+                "\n  Entries -> " + ColorValue(IntToString(nTypeCount)));
             return FALSE;
         }
 
@@ -1187,8 +1187,8 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 int nGE = GetAlignmentGoodEvil(oPC);
                 int nLC = GetAlignmentLawChaos(oPC);
                 
-                QuestDebug("  PC Good/Evil Alignment -> " + AlignmentAxisToString(nGE) +
-                     "\n  PC Law/Chaos Alignment -> " + AlignmentAxisToString(nLC));                
+                QuestDebug("  PC Good/Evil Alignment -> " + ColorValue(AlignmentAxisToString(nGE)) +
+                     "\n  PC Law/Chaos Alignment -> " + ColorValue(AlignmentAxisToString(nLC)));                
 
                 while (SqlStep(sqlPrerequisitesByType))
                 {
@@ -1229,16 +1229,16 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 int nLevels2 = GetLevelByClass(nClass2, oPC);
                 int nLevels3 = GetLevelByClass(nClass3, oPC);
                 
-                QuestDebug("  PC Classes -> " + ClassToString(nClass1) + " (" + IntToString(nLevels1) + ")" +
+                QuestDebug("  PC Classes -> " + ColorValue(ClassToString(nClass1) + " (" + IntToString(nLevels1) + ")" +
                     (nClass2 == CLASS_TYPE_INVALID ? "" : " | " + ClassToString(nClass2) + " (" + IntToString(nLevels2) + ")") +
-                    (nClass3 == CLASS_TYPE_INVALID ? "" : " | " + ClassToString(nClass3) + " (" + IntToString(nLevels3) + ")"));
+                    (nClass3 == CLASS_TYPE_INVALID ? "" : " | " + ClassToString(nClass3) + " (" + IntToString(nLevels3) + ")")));
 
                 while (SqlStep(sqlPrerequisitesByType))
                 {
                     nClass = SqlGetInt(sqlPrerequisitesByType, 0);
                     nLevels = SqlGetInt(sqlPrerequisitesByType, 1);
 
-                    QuestDebug("  CLASS | " + ClassToString(nClass) + " | Levels " + IntToString(nLevels));
+                    QuestDebug("  CLASS | " + ColorValue(ClassToString(nClass)) + " | Levels " + ColorValue(IntToString(nLevels)));
 
                     switch (nLevels)
                     {
@@ -1280,8 +1280,8 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 SqlStep(sqlPrerequisitesByType);
                 int bQualifies, nGoldRequired = SqlGetInt(sqlPrerequisitesByType, 1);
                 
-                QuestDebug("  PC Gold Balance -> " + IntToString(GetGold(oPC)));
-                QuestDebug("  GOLD | " + IntToString(nGoldRequired));
+                QuestDebug("  PC Gold Balance -> " + ColorValue(IntToString(GetGold(oPC))));
+                QuestDebug("  GOLD | " + ColorValue(IntToString(nGoldRequired)));
                 
                 if (GetGold(oPC) >= nGoldRequired)
                     bQualifies = TRUE;
@@ -1333,8 +1333,8 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 SqlStep(sqlPrerequisitesByType);
                 int bQualifies, nMaximumLevel = SqlGetInt(sqlPrerequisitesByType, 1);
 
-                QuestDebug("  PC Total Levels -> " + IntToString(GetHitDice(oPC)));
-                QuestDebug("  LEVEL_MAX | " + IntToString(nMaximumLevel));
+                QuestDebug("  PC Total Levels -> " + ColorValue(IntToString(GetHitDice(oPC))));
+                QuestDebug("  LEVEL_MAX | " + ColorValue(IntToString(nMaximumLevel)));
                 
                 if (GetHitDice(oPC) <= nMaximumLevel)
                     bQualifies = TRUE;
@@ -1353,8 +1353,8 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 SqlStep(sqlPrerequisitesByType);
                 int bQualifies, nMinimumLevel = SqlGetInt(sqlPrerequisitesByType, 1);
                 
-                QuestDebug("  PC Total Levels -> " + IntToString(GetHitDice(oPC)));
-                QuestDebug("  LEVEL_MIN | " + IntToString(nMinimumLevel));
+                QuestDebug("  PC Total Levels -> " + ColorValue(IntToString(GetHitDice(oPC))));
+                QuestDebug("  LEVEL_MIN | " + ColorValue(IntToString(nMinimumLevel)));
                 
                 if (GetHitDice(oPC) >= nMinimumLevel)
                     bQualifies = TRUE;
@@ -1382,10 +1382,10 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                     bPCHasQuest = GetPCHasQuest(oPC, sQuestTag);
                     nPCCompletions = GetPCQuestCompletions(oPC, sQuestTag);
                     nPCFailures = GetPCQuestFailures(oPC, sQuestTag);
-                    QuestDebug("  PC | Has Quest -> " + (bPCHasQuest ? "TRUE":"FALSE") + 
-                        "\n  Completions -> " + IntToString(nPCCompletions) +
-                        "\n  Failures -> " + IntToString(nPCFailures));
-                    QuestDebug("  QUEST | " + sQuestTag + " | Required -> " + IntToString(nRequiredCompletions));
+                    QuestDebug("  PC | Has Quest -> " + ColorValue((bPCHasQuest ? "TRUE":"FALSE")) + 
+                        "\n  Completions -> " + ColorValue(IntToString(nPCCompletions)) +
+                        "\n  Failures -> " + ColorValue(IntToString(nPCFailures)));
+                    QuestDebug("  QUEST | " + sQuestTag + " | Required -> " + ColorValue(IntToString(nRequiredCompletions)));
 
                     if (nRequiredCompletions > 0)
                     {
@@ -1429,12 +1429,12 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                     sQuestTag = SqlGetString(sqlPrerequisitesByType, 0);
                     nRequiredStep = SqlGetInt(sqlPrerequisitesByType, 1);
 
-                    QuestDebug("  QUEST_STEP | " + sQuestTag + " | Step -> " + IntToString(nRequiredStep));
+                    QuestDebug("  QUEST_STEP | " + sQuestTag + " | " + StepToString(nRequiredStep));
 
                     bPCHasQuest = GetPCHasQuest(oPC, sQuestTag);
                     nPCStep = GetPCQuestStep(oPC, nQuestID);
 
-                    QuestDebug("  PC | Has Quest -> " + (bPCHasQuest ? "TRUE":"FALSE") + " | Step -> " + IntToString(nRequiredStep));
+                    QuestDebug("  PC | Has Quest -> " + (bPCHasQuest ? "TRUE":"FALSE") + " | " + StepToString(nRequiredStep));
 
                     if (bPCHasQuest)
                     {
@@ -1462,7 +1462,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 int nRace, nPCRace = GetRacialType(oPC);
                 int bQualifies, bAllowed;
 
-                QuestDebug("  PC Race -> " + RaceToString(nPCRace));
+                QuestDebug("  PC Race -> " + ColorValue(RaceToString(nPCRace)));
                 
                 while (SqlStep(sqlPrerequisitesByType))
                 {
@@ -1503,7 +1503,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 int bQualifies, nXP = SqlGetInt(sqlPrerequisitesByType, 1);
                 int nPC = GetXP(oPC);
                 
-                QuestDebug("  PC XP -> " + IntToString(nPC) + "xp");
+                QuestDebug("  PC XP -> " + ColorValue(IntToString(nPC) + "xp"));
                 QuestDebug("  XP | " + (nXP >= 0 ? ">= " : "<= ") + IntToString(abs(nXP)) + "xp");
 
                 if (nXP >= 0 && nPC >= nXP)
@@ -1684,10 +1684,22 @@ void CopyQuestStepObjectiveData(object oPC, int nQuestID, int nStep)
     
     int nRecords = GetQuestStepObjectiveRandom(nQuestID, nStep);
     if (nRecords == -1)
+    {
         sqlStepData = GetQuestStepObjectiveData(nQuestID, nStep);
+        QuestDebug("Selecting all quest step objectives from " + QuestToString(nQuestID) +
+            " " + StepToString(nStep) + " for assignment to " + PCToString(oPC));
+    }
     else
+    {
         sqlStepData = GetRandomQuestStepObjectiveData(nQuestID, nStep, nRecords);
-    
+
+        int nObjectiveCount = CountQuestStepObjectives(nQuestID, nStep);
+        QuestDebug("Selecting " + ColorValue(IntToString(nRecords)) + " of " +
+            ColorValue(IntToString(nObjectiveCount)) + " available objectives from " +
+            QuestToString(nQuestID) + " " + StepToString(nStep) + " for assignment to " +
+            PCToString(oPC));
+    }
+
     while (SqlStep(sqlStepData))
     {
         int nObjectiveType = SqlGetInt(sqlStepData, 0);
