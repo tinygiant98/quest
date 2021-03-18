@@ -1822,7 +1822,7 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
         else
             QuestDebug(QuestToString(nQuestID) + " has a failure mode but no failure completion step assigned; " +
                 "all quests that have failure modes should have a failure completion step assigned with " +
-                "AddQuestResolutionFail()";
+                "AddQuestResolutionFail()");
 
         RunQuestScript(oPC, nQuestID, QUEST_SCRIPT_TYPE_ON_FAIL);
     }
