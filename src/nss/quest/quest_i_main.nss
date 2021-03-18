@@ -1723,7 +1723,12 @@ void UpdateJournalQuestEntries(object oPC)
             if (nCompletions == 0)
                 continue;
             else
+            {
+                if (nLastCompleteType == 0)
+                    nLastCompleteType = 1;
+
                 nStep = GetQuestCompletionStep(nQuestID, nLastCompleteType);
+            }
         }
 
         SendJournalQuestEntry(oPC, nQuestID, nStep);
