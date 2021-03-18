@@ -64,6 +64,7 @@ void DefineRandomDiscoveryQuest()
     SetQuestPrerequisiteLevelMax(nQuestID, 3);
 
     SetQuestScripts(nQuestID);
+    SetQuestJournalHandler(nQuestID, QUEST_JOURNAL_NONE);
 
     nStep = AddQuestStep(nQuestID);
     SetQuestRepetitions(nQuestID, 0);
@@ -72,7 +73,7 @@ void DefineRandomDiscoveryQuest()
     SetQuestStepObjectiveDiscover(nQuestID, nStep, "quest_trigger_2");
     SetQuestStepObjectiveDiscover(nQuestID, nStep, "quest_trigger_3");
     SetQuestStepObjectiveDiscover(nQuestID, nStep, "quest_trigger_1");
-    SetQuestCooldown(nQuestID, CreateTimeVector(0,0,0,0,3,0));
+    SetQuestStepObjectiveRandom(nQuestID, nStep, 2);
 
     nStep = AddQuestResolutionSuccess(nQuestID);
     SetQuestStepRewardMessage(nQuestID, nStep, "Congratulations, you've completed the Random Discovery sample quest");

@@ -146,7 +146,7 @@ string JournalLocationToString(int nJournalLocation)
 
 string ColorValue(string sValue, int nZeroIsEmpty = FALSE)
 {
-    if (sValue == "" || (nZeroIsEmpty && sValue == "0"))
+    if (sValue == "" || (nZeroIsEmpty && sValue == "0") || sValue == "-1")
         return HexColorString("[EMPTY]", COLOR_GRAY);
     else if (sValue == "[NOT FOUND]")
         return HexColorString(sValue, COLOR_RED_LIGHT);

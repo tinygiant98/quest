@@ -68,7 +68,8 @@ void CreateModuleQuestTables(int bReset = FALSE)
                         "nPartyCompletion TEXT default '0', " +
                         "nProximity INTEGER default '1', " +
                         "nStepType INTEGER default '0', " +
-                        "nObjectiveCount INTEGER default '-1', " +
+                        "nObjectiveMinimumCount INTEGER default '-1', " +
+                        "nRandomObjectiveCount INTEGER default '-1', " +
                         "FOREIGN KEY (quests_id) REFERENCES quest_quests (id) " +
                             "ON DELETE CASCADE ON UPDATE CASCADE);";
 
@@ -665,6 +666,26 @@ sqlquery GetQuestStepObjectiveData(int nQuestID, int nStep)
     return sql;
 }
 
+sqlquery GetRandomQuestStepObjectiveData(int nQuestID, int nStep, int nRecords)
+{
+    sQuery = "SELECT quest_step_properties.nValueType, " +
+                    "quest_step_properties.sKey, " +
+                    "quest_step_properties.sValue, " +
+                    "quest_step_properties.sData " +
+             "FROM quest_steps INNER JOIN quest_step_properties " +
+                "ON quest_steps.id = quest_step_properties.quest_steps_id " +
+             "WHERE quest_step_properties.nCategoryType = @category " +
+                "AND quest_steps.nStep = @step " +
+                "AND quest_steps.quests_id = @id " +
+             "ORDER BY RANDOM() LIMIT " + IntToString(nRecords) + ";";
+    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlBindInt(sql, "@category", QUEST_CATEGORY_OBJECTIVE);
+    SqlBindInt(sql, "@step", nStep);
+    SqlBindInt(sql, "@id", nQuestID);
+
+    return sql;
+}
+
 int GetQuestStepObjectiveType(int nQuestID, int nStep)
 {
     sQuery = "SELECT quest_step_properties.nValueType " +
@@ -1203,6 +1224,15 @@ int GetPCQuestStepAcquired(object oPC, int nQuestID)
 
 void UpdatePCQuestTable(object oPC)
 {
+    // First update @ 1.0.2 -- adding an nLastCompleteType column to update journal
+    // entries OnClientEnter (this is a work around for the bug that prevents journal
+    // integers from persistently saving in the base game, possibly introducted in 
+    // .14).  https://github.com/Beamdog/nwn-issues/issues/258
+
+    // The purpose of this new column is to know whether the last completion was a
+    // success of failure in order to determine which journal entry to show since this
+    // system allows for an entry for both types.
+
     sQuery = "SELECT nLastCompleteType " +
              "FROM quest_pc_data;";
     sql = SqlPrepareQueryObject(oPC, sQuery);
@@ -1218,10 +1248,13 @@ void UpdatePCQuestTable(object oPC)
 
         sError = SqlGetError(sql);
         if (sError == "")
-            QuestDebug(PCToString(oPC) + "'s quest tables updated to 1.0.2");
+            QuestDebug(PCToString(oPC) + "'s quest tables updated to " + QUEST_SYSTEM_VERSION);
         else
             Notice("Error: " + sError);
     }
     else
-        QuestDebug(PCToString(oPC) + "'s quest tables verified at 1.0.2");
+        QuestDebug(PCToString(oPC) + "'s quest tables verified at " + QUEST_SYSTEM_VERSION);
+
+    // End update @ 1.0.2
+
 }

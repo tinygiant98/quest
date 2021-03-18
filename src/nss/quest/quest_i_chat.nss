@@ -178,6 +178,7 @@ void main()
 
             int nStepID, nQuestID, nStep, nPartyCompletion, nProximity, nStepType;
             int nJournalLocation, nDeleteOnComplete, nAllowPrecollected, bDataFound;
+            int nMinimumObjectives, nRandomObjectives;
             string sJournalEntry, sTimeLimit;
 
             sqlquery sql;
@@ -279,13 +280,17 @@ void main()
                         nPartyCompletion = SqlGetInt(sqlSub, ++n);
                         nProximity = SqlGetInt(sqlSub, ++n);
                         nStepType = SqlGetInt(sqlSub, ++n);
+                        nMinimumObjectives = SqlGetInt(sqlSub, ++n);
+                        nRandomObjectives = SqlGetInt(sqlSub, ++n);
 
                         string sStep = HexColorString(IntToString(nStep), COLOR_CYAN);
                         Notice("    " + sStep + "  Journal  " + ColorValue(sJournalEntry) +
                             "\n        Time Limit  " + ColorValue(sTimeLimit == "" ? "" : "(" + sTimeLimit + ")") +
                             "\n        Party Completion  " + ColorValue((nPartyCompletion ? "TRUE":"FALSE")) +
                             "\n        Proximity Required  " + ColorValue((nProximity ? "TRUE":"FALSE")) +
-                            "\n        Step Type  " + ColorValue(StepTypeToString(nStepType)));
+                            "\n        Step Type  " + ColorValue(StepTypeToString(nStepType)) +
+                            "\n        Minimum Objective Count  " + ColorValue(IntToString(nMinimumObjectives)) +
+                            "\n        Random Objective Count  " + ColorValue(IntToString(nRandomObjectives)));
                     
                         // Another inside loop for the step objectives/properties
                         Notice(HexColorString("        Dumping step properties for " + StepToString(nStep), COLOR_CYAN));

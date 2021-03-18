@@ -17,8 +17,6 @@
 //                          Database Function Prototypes
 // -----------------------------------------------------------------------------
 
-const string QUEST_SYSTEM_VERSION = "1.0.3";
-
 /*
     The following prototype are listed separately from the primary quest system
     prototypes because they are database-related direct-access functions.  These
@@ -160,6 +158,14 @@ int GetQuestJournalDeleteOnComplete(int nQuestID);
 void DeleteQuestJournalEntriesOnCompletion(int nQuestID);
 void RetainQuestJournalEntriesOnCompletion(int nQuestID);
 
+// ---< [Get|Set]QuestAllowPrecollectedItems >---
+// Gets|Sets whether specified quests can use items that are already in the player's
+// inventory to satisfy quest requirements.  Defaults to TRUE.  Note:  The default is
+// TRUE because this is a difficult requirement to enforce as the player can simply
+// drop their items and pick them up again to get credit.
+int GetQuestAllowPrecollectedItems(int nQuest);
+void SetQuestAllowPrecollectedItems(int nQuest, int nAllow = TRUE);
+
 // ---< SetQuestPrerequisite[Alignment|Class|Gold|Item|LevelMax|LevelMin|Quest|QuestStep|Race|XP|Skill|Ability] >---
 // Sets a prerequisite for a PC to be able to be assigned a quest.  Prerequisites are used by
 //  GetIsQuestAssignable() to determine if a PC is eligible to be assigned quest sTag
@@ -204,13 +210,25 @@ void SetQuestStepPartyCompletion(int nQuestID, int nStep, int nParty);
 int GetQuestStepProximity(int nQuesTID, int nStep);
 void SetQuestStepProximity(int nQuestID, int nStep, int nRequired = TRUE);
 
-//TODO
-int GetQuestAllowPrecollectedItems(int nQuest);
-void SetQuestAllowPrecollectedItems(int nQuest, int nAllow = TRUE);
-
-//TODO
+// ---< [Get|Set]QuestStepObjectiveMinimum >---
+// Gets|Sets the minimum number of objectives that have to be met on nStep for the
+// step to be considered complete.  The default value is "all steps", however setting
+// a specified number here allow the user to create a quest step that can be used
+// by many PCs while still allowing some variety (for example, PCs of different classes
+// have to speak to different NPCs to complete their quest -- you can list each of those
+// NPCs as a speak objective and set the minimum to 1, so each PC can still complete the
+// step with different NPCs while still using the same quest).
 int GetQuestStepObjectiveMinimum(int nQuestID, int nStep);
 void SetQuestStepObjectiveMinimum(int nQuestID, int nStep, int nCount = -1);
+
+// ---< [Get|Set]QuestStepObjectiveRandom >---
+// Gets|Sets a random number of quest step objectives to be used when assigning this quest
+// step.  This allows for semi-randomized quest creation.  Users can list multiple quest
+// objectives and then set this value to a number less than the number of overall objectives.
+// The system will randomly select nObjectiveCount objectives and assign them to the PC
+// on quest assignment (instead of assigning all available objectives).
+int GetQuestStepObjectiveRandom(int nQuestID, int nStep);
+void SetQuestStepObjectiveRandom(int nQuestID, int nStep, int nObjectiveCount);
 
 // ---< [AddQuestResolution[Success|Fail] >---
 // Adds the final quest step to quest nQuestID.
@@ -966,8 +984,6 @@ void _AwardQuestStepAllotments(object oPC, int nQuestID, int nStep, int nCategor
 
 int AddQuest(string sQuestTag, string sTitle = "")
 {
-    QuestDebug("QUEST SYSTEM VERSION: " + QUEST_SYSTEM_VERSION);
-
     int nQuestID;
     if (GetQuestExists(sQuestTag) == TRUE)
     {
@@ -1664,7 +1680,14 @@ int CountPCQuestCompletions(object oPC, int nQuestID)
 
 void CopyQuestStepObjectiveData(object oPC, int nQuestID, int nStep)
 {
-    sqlquery sqlStepData = GetQuestStepObjectiveData(nQuestID, nStep);
+    sqlquery sqlStepData;
+    
+    int nRecords = GetQuestStepObjectiveRandom(nQuestID, nStep);
+    if (nRecords == -1)
+        sqlStepData = GetQuestStepObjectiveData(nQuestID, nStep);
+    else
+        sqlStepData = GetRandomQuestStepObjectiveData(nQuestID, nStep, nRecords);
+    
     while (SqlStep(sqlStepData))
     {
         int nObjectiveType = SqlGetInt(sqlStepData, 0);
@@ -2330,6 +2353,18 @@ void SetQuestStepObjectiveMinimum(int nQuestID, int nStep, int nCount = -1)
     string sData = IntToString(nCount);
     _SetQuestStepData(nQuestID, nStep, QUEST_STEP_OBJECTIVE_COUNT, sData);
 }
+
+int GetQuestStepObjectiveRandom(int nQuestID, int nStep)
+{
+    string sData = _GetQuestStepData(nQuestID, nStep, QUEST_STEP_RANDOM_OBJECTIVES);
+    return StringToInt(sData);
+}
+
+void SetQuestStepObjectiveRandom(int nQuestID, int nStep, int nObjectiveCount)
+{
+    string sData = IntToString(nObjectiveCount);
+    _SetQuestStepData(nQuestID, nStep, QUEST_STEP_RANDOM_OBJECTIVES, sData);
+}   
 
 void SetQuestPrerequisiteAlignment(int nQuestID, int nKey, int nValue = FALSE)
 {
