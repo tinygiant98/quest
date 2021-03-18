@@ -1997,7 +1997,7 @@ int SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, stri
 
     // This prevents the false-positives that occur during login events such as OnItemAcquire
     if (GetIsObjectValid(GetArea(oPC)) == FALSE)
-        return;
+        return QUEST_MATCH_NONE;
 
     QuestDebug(GetName(oTarget) + " (tag: " + GetTag(oTarget) + ") is signalling " +
         "quest " + HexColorString("progress", COLOR_GREEN_LIGHT) + " triggered by " + PCToString(oPC) + " for objective " +
@@ -2009,7 +2009,7 @@ int SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, stri
         oPC = GetMaster(oPC);
 
     if (GetIsPC(oPC) == FALSE)
-        return;
+        return QUEST_MATCH_NONE;
 
     // Deal with the subject PC
     if (IncrementQuestStepQuantity(oPC, sTargetTag, nObjectiveType, sData) > 0)
@@ -2083,7 +2083,7 @@ int SignalQuestStepRegress(object oPC, object oTarget, int nObjectiveType, strin
     int nMatch = QUEST_MATCH_NONE;
 
     if (GetIsObjectValid(GetArea(oPC)) == FALSE)
-        return;
+        return QUEST_MATCH_NONE;
 
     QuestDebug(GetName(oTarget) + " (tag: " + GetTag(oTarget) + ") is signalling " +
         "quest " + HexColorString("regress", COLOR_RED_LIGHT) + " triggered by " + PCToString(oPC) + " for objective " +
@@ -2095,7 +2095,7 @@ int SignalQuestStepRegress(object oPC, object oTarget, int nObjectiveType, strin
         oPC = GetMaster(oPC);
 
     if (GetIsPC(oPC) == FALSE)
-        return;
+        return QUEST_MATCH_NONE;
 
     if (DecrementQuestStepQuantity(oPC, sTargetTag, nObjectiveType, sData) > 0)
     {
@@ -2124,6 +2124,8 @@ int SignalQuestStepRegress(object oPC, object oTarget, int nObjectiveType, strin
     else
         QuestDebug(PCToString(oPC) + " does not have a quest associated with " + sTargetTag + 
             (sData == "" ? "" : " and " + sData));
+
+    return nMatch;
 }
 
 string CreateTimeVector(int nYears = 0, int nMonths = 0, int nDays = 0,
