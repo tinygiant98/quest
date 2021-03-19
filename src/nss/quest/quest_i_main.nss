@@ -44,11 +44,11 @@ int GetQuestID(string sQuestTag);
 // ---< CountActiveQuestSteps >---
 // Counts the total number of steps in a quest, not including the final success/
 // completion step.
-int CountActiveQuestSteps(int nQuestID);
+int CountActiveQuestSteps(string sQuestTag);
 
 // ---< CountQuestPrerequisites >---
 // Counts the total number or prerequisites assigned to nQuestID.
-int CountQuestPrerequisites(int nQuestID);
+int CountQuestPrerequisites(string sQuestTag);
 
 // ---< GetPCHasQuest >---
 // Returns TRUE if oPC has quest sQuestTag assigned.
@@ -56,7 +56,7 @@ int GetPCHasQuest(object oPC, string sQuestTag);
 
 // ---< GetIsPCQuestComplete >---
 // Returns TRUE if oPC has complete quest nQuestID at least once
-int GetIsPCQuestComplete(object oPC, int nQuestID);
+int GetIsPCQuestComplete(object oPC, string sQuestTag);
 
 // ---< GetPCQuestCompletions >---
 // Returns the total number of times oPC has completed quest sQuestTag
@@ -64,11 +64,11 @@ int GetPCQuestCompletions(object oPC, string sQuestTag);
 
 // ---< GetPCQuestStep >---
 // Returns the current step oPC is on for quest nQuestID
-int GetPCQuestStep(object oPC, int nQuestID);
+int GetPCQuestStep(object oPC, string sQuestTag);
 
 // ---< GetNextPCQuestStep >---
 // Given nCurrentStep, returns the step number of the next step in quest nQuestID
-int GetNextPCQuestStep(int nQuestID, int nCurrentStep);
+int GetNextPCQuestStep(object oPC, string sQuestTag);
 
 #include "util_i_csvlists"
 #include "util_i_debug"
@@ -90,19 +90,19 @@ int AddQuest(string sTag, string sTitle = "");
 // ---< [Get|Set]Quest[Active|Inactive] >---
 // Gets or sets the active status of quest sTag.
 int GetQuestActive(int nQuestID);
-void SetQuestActive(int nQuestID);
-void SetQuestInactive(int nQuestID);
+void SetQuestActive();
+void SetQuestInactive();
 
 // ---< [Get|Set]QuestTitle >---
 // TODO Gets or sets the quest title shown for quest sTag in the player's journal,  This is only
 // useful for NWNX implementation and currently has no effect.
 string GetQuestTitle(int nQuestID);
-void SetQuestTitle(int nQuestID, string sTitle);
+void SetQuestTitle(string sTitle);
 
 // ---< [Get|Set]QuestRepetitions >---
 // Gets or sets the number of times a PC can complete quest sTag.
 int GetQuestRepetitions(int nQuestID);  // TODO sQuestTag?
-void SetQuestRepetitions(int nQuestID, int nRepetitions = 1);
+void SetQuestRepetitions(int nRepetitions = 1);
 
 // ---< [Get|Set]QuestScriptOn[Accept|Advance|Complete|Fail|All] >---
 // Gets or sets the script associated with quest events OnAccept|Advance|Complete|Fail|All for
@@ -111,37 +111,29 @@ string GetQuestScriptOnAccept(int nQuestID);
 string GetQuestScriptOnAdvance(int nQuestID);
 string GetQuestScriptOnComplete(int nQuestID);
 string GetQuestScriptOnFail(int nQuestID);
-void SetQuestScriptOnAccept(int nQuestID, string sScript = "");
-void SetQuestScriptOnAdvance(int nQuestID, string sScript = "");
-void SetQuestScriptOnComplete(int nQuestID, string sScript = "");
-void SetQuestScriptOnFail(int nQuestID, string sScript = "");
-void SetQuestScriptOnAll(int nQuestID, string sScript = "");
+void SetQuestScriptOnAccept(string sScript = "");
+void SetQuestScriptOnAdvance(string sScript = "");
+void SetQuestScriptOnComplete(string sScript = "");
+void SetQuestScriptOnFail(string sScript = "");
+void SetQuestScriptOnAll(string sScript = "");
 
 // ---< RunQuestScript >---
 // Runs the assigned quest script for quest nQuestID and nScriptType with oPC
 // as OBJECT_SELF.
 void RunQuestScript(object oPC, int nQuestID, int nScriptType);
 
-// ---< [Get|Set]QuestStepOrder >---
-// Gets or sets the quest step order for quest sTag to nOrder.
-// nOrder can be:
-//  QUEST_STEP_ORDER_SEQUENTIAL
-//  QUEST_STEP_ORDER_NONSEQUENTIAL
-int GetQuestStepOrder(int nQuestID);
-void SetQuestStepOrder(int nQuestID, int nOrder = QUEST_STEP_ORDER_SEQUENTIAL);
-
 // ---< [Get|Set]QuestTimeLimit >---
 // Gets or sets the quest time limit for quest sQuestTag to sTime.  sTime is a time
 // difference vector retrieved with util_i_time.
 string GetQuestTimeLimit(int nQuestID);
-void SetQuestTimeLimit(int nQuestID, string sTime);
+void SetQuestTimeLimit(string sTime);
 
 // ---< [Get|Set]QuestCooldown >---
 // Gets or sets the quest cooldown for quest sQuestTag to sTime.  sTime is a time
 // difference vector retrieved with util_i_time.  Cooldown is the minimum amount of time that
 // must elapse before a player can repeat a repeatable quest.
 string GetQuestCooldown(int nQuestID);
-void SetQuestCooldown(int nQuestID, string sTime);
+void SetQuestCooldown(string sTime);
 
 // ---< [Get|Set]QuestJournalLocation >---
 // Gets or sets which system will handle journal entries for nQuestID.  By default, the base
@@ -149,14 +141,14 @@ void SetQuestCooldown(int nQuestID, string sTime);
 // NWN journal system can be used to handle various journal entries.  Setting nJournalHandler
 // to QUEST_JOURNAL_NONE will suppress all journal entries.
 int GetQuestJournalHandler(int nQuestID);
-void SetQuestJournalHandler(int nQuestID, int nJournalHandler = QUEST_JOURNAL_NWN);
+void SetQuestJournalHandler(int nJournalHandler = QUEST_JOURNAL_NWN);
 
 // ---< [Delete|Retain]JournalEntriesOnCompletion >---
 // Allows users to delete journal entries upon quest completion.  Designed primarily for 
 // small, multi-use (i.e. throw-away) quests that you don't want filling up the player's journal.
 int GetQuestJournalDeleteOnComplete(int nQuestID);
-void DeleteQuestJournalEntriesOnCompletion(int nQuestID);
-void RetainQuestJournalEntriesOnCompletion(int nQuestID);
+void DeleteQuestJournalEntriesOnCompletion();
+void RetainQuestJournalEntriesOnCompletion();
 
 // ---< [Get|Set]QuestAllowPrecollectedItems >---
 // Gets|Sets whether specified quests can use items that are already in the player's
@@ -164,51 +156,51 @@ void RetainQuestJournalEntriesOnCompletion(int nQuestID);
 // TRUE because this is a difficult requirement to enforce as the player can simply
 // drop their items and pick them up again to get credit.
 int GetQuestAllowPrecollectedItems(int nQuest);
-void SetQuestAllowPrecollectedItems(int nQuest, int nAllow = TRUE);
+void SetQuestAllowPrecollectedItems(int nAllow = TRUE);
 
 // ---< SetQuestPrerequisite[Alignment|Class|Gold|Item|LevelMax|LevelMin|Quest|QuestStep|Race|XP|Skill|Ability] >---
 // Sets a prerequisite for a PC to be able to be assigned a quest.  Prerequisites are used by
 //  GetIsQuestAssignable() to determine if a PC is eligible to be assigned quest sTag
-void SetQuestPrerequisiteAlignment(int nQuestID, int nKey, int nValue = FALSE);
-void SetQuestPrerequisiteClass(int nQuestID, int nKey, int nValue = -1);
-void SetQuestPrerequisiteGold(int nQuestID, int nValue = 1);
-void SetQuestPrerequisiteItem(int nQuestID, string sKey, int nValue = 1);
-void SetQuestPrerequisiteLevelMax(int nQuestID, int nValue);
-void SetQuestPrerequisiteLevelMin(int nQuestID, int nValue);
-void SetQuestPrerequisiteQuest(int nQuestID, string sKey, int nValue = 0);
-void SetQuestPrerequisiteRace(int nQuestID, int nKey, int nValue = TRUE);
-void SetQuestPrerequisiteXP(int nQuestID, int nXP);
-void SetQuestPrerequisiteSkill(int nQuestID, int nSkill, int nRank);
-void SetQuestPrerequisiteAbility(int nQuestID, int nAbility, int nScore);
+void SetQuestPrerequisiteAlignment(int nKey, int nValue = FALSE);
+void SetQuestPrerequisiteClass(int nKey, int nValue = -1);
+void SetQuestPrerequisiteGold(int nValue = 1);
+void SetQuestPrerequisiteItem(string sKey, int nValue = 1);
+void SetQuestPrerequisiteLevelMax(int nValue);
+void SetQuestPrerequisiteLevelMin(int nValue);
+void SetQuestPrerequisiteQuest(string sKey, int nValue = 0);
+void SetQuestPrerequisiteRace(int nKey, int nValue = TRUE);
+void SetQuestPrerequisiteXP(int nXP);
+void SetQuestPrerequisiteSkill(int nSkill, int nRank);
+void SetQuestPrerequisiteAbility(int nAbility, int nScore);
 
 // ---< AddQuestStep >---
 // Adds a new quest step to quest sTag with Journal Entry sJournalEntry.  The quest
 //  step's journal entry can be added at a later time with SetQuestStepJournalEntry().
 //  Returns the new quest step for use in assigning quest step variables.
-int AddQuestStep(int nQuestID, string sJournalEntry = "", int nID = -1);
+int AddQuestStep(int nStep = -1);
 
 // ---< [Get|Set]QuestStepJournalEntry >---
 // Gets or sets the journal entry associated with nStep of quest sTag
 string GetQuestStepJournalEntry(int nQuestID, int nStep);
-void SetQuestStepJournalEntry(int nQuestID, int nStep, string sJournalEntry);
+void SetQuestStepJournalEntry(string sJournalEntry);
 
 // ---< [Get|Set]QuestTimeLimit >---
 // Gets or sets nStep's time limit for quest sQuestTag to sTime.  sTime is a time
 // difference vector retrieved with util_i_time.
 string GetQuestStepTimeLimit(int nQuestID, int nStep);
-void SetQuestStepTimeLimit(int nQuestID, int nStep, string sTime = "");
+void SetQuestStepTimeLimit(string sTime = "");
 
 // ---< [Get|Set]QuestStepPartyCompletion >---
 // Gets or sets the ability to allow party members to help complete quest steps
 int GetQuestStepPartyCompletion(int nQuestID, int nStep);
-void SetQuestStepPartyCompletion(int nQuestID, int nStep, int nParty);
+void SetQuestStepPartyCompletion(int nParty);
 
 // ---< [Get|Set]QuestStepProximity >---
 // Sets whether a party member has to be within the same area as a triggering PC
 // to qualify that party member to receive credit for an objective.  Has not effect
 // if nPartyCompletion = FALSE.
-int GetQuestStepProximity(int nQuesTID, int nStep);
-void SetQuestStepProximity(int nQuestID, int nStep, int nRequired = TRUE);
+int GetQuestStepProximity(int nQuestID, int nStep);
+void SetQuestStepProximity(int nRequired = TRUE);
 
 // ---< [Get|Set]QuestStepObjectiveMinimum >---
 // Gets|Sets the minimum number of objectives that have to be met on nStep for the
@@ -219,7 +211,7 @@ void SetQuestStepProximity(int nQuestID, int nStep, int nRequired = TRUE);
 // NPCs as a speak objective and set the minimum to 1, so each PC can still complete the
 // step with different NPCs while still using the same quest).
 int GetQuestStepObjectiveMinimum(int nQuestID, int nStep);
-void SetQuestStepObjectiveMinimum(int nQuestID, int nStep, int nCount = -1);
+void SetQuestStepObjectiveMinimum(int nCount = -1);
 
 // ---< [Get|Set]QuestStepObjectiveRandom >---
 // Gets|Sets a random number of quest step objectives to be used when assigning this quest
@@ -228,33 +220,42 @@ void SetQuestStepObjectiveMinimum(int nQuestID, int nStep, int nCount = -1);
 // The system will randomly select nObjectiveCount objectives and assign them to the PC
 // on quest assignment (instead of assigning all available objectives).
 int GetQuestStepObjectiveRandom(int nQuestID, int nStep);
-void SetQuestStepObjectiveRandom(int nQuestID, int nStep, int nObjectiveCount);
+void SetQuestStepObjectiveRandom(int nObjectiveCount);
+
+// TODO
+string GetQuestStepObjectiveDescription(int nQuestID, int nObjectiveID);
+void SetQuestStepObjectiveDescription(string sDescription);
+
+// TODO
+string GetQuestStepObjectiveDescriptor(int nQuestID, int nObjectiveID);
+void SetQuestStepObjectiveDescriptor(string sDescriptor);
 
 // ---< [AddQuestResolution[Success|Fail] >---
 // Adds the final quest step to quest nQuestID.
-int AddQuestResolutionSuccess(int nQuestID, string sJournalEntry = "", int nStep = -1);
-int AddQuestResolutionFail(int nQuestID, string sJournalEntry = "", int nStep = -1);
+int AddQuestResolutionSuccess(int nStep = -1);
+int AddQuestResolutionFail(int nStep = -1);
 
 // ---< SetQuestStepObjective[Kill|Gather|Deliver|Discover|Speak] >---
 // Sets the objective type for a specified quest step
-void SetQuestStepObjectiveKill(int nQuestID, int nStep, string sKey, int nValue = 1);
-void SetQuestStepObjectiveGather(int nQuestID, int nStep, string sKey, int nValue = 1);
-void SetQuestStepObjectiveDeliver(int nQuestID, int nStep, string sKey, string sValue, int nValue = 1);
-void SetQuestStepObjectiveDiscover(int nQuestID, int nStep, string sKey, int nValue = 1);
-void SetQuestStepObjectiveSpeak(int nQuestID, int nStep, string sKey, int nValue = 1);
+void SetQuestStepObjectiveKill(string sTargetTag, int nQuantity = 1);
+void SetQuestStepObjectiveGather(string sTargetTag, int nQuantity = 1);
+void SetQuestStepObjectiveDeliver(string sTargetTag, string sItemTag, int nQuantity = 1);
+void SetQuestStepObjectiveDiscover(string sTargetTag, int nQuantity = 1);
+void SetQuestStepObjectiveSpeak(string sTargetTag, int nQuantity = 1);
+
 
 // ---< SetQuestStep[Preward|Reward][Alignment|Gold|Item|XP] >---
 // Sets nStep's preward or reward
-void SetQuestStepPrewardAlignment(int nQuestID, int nStep, int nKey, int nValue);
-void SetQuestStepPrewardGold(int nQuestID, int nStep, int nValue);
-void SetQuestStepPrewardItem(int nQuestID, int nStep, string sKey, int nValue = 1);
-void SetQuestStepPrewardXP(int nQuestID, int nStep, int nValue);
-void SetQuestStepPrewardMessage(int nQuestID, int nStep, string sValue);
-void SetQuestStepRewardAlignment(int nQuestID, int nStep, int nKey, int nValue);
-void SetQuestStepRewardGold(int nQuestID, int nStep, int nValue);
-void SetQuestStepRewardItem(int nQuestID, int nStep, string sKey, int nValue = 1);
-void SetQuestStepRewardXP(int nQuestID, int nStep, int nValue);
-void SetQuestStepRewardMessage(int nQuestID, int nStep, string sValue);
+void SetQuestStepPrewardAlignment(int nAlignmentAxis, int nValue);
+void SetQuestStepPrewardGold(int nGold);
+void SetQuestStepPrewardItem(string sResref, int nQuantity = 1);
+void SetQuestStepPrewardXP(int nXP);
+void SetQuestStepPrewardMessage(string sMessage);
+void SetQuestStepRewardAlignment(int nAlignmentAxis, int nValue);
+void SetQuestStepRewardGold(int nGold);
+void SetQuestStepRewardItem(string sResref, int nQuantity = 1);
+void SetQuestStepRewardXP(int nXP);
+void SetQuestStepRewardMessage(string sMessage);
 
 // ---< GetIsQuestAssignable >---
 // Returns whether oPC meets all prerequisites for quest sTag.  Quest prerequisites can only
@@ -277,8 +278,8 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
 // ---< SignalQuestStepProgress >---
 // Called from module/game object scripts to signal the quest system to advance the quest, if
 // the PC has completed all required objectives for the current step.
-int SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, string sData = "");
-int SignalQuestStepRegress(object oPC, object oTarget, int ObjectiveType, string sData = "");
+int SignalQuestStepProgress(object oPC, string sTargetTag, int nObjectiveType, string sData = "");
+int SignalQuestStepRegress(object oPC, string sTargetTag, int ObjectiveType, string sData = "");
 
 // ---< GetCurrentQuest[Step|Event] >---
 // Global accessors to retrieve the current quest tag (all events), step number (OnAdvance only) 
@@ -292,12 +293,12 @@ int GetCurrentQuestEvent();
 // are stored in a module-level sqlite database table and associated with the quest, so it's
 // a good place to store random variables that you want to save to the quest.  Currently only
 // implemented with Ints and Strings.
-int GetQuestInt(string sTag, string sVarName);
-void SetQuestInt(string sTag, string sVarName, int nValue);
-void DeleteQuestInt(string sTag, string sVarName);
-string GetQuestString(string sTag, string sVarName);
-void SetQuestString(string sTag, string sVarName, string sValue);
-void DeleteQuestString(string sTag, string sVarName);
+int GetQuestInt(string sQuestTag, string sVarName);
+void SetQuestInt(string sQuestTag, string sVarName, int nValue);
+void DeleteQuestInt(string sQuestTag, string sVarName);
+string GetQuestString(string sQuestTag, string sVarName);
+void SetQuestString(string sQuestTag, string sVarName, string sValue);
+void DeleteQuestString(string sQuestTag, string sVarName);
 
 // -----------------------------------------------------------------------------
 //                          Private Function Definitions
@@ -342,11 +343,14 @@ void _SetPCQuestData(object oPC, int nQuestID, string sField, string sValue)
 }
 
 // Should only be called after the quest has been created
-void _SetQuestData(int nQuestID, string sField, string sValue)
+//void _SetQuestData(int nQuestID, string sField, string sValue)
+void _SetQuestData(string sField, string sValue)
 {
-    if (nQuestID == 0)
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
+
+    if (nQuestID == 0 || nQuestID == -1)
     {
-        QuestError("Attempt to set quest data when quest does not exist" +
+        QuestError("_SetQuestData():  Attempt to set quest data when quest does not exist" +
               "\n  Quest ID -> " + ColorValue(IntToString(nQuestID)) +
               "\n  Field    -> " + ColorValue(sField) +
               "\n  Value    -> " + ColorValue(sValue));
@@ -431,62 +435,65 @@ void _DeleteQuestVariable(int nQuestID, string sType, string sVarName)
     SqlStep(sql);
 }
 
-void SetQuestInt(string sTag, string sVarName, int nValue)
+void SetQuestInt(string sQuestTag, string sVarName, int nValue)
 {
-    int nQuestID = GetQuestID(sTag);
+    int nQuestID = GetQuestID(sQuestTag);
     if (nQuestID == 0 || sVarName == "")
         return;
 
     _SetQuestVariable(nQuestID, "INT", sVarName, IntToString(nValue));
 }
 
-int GetQuestInt(string sTag, string sVarName)
+int GetQuestInt(string sQuestTag, string sVarName)
 {
-    int nQuestID = GetQuestID(sTag);
+    int nQuestID = GetQuestID(sQuestTag);
     if (nQuestID == 0 || sVarName == "")
         return 0;
 
     return StringToInt(_GetQuestVariable(nQuestID, "INT", sVarName));
 }
 
-void DeleteQuestInt(string sTag, string sVarName)
+void DeleteQuestInt(string sQuestTag, string sVarName)
 {
-    int nQuestID = GetQuestID(sTag);
+    int nQuestID = GetQuestID(sQuestTag);
     if (nQuestID == 0 || sVarName == "")
         return;
 
     _DeleteQuestVariable(nQuestID, "INT", sVarName);
 }
 
-void SetQuestString(string sTag, string sVarName, string sValue)
+void SetQuestString(string sQuestTag, string sVarName, string sValue)
 {
-    int nQuestID = GetQuestID(sTag);
+    int nQuestID = GetQuestID(sQuestTag);
     if (nQuestID == 0 || sVarName == "")
         return;
 
     _SetQuestVariable(nQuestID, "STRING", sVarName, sValue);
 }
 
-string GetQuestString(string sTag, string sVarName)
+string GetQuestString(string sQuestTag, string sVarName)
 {
-    int nQuestID = GetQuestID(sTag);
+    int nQuestID = GetQuestID(sQuestTag);
     if (nQuestID == 0 || sVarName == "")
         return "";
 
     return _GetQuestVariable(nQuestID, "STRING", sVarName);
 }
 
-void DeleteQuestString(string sTag, string sVarName)
+void DeleteQuestString(string sQuestTag, string sVarName)
 {
-    int nQuestID = GetQuestID(sTag);
+    int nQuestID = GetQuestID(sQuestTag);
     if (nQuestID == 0 || sVarName == "")
         return;
 
     _DeleteQuestVariable(nQuestID, "STRING", sVarName);
 }
 
-void _SetQuestStepData(int nQuestID, int nStep, string sField, string sValue)
+void _SetQuestStepData(string sField, string sValue)
 {
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
+    int nStep = GetLocalInt(GetModule(), QUEST_BUILD_STEP);
+
     string sQuery = "UPDATE quest_steps " +
                     "SET " + sField + " = @value " +
                     "WHERE quests_id = @id " +
@@ -536,9 +543,11 @@ int _GetIsPropertyStackable(int nPropertyType)
         return TRUE;
 }
 
-void _SetQuestStepProperty(int nQuestID, int nStep, int nCategoryType, 
-                           int nValueType, string sKey, string sValue, string sData = "")
+void _SetQuestStepProperty(int nCategoryType, int nValueType, string sKey, string sValue, string sData = "")
 {
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
+    int nStep = GetLocalInt(GetModule(), QUEST_BUILD_STEP);
+
     if (nCategoryType != QUEST_CATEGORY_OBJECTIVE)
     {
         if (_GetIsPropertyStackable(nValueType) == FALSE)
@@ -562,27 +571,34 @@ void _SetQuestStepProperty(int nQuestID, int nStep, int nCategoryType,
         HandleSqlDebugging(sql, "SQL:set-step-property", IntToString(nQuestID),
             IntToString(nStep), IntToString(nCategoryType), IntToString(nValueType),
             sKey, sValue, sData);
+
+    if (nCategoryType == QUEST_CATEGORY_OBJECTIVE)
+    {
+        int nObjectiveID = GetLastInsertedID("quest_step_properties");
+        SetLocalInt(GetModule(), QUEST_BUILD_OBJECTIVE, nObjectiveID);
+    }
 }
 
 // Private accessor for setting quest step objectives
-void _SetQuestObjective(int nQuestID, int nStep, int nValueType, string sKey, string sValue, string sData = "")
+void _SetQuestObjective(int nValueType, string sKey, string sValue, string sData = "")
 {
     int nCategoryType = QUEST_CATEGORY_OBJECTIVE;
-    _SetQuestStepProperty(nQuestID, nStep, nCategoryType, nValueType, sKey, sValue, sData);
+    _SetQuestStepProperty(nCategoryType, nValueType, sKey, sValue, sData);
+
 }
 
 // Private accessor for setting quest step prewards
-void _SetQuestPreward(int nQuestID, int nStep, int nValueType, string sKey, string sValue)
+void _SetQuestPreward(int nValueType, string sKey, string sValue)
 {
     int nCategoryType = QUEST_CATEGORY_PREWARD;
-    _SetQuestStepProperty(nQuestID, nStep, nCategoryType, nValueType, sKey, sValue);
+    _SetQuestStepProperty(nCategoryType, nValueType, sKey, sValue);
 }
 
 // Private accessor for setting quest step rewards
-void _SetQuestReward(int nQuestID, int nStep, int nValueType, string sKey, string sValue)
+void _SetQuestReward(int nValueType, string sKey, string sValue)
 {
     int nCategoryType = QUEST_CATEGORY_REWARD;
-    _SetQuestStepProperty(nQuestID, nStep, nCategoryType, nValueType, sKey, sValue);
+    _SetQuestStepProperty(nCategoryType, nValueType, sKey, sValue);
 }
 
 void _AssignQuest(object oPC, int nQuestID)
@@ -774,7 +790,7 @@ void _AwardQuest(object oPC, int nQuestID, int nFlag = TRUE, int bParty = FALSE)
         while (GetIsObjectValid(oPartyMember))
         {
             nAssigned = GetPCHasQuest(oPartyMember, sQuestTag);
-            nComplete = GetIsPCQuestComplete(oPartyMember, nQuestID);
+            nComplete = GetIsPCQuestComplete(oPartyMember, sQuestTag);
 
             if (nFlag)
             {
@@ -791,7 +807,7 @@ void _AwardQuest(object oPC, int nQuestID, int nFlag = TRUE, int bParty = FALSE)
     else
     {
         nAssigned = GetPCHasQuest(oPC, sQuestTag);
-        nComplete = GetIsPCQuestComplete(oPC, nQuestID);
+        nComplete = GetIsPCQuestComplete(oPC, sQuestTag);
 
         if (nFlag)
         {
@@ -956,7 +972,31 @@ void _AwardQuestStepAllotments(object oPC, int nQuestID, int nStep, int nCategor
             {
                 if ((nAwardType && AWARD_MESSAGE) || nAwardType == AWARD_ALL)
                 {
-                    string sMessage = HexColorString(sValue, COLOR_CYAN);
+                    string sMessage;
+
+                    // If this is a random quest, we need to override the
+                    // preward message
+                    if (GetQuestStepObjectiveRandom(nQuestID, nStep) != -1 &&
+                        nCategoryType == QUEST_CATEGORY_PREWARD)
+                    {
+                        string sQuestTag = GetQuestTag(nQuestID);
+                        string sCustomMessage = GetQuestString(sQuestTag, QUEST_CUSTOM_MESSAGE + IntToString(nStep) + "_" + GetObjectUUID(oPC));
+                        if (sCustomMessage == "")
+                            QuestDebug("Custom preward message for " + QuestToString(nQuestID) + " " + StepToString(nStep) +
+                                "not created; there is no preward message to build from");
+                        else
+                        {
+                            sMessage = sCustomMessage;
+                            QuestDebug("Overriding standard preward message for " + QuestToString(nQuestID) + " " +
+                                StepToString(nStep) + " with customized preward message for random quest creation: " +
+                                ColorValue(sMessage));
+                        }                            
+                    }
+
+                    if (sMessage == "")
+                        sMessage = sValue;
+                    
+                    sMessage = HexColorString(sMessage, COLOR_CYAN);
                     SendMessageToPC(oPC, sMessage);
                 }
                 continue;
@@ -992,22 +1032,26 @@ int AddQuest(string sQuestTag, string sTitle = "")
         {
             QuestError(QuestToString(nQuestID) + " already exists and cannot be " +
                 "overwritten; to delete, use DeleteQuest(" + sQuestTag + ")");
-            return -1;
+            nQuestID = -1;
         }        
     }
     
-    if (sQuestTag == "")
+    if (nQuestID != -1 && sQuestTag == "")
     {   
         QuestError("Cannot add a quest with an empty tag");
-        return -1;
+        nQuestID = -1;
     }
 
-    nQuestID = _AddQuest(sQuestTag, sTitle);
-    if (nQuestID == -1)
-        QuestError(QuestToString(nQuestID) + " could not be created");
-    else
-        QuestDebug(QuestToString(nQuestID) + " has been created");
+    if (nQuestID != -1)
+    {
+        nQuestID = _AddQuest(sQuestTag, sTitle);
+        if (nQuestID == -1)
+            QuestError(QuestToString(nQuestID) + " could not be created");
+        else
+            QuestDebug(QuestToString(nQuestID) + " has been created");
+    }
 
+    SetLocalInt(GetModule(), QUEST_BUILD_QUEST, nQuestID);
     return nQuestID;
 }
 
@@ -1024,14 +1068,24 @@ void DeleteQuest(string sQuestTag)
 }
 
 //done
-int AddQuestStep(int nQuestID, string sJournalEntry = "", int nStep = -1)
+//int AddQuestStep(int nQuestID, string sJournalEntry = "", int nStep = -1)
+int AddQuestStep(int nStep = -1)
 {   
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
+    if (nQuestID == -1)
+    {
+        QuestError("AddQuestStep():  Could not add quest step, current quest ID is invalid");
+        return -1;
+    }
+
     // Steps must be created in order of sending a custom step id (i.e. if using existing
     // journal entries).
     if (nStep == -1)
         nStep = CountAllQuestSteps(nQuestID) + 1;
 
-    _AddQuestStep(nQuestID, sJournalEntry, nStep);
+    _AddQuestStep(nQuestID, "", nStep);
+
+    SetLocalInt(GetModule(), QUEST_BUILD_STEP, nStep);
     return nStep;
 }
 
@@ -1079,7 +1133,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
 
     if (GetPCHasQuest(oPC, sQuestTag) == TRUE)
     {
-        if (GetIsPCQuestComplete(oPC, nQuestID) == TRUE)
+        if (GetIsPCQuestComplete(oPC, sQuestTag) == TRUE)
         {
             // Check for cooldown
             string sCooldownTime = GetQuestCooldown(nQuestID);
@@ -1149,7 +1203,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
 
     QuestDebug("System pre-assignment check successfully completed; starting quest prerequisite checks");
 
-    int nPrerequisites = CountQuestPrerequisites(nQuestID);
+    int nPrerequisites = CountQuestPrerequisites(sQuestTag);
     if (nPrerequisites = 0)
     {
         QuestDebug(QuestToString(nQuestID) + " has no prerequisites for " +
@@ -1432,7 +1486,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                     QuestDebug("  QUEST_STEP | " + sQuestTag + " | " + StepToString(nRequiredStep));
 
                     bPCHasQuest = GetPCHasQuest(oPC, sQuestTag);
-                    nPCStep = GetPCQuestStep(oPC, nQuestID);
+                    nPCStep = GetPCQuestStep(oPC, sQuestTag);
 
                     QuestDebug("  PC | Has Quest -> " + (bPCHasQuest ? "TRUE":"FALSE") + " | " + StepToString(nRequiredStep));
 
@@ -1649,7 +1703,7 @@ void RunQuestScript(object oPC, int nQuestID, int nScriptType)
     SetLocalInt(oModule, QUEST_CURRENT_EVENT, nScriptType);
     if (bSetStep)
     {
-        int nStep = GetPCQuestStep(oPC, nQuestID);
+        int nStep = GetPCQuestStep(oPC, sQuestTag);
         SetLocalInt(oModule, QUEST_CURRENT_STEP, nStep);
     }
 
@@ -1681,7 +1735,9 @@ int CountPCQuestCompletions(object oPC, int nQuestID)
 void CopyQuestStepObjectiveData(object oPC, int nQuestID, int nStep)
 {
     sqlquery sqlStepData;
-    
+    string sPrewardMessage;
+    int nRandom = FALSE;
+
     int nRecords = GetQuestStepObjectiveRandom(nQuestID, nStep);
     if (nRecords == -1)
     {
@@ -1698,16 +1754,36 @@ void CopyQuestStepObjectiveData(object oPC, int nQuestID, int nStep)
             ColorValue(IntToString(nObjectiveCount)) + " available objectives from " +
             QuestToString(nQuestID) + " " + StepToString(nStep) + " for assignment to " +
             PCToString(oPC));
+
+        sPrewardMessage = GetQuestStepPropertyValue(nQuestID, nStep, QUEST_CATEGORY_PREWARD, QUEST_VALUE_MESSAGE);
+        nRandom = TRUE;
     }
 
     while (SqlStep(sqlStepData))
-    {
-        int nObjectiveType = SqlGetInt(sqlStepData, 0);
-        string sTag = SqlGetString(sqlStepData, 1);
-        int nQuantity = SqlGetInt(sqlStepData, 2);
-        string sData = SqlGetString(sqlStepData, 3);
+    { 
+        int nObjectiveID = SqlGetInt(sqlStepData, 0);
+        int nObjectiveType = SqlGetInt(sqlStepData, 1);
+        string sTag = SqlGetString(sqlStepData, 2);
+        int nQuantity = SqlGetInt(sqlStepData, 3);
+        string sData = SqlGetString(sqlStepData, 4);
 
         AddQuestStepObjectiveData(oPC, nQuestID, nObjectiveType, sTag, nQuantity, sData);
+    
+        // For random quests, build the message
+        if (nRandom && sPrewardMessage != "")
+        {
+            string sDescriptor = GetQuestStepObjectiveDescriptor(nQuestID, nObjectiveID);
+            string sDescription = GetQuestStepObjectiveDescription(nQuestID, nObjectiveID);
+            string sQuestTag = GetQuestTag(nQuestID);
+
+            sPrewardMessage += 
+                "\n  " + ObjectiveTypeToString(nObjectiveType) + " " +
+                    IntToString(nQuantity) + " " +
+                    sDescriptor + (nQuantity == 1 ? "" : "s") +
+                    (sDescription == "" ? "" : " " + sDescription);
+
+            SetQuestString(sQuestTag, QUEST_CUSTOM_MESSAGE + IntToString(nStep) + "_" + GetObjectUUID(oPC), sPrewardMessage);
+        }
     }
 }
 
@@ -1775,10 +1851,12 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
     QuestDebug("Attempting to advance quest " + QuestToString(nQuestID) +
         " for " + PCToString(oPC));
 
+    string sQuestTag = GetQuestTag(nQuestID);
+
     if (nRequestType == QUEST_ADVANCE_SUCCESS)
     {
-        int nCurrentStep = GetPCQuestStep(oPC, nQuestID);
-        int nNextStep = GetNextPCQuestStep(nQuestID, nCurrentStep);
+        int nCurrentStep = GetPCQuestStep(oPC, sQuestTag);
+        int nNextStep = GetNextPCQuestStep(oPC, sQuestTag);
 
         if (nNextStep == -1)
         {
@@ -1799,6 +1877,13 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
             _AwardQuestStepAllotments(oPC, nQuestID, nNextStep, QUEST_CATEGORY_REWARD);
             IncrementPCQuestCompletions(oPC, nQuestID, GetUnixTimeStamp());
             RunQuestScript(oPC, nQuestID, QUEST_SCRIPT_TYPE_ON_COMPLETE);
+
+            if (GetQuestStepObjectiveRandom(nQuestID, nCurrentStep) != -1)
+            {
+                QuestDebug(QuestToString(nQuestID) + " " + StepToString(nCurrentStep) + " is marked " +
+                    "random and has been completed; deleting custom message");
+                DeleteQuestString(sQuestTag, QUEST_CUSTOM_MESSAGE + IntToString(nCurrentStep) + "_" + GetObjectUUID(oPC));
+            }
         }
         else
         {
@@ -1825,7 +1910,6 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
                         string sData = SqlGetString(sObjectiveData, 3);
                         int bParty = GetQuestStepPartyCompletion(nQuestID, nNextStep);
                         int n, nPCCount = GetPCItemCount(oPC, sItemTag, bParty);
-                        object oItem = GetObjectByTag(sItemTag);
 
                         if (nPCCount == 0)
                             QuestDebug(PCToString(oPC) + " does not have any precollected items that " +
@@ -1834,9 +1918,8 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
                             QuestDebug("Applying " + IntToString(nPCCount) + " precollected items toward " +
                                 "requirements for " + QuestToString(nQuestID) + " " + StepToString(nNextStep));
 
-                        // TODO need a new function a number for progress instead of individually
                         for (n = 0; n < nPCCount; n++)
-                            SignalQuestStepProgress(oPC, oItem, QUEST_OBJECTIVE_GATHER, sData);
+                            SignalQuestStepProgress(oPC, sItemTag, QUEST_OBJECTIVE_GATHER, sData);
                     }
                 }
             }
@@ -1991,7 +2074,7 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
         AdvanceQuest(oPC, nQuestID, nStatus);
 }
 
-int SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, string sData = "")
+int SignalQuestStepProgress(object oPC, string sTargetTag, int nObjectiveType, string sData = "")
 {
     int nMatch = QUEST_MATCH_NONE;
 
@@ -1999,11 +2082,9 @@ int SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, stri
     if (GetIsObjectValid(GetArea(oPC)) == FALSE)
         return QUEST_MATCH_NONE;
 
-    QuestDebug(GetName(oTarget) + " (tag: " + GetTag(oTarget) + ") is signalling " +
+    QuestDebug(sTargetTag + " is signalling " +
         "quest " + HexColorString("progress", COLOR_GREEN_LIGHT) + " triggered by " + PCToString(oPC) + " for objective " +
         "type " + ObjectiveTypeToString(nObjectiveType) + (sData == "" ? "" : " (sData -> " + sData + ")"));
-
-    string sTargetTag = GetTag(oTarget);
 
     while (GetIsObjectValid(GetMaster(oPC)))
         oPC = GetMaster(oPC);
@@ -2022,7 +2103,7 @@ int SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, stri
         {    
             string sQuestTag = SqlGetString(sqlQuestData, 0);
             int nQuestID = GetQuestID(sQuestTag);
-            int nStep = GetPCQuestStep(oPC, nQuestID);
+            int nStep = GetPCQuestStep(oPC, sQuestTag);
 
             if (GetIsQuestActive(nQuestID) == FALSE)
             {
@@ -2037,6 +2118,7 @@ int SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, stri
         }
     }
     else
+        // TODO change to tag v resref
         QuestDebug(PCToString(oPC) + " does not have a quest associated with " + sTargetTag + 
             (sData == "" ? "" : " and " + sData));
 
@@ -2051,7 +2133,7 @@ int SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, stri
             {
                 string sQuestTag = SqlGetString(sqlCandidates, 0);
                 int nQuestID = GetQuestID(sQuestTag);
-                int nStep = GetPCQuestStep(oParty, nQuestID);
+                int nStep = GetPCQuestStep(oParty, sQuestTag);
                 int bActive = GetIsQuestActive(nQuestID);
                 int bPartyCompletion = GetQuestStepPartyCompletion(nQuestID, nStep);
                 int bProximity = GetQuestStepProximity(nQuestID, nStep);
@@ -2078,18 +2160,17 @@ int SignalQuestStepProgress(object oPC, object oTarget, int nObjectiveType, stri
     return nMatch;
 }
 
-int SignalQuestStepRegress(object oPC, object oTarget, int nObjectiveType, string sData = "")
+int SignalQuestStepRegress(object oPC, string sTargetTag, int nObjectiveType, string sData = "")
 {
     int nMatch = QUEST_MATCH_NONE;
 
     if (GetIsObjectValid(GetArea(oPC)) == FALSE)
         return QUEST_MATCH_NONE;
 
-    QuestDebug(GetName(oTarget) + " (tag: " + GetTag(oTarget) + ") is signalling " +
+    // TODO change to use resref and/or tag
+    QuestDebug(sTargetTag + " is signalling " +
         "quest " + HexColorString("regress", COLOR_RED_LIGHT) + " triggered by " + PCToString(oPC) + " for objective " +
         "type " + ObjectiveTypeToString(nObjectiveType) + (sData == "" ? "" : " (sData -> " + sData + ")"));
-
-    string sTargetTag = GetTag(oTarget);
 
     while (GetIsObjectValid(GetMaster(oPC)))
         oPC = GetMaster(oPC);
@@ -2107,7 +2188,7 @@ int SignalQuestStepRegress(object oPC, object oTarget, int nObjectiveType, strin
         {    
             string sQuestTag = SqlGetString(sqlQuestData, 0);
             int nQuestID = GetQuestID(sQuestTag);
-            int nStep = GetPCQuestStep(oPC, nQuestID);
+            int nStep = GetPCQuestStep(oPC, sQuestTag);
 
             if (GetIsQuestActive(nQuestID) == FALSE)
             {
@@ -2171,9 +2252,9 @@ string GetQuestTitle(int nQuestID)
     return _GetQuestData(nQuestID, QUEST_TITLE);
 }
 
-void SetQuestTitle(int nQuestID, string sTitle)
+void SetQuestTitle(string sTitle)
 {
-    _SetQuestData(nQuestID, QUEST_TITLE, sTitle);
+    _SetQuestData(QUEST_TITLE, sTitle);
 }
 
 int GetQuestActive(int nQuestID)
@@ -2182,14 +2263,14 @@ int GetQuestActive(int nQuestID)
     return StringToInt(sActive);
 }
 
-void SetQuestActive(int nQuestID)
+void SetQuestActive()
 {
-    _SetQuestData(nQuestID, QUEST_ACTIVE, IntToString(TRUE));
+    _SetQuestData(QUEST_ACTIVE, IntToString(TRUE));
 }
 
-void SetQuestInactive(int nQuestID)
+void SetQuestInactive()
 {
-    _SetQuestData(nQuestID, QUEST_ACTIVE, IntToString(FALSE));
+    _SetQuestData(QUEST_ACTIVE, IntToString(FALSE));
 }
 
 int GetQuestRepetitions(int nQuestID)
@@ -2198,10 +2279,10 @@ int GetQuestRepetitions(int nQuestID)
     return StringToInt(sRepetitions);
 }
 
-void SetQuestRepetitions(int nQuestID, int nRepetitions = 1)
+void SetQuestRepetitions(int nRepetitions = 1)
 {
     string sRepetitions = IntToString(nRepetitions);
-    _SetQuestData(nQuestID, QUEST_REPETITIONS, sRepetitions);
+    _SetQuestData(QUEST_REPETITIONS, sRepetitions);
 }
 
 string GetQuestTimeLimit(int nQuestID)
@@ -2209,9 +2290,9 @@ string GetQuestTimeLimit(int nQuestID)
     return _GetQuestData(nQuestID, QUEST_TIME_LIMIT);
 }
 
-void SetQuestTimeLimit(int nQuestID, string sTime)
+void SetQuestTimeLimit(string sTime)
 {
-    _SetQuestData(nQuestID, QUEST_TIME_LIMIT, sTime);
+    _SetQuestData(QUEST_TIME_LIMIT, sTime);
 }
 
 string GetQuestCooldown(int nQuestID)
@@ -2219,21 +2300,9 @@ string GetQuestCooldown(int nQuestID)
     return _GetQuestData(nQuestID, QUEST_COOLDOWN);
 }
 
-void SetQuestCooldown(int nQuestID, string sTime)
+void SetQuestCooldown(string sTime)
 {
-    _SetQuestData(nQuestID, QUEST_COOLDOWN, sTime);
-}
-
-int GetQuestStepOrder(int nQuestID)
-{
-    string sStepOrder = _GetQuestData(nQuestID, QUEST_STEP_ORDER);
-    return StringToInt(sStepOrder);
-}
-
-void SetQuestStepOrder(int nQuestID, int nOrder = QUEST_STEP_ORDER_SEQUENTIAL)
-{
-    string sOrder = IntToString(nOrder);
-    _SetQuestData(nQuestID, QUEST_STEP_ORDER, sOrder);
+    _SetQuestData(QUEST_COOLDOWN, sTime);
 }
 
 string GetQuestScriptOnAccept(int nQuestID)
@@ -2241,9 +2310,9 @@ string GetQuestScriptOnAccept(int nQuestID)
     return _GetQuestData(nQuestID, QUEST_SCRIPT_ON_ACCEPT);
 }
 
-void SetQuestScriptOnAccept(int nQuestID, string sScript = "")
+void SetQuestScriptOnAccept(string sScript = "")
 {
-    _SetQuestData(nQuestID, QUEST_SCRIPT_ON_ACCEPT, sScript);
+    _SetQuestData(QUEST_SCRIPT_ON_ACCEPT, sScript);
 }
 
 string GetQuestScriptOnAdvance(int nQuestID)
@@ -2251,9 +2320,9 @@ string GetQuestScriptOnAdvance(int nQuestID)
     return _GetQuestData(nQuestID, QUEST_SCRIPT_ON_ADVANCE);
 }
 
-void SetQuestScriptOnAdvance(int nQuestID, string sScript = "")
+void SetQuestScriptOnAdvance(string sScript = "")
 {
-    _SetQuestData(nQuestID, QUEST_SCRIPT_ON_ADVANCE, sScript);
+    _SetQuestData(QUEST_SCRIPT_ON_ADVANCE, sScript);
 }
 
 string GetQuestScriptOnComplete(int nQuestID)
@@ -2261,9 +2330,9 @@ string GetQuestScriptOnComplete(int nQuestID)
     return _GetQuestData(nQuestID, QUEST_SCRIPT_ON_COMPLETE);
 }
 
-void SetQuestScriptOnComplete(int nQuestID, string sScript = "")
+void SetQuestScriptOnComplete(string sScript = "")
 {
-    _SetQuestData(nQuestID, QUEST_SCRIPT_ON_COMPLETE, sScript);
+    _SetQuestData(QUEST_SCRIPT_ON_COMPLETE, sScript);
 }
 
 string GetQuestScriptOnFail(int nQuestID)
@@ -2271,17 +2340,17 @@ string GetQuestScriptOnFail(int nQuestID)
     return _GetQuestData(nQuestID, QUEST_SCRIPT_ON_FAIL);
 }
 
-void SetQuestScriptOnFail(int nQuestID, string sScript = "")
+void SetQuestScriptOnFail(string sScript = "")
 {
-    _SetQuestData(nQuestID, QUEST_SCRIPT_ON_FAIL, sScript);
+    _SetQuestData(QUEST_SCRIPT_ON_FAIL, sScript);
 }
 
-void SetQuestScriptOnAll(int nQuestID, string sScript = "")
+void SetQuestScriptOnAll(string sScript = "")
 {
-    SetQuestScriptOnAccept(nQuestID, sScript);
-    SetQuestScriptOnAdvance(nQuestID, sScript);
-    SetQuestScriptOnComplete(nQuestID, sScript);
-    SetQuestScriptOnFail(nQuestID, sScript);
+    SetQuestScriptOnAccept(sScript);
+    SetQuestScriptOnAdvance(sScript);
+    SetQuestScriptOnComplete(sScript);
+    SetQuestScriptOnFail(sScript);
 }
 
 int GetQuestJournalHandler(int nQuestID)
@@ -2290,9 +2359,9 @@ int GetQuestJournalHandler(int nQuestID)
     return StringToInt(sResult);
 }
 
-void SetQuestJournalHandler(int nQuestID, int nJournalHandler = QUEST_JOURNAL_NWN)
+void SetQuestJournalHandler(int nJournalHandler = QUEST_JOURNAL_NWN)
 {
-    _SetQuestData(nQuestID, QUEST_JOURNAL_LOCATION, IntToString(nJournalHandler));
+    _SetQuestData(QUEST_JOURNAL_LOCATION, IntToString(nJournalHandler));
 }
 
 int GetQuestJournalDeleteOnComplete(int nQuestID)
@@ -2301,16 +2370,16 @@ int GetQuestJournalDeleteOnComplete(int nQuestID)
     return StringToInt(sResult);
 }
 
-void DeleteQuestJournalEntriesOnCompletion(int nQuestID)
+void DeleteQuestJournalEntriesOnCompletion()
 {
     string sData = IntToString(TRUE);
-    _SetQuestData(nQuestID, QUEST_JOURNAL_DELETE, sData);
+    _SetQuestData(QUEST_JOURNAL_DELETE, sData);
 }
 
-void RetainQuestJournalEntriesOnCompletion(int nQuestID)
+void RetainQuestJournalEntriesOnCompletion()
 {
     string sData = IntToString(FALSE);
-    _SetQuestData(nQuestID, QUEST_JOURNAL_DELETE, sData);
+    _SetQuestData(QUEST_JOURNAL_DELETE, sData);
 }
 
 int GetQuestAllowPrecollectedItems(int nQuestID)
@@ -2319,10 +2388,10 @@ int GetQuestAllowPrecollectedItems(int nQuestID)
     return StringToInt(sData);
 }
 
-void SetQuestAllowPrecollectedItems(int nQuestID, int nAllow = TRUE)
+void SetQuestAllowPrecollectedItems(int nAllow = TRUE)
 {
     string sData = IntToString(nAllow);
-    _SetQuestData(nQuestID, QUEST_PRECOLLECTED_ITEMS, sData);
+    _SetQuestData(QUEST_PRECOLLECTED_ITEMS, sData);
 }
 
 string GetQuestStepJournalEntry(int nQuestID, int nStep)
@@ -2330,9 +2399,9 @@ string GetQuestStepJournalEntry(int nQuestID, int nStep)
     return _GetQuestStepData(nQuestID, nStep, QUEST_STEP_JOURNAL_ENTRY);
 }
 
-void SetQuestStepJournalEntry(int nQuestID, int nStep, string sJournalEntry)
+void SetQuestStepJournalEntry(string sJournalEntry)
 {
-    _SetQuestStepData(nQuestID, nStep, QUEST_STEP_JOURNAL_ENTRY, sJournalEntry);
+    _SetQuestStepData(QUEST_STEP_JOURNAL_ENTRY, sJournalEntry);
 }
 
 string GetQuestStepTimeLimit(int nQuestID, int nStep)
@@ -2340,9 +2409,12 @@ string GetQuestStepTimeLimit(int nQuestID, int nStep)
     return _GetQuestStepData(nQuestID, nStep, QUEST_STEP_TIME_LIMIT);
 }
 
-void SetQuestStepTimeLimit(int nQuestID, int nStep, string sTime = "")
+void SetQuestStepTimeLimit(string sTime = "")
 {
-    _SetQuestStepData(nQuestID, nStep, QUEST_STEP_TIME_LIMIT, sTime);
+    if (sTime == "")
+        return;
+
+    _SetQuestStepData(QUEST_STEP_TIME_LIMIT, sTime);
 }
 
 int GetQuestStepPartyCompletion(int nQuestID, int nStep)
@@ -2351,10 +2423,10 @@ int GetQuestStepPartyCompletion(int nQuestID, int nStep)
     return StringToInt(sData);
 }
 
-void SetQuestStepPartyCompletion(int nQuestID, int nStep, int nParty)
+void SetQuestStepPartyCompletion(int nParty)
 {
     string sData = IntToString(nParty);
-    _SetQuestStepData(nQuestID, nStep, QUEST_STEP_PARTY_COMPLETION, sData);
+    _SetQuestStepData(QUEST_STEP_PARTY_COMPLETION, sData);
 }
 
 int GetQuestStepProximity(int nQuestID, int nStep)
@@ -2363,10 +2435,10 @@ int GetQuestStepProximity(int nQuestID, int nStep)
     return StringToInt(sData);
 }
 
-void SetQuestStepProximity(int nQuestID, int nStep, int nRequired = TRUE)
+void SetQuestStepProximity(int nRequired = TRUE)
 {
     string sData = IntToString(nRequired);
-    _SetQuestStepData(nQuestID, nStep, QUEST_STEP_PROXIMITY, sData);
+    _SetQuestStepData(QUEST_STEP_PROXIMITY, sData);
 }
 
 int GetQuestStepObjectiveMinimum(int nQuestID, int nStep)
@@ -2375,10 +2447,10 @@ int GetQuestStepObjectiveMinimum(int nQuestID, int nStep)
     return StringToInt(sData);
 }
 
-void SetQuestStepObjectiveMinimum(int nQuestID, int nStep, int nCount = -1)
+void SetQuestStepObjectiveMinimum(int nCount = -1)
 {
     string sData = IntToString(nCount);
-    _SetQuestStepData(nQuestID, nStep, QUEST_STEP_OBJECTIVE_COUNT, sData);
+    _SetQuestStepData(QUEST_STEP_OBJECTIVE_COUNT, sData);
 }
 
 int GetQuestStepObjectiveRandom(int nQuestID, int nStep)
@@ -2387,201 +2459,257 @@ int GetQuestStepObjectiveRandom(int nQuestID, int nStep)
     return StringToInt(sData);
 }
 
-void SetQuestStepObjectiveRandom(int nQuestID, int nStep, int nObjectiveCount)
+void SetQuestStepObjectiveRandom(int nObjectiveCount)
 {
     string sData = IntToString(nObjectiveCount);
-    _SetQuestStepData(nQuestID, nStep, QUEST_STEP_RANDOM_OBJECTIVES, sData);
+    _SetQuestStepData(QUEST_STEP_RANDOM_OBJECTIVES, sData);
 }   
 
-void SetQuestPrerequisiteAlignment(int nQuestID, int nKey, int nValue = FALSE)
+string GetQuestStepObjectiveDescription(int nQuestID, int nObjectiveID)
+{
+    string sQuestTag = GetQuestTag(nQuestID);
+    return GetQuestString(sQuestTag, QUEST_DESCRIPTION + IntToString(nObjectiveID));
+}
+
+void SetQuestStepObjectiveDescription(string sDescription)
+{
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
+    int nObjectiveID = GetLocalInt(GetModule(), QUEST_BUILD_OBJECTIVE);
+    string sQuestTag = GetQuestTag(nQuestID);
+
+    SetQuestString(sQuestTag, QUEST_DESCRIPTION + IntToString(nObjectiveID), sDescription);
+}
+
+string GetQuestStepObjectiveDescriptor(int nQuestID, int nObjectiveID)
+{
+    string sQuestTag = GetQuestTag(nQuestID);
+    return GetQuestString(sQuestTag, QUEST_DESCRIPTOR + IntToString(nObjectiveID));
+}
+
+void SetQuestStepObjectiveDescriptor(string sDescriptor)
+{
+    if (sDescriptor == "")
+        return;
+
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
+    int nObjectiveID = GetLocalInt(GetModule(), QUEST_BUILD_OBJECTIVE);
+    string sQuestTag = GetQuestTag(nQuestID);
+
+    SetQuestString(sQuestTag, QUEST_DESCRIPTOR + IntToString(nObjectiveID), sDescriptor);
+}
+
+void SetQuestPrerequisiteAlignment(int nKey, int nValue = FALSE)
 {
     string sKey = IntToString(nKey);
     string sValue = IntToString(nValue);
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
     AddQuestPrerequisite(nQuestID, QUEST_VALUE_ALIGNMENT, sKey, sValue);
 }
 
-void SetQuestPrerequisiteClass(int nQuestID, int nKey, int nValue = -1)
+void SetQuestPrerequisiteClass(int nKey, int nValue = -1)
 {
     string sKey = IntToString(nKey);
     string sValue = IntToString(nValue);
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
     AddQuestPrerequisite(nQuestID, QUEST_VALUE_CLASS, sKey, sValue);
 }
 
-void SetQuestPrerequisiteGold(int nQuestID, int nValue = 1)
+void SetQuestPrerequisiteGold(int nValue = 1)
 {
     string sValue = IntToString(max(0, nValue));
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
     AddQuestPrerequisite(nQuestID, QUEST_VALUE_GOLD, "", sValue);
 }
 
-void SetQuestPrerequisiteItem(int nQuestID, string sKey, int nValue = 1)
+void SetQuestPrerequisiteItem(string sKey, int nValue = 1)
 {
     string sValue = IntToString(nValue);
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
     AddQuestPrerequisite(nQuestID, QUEST_VALUE_ITEM, sKey, sValue);
 }
 
-void SetQuestPrerequisiteLevelMax(int nQuestID, int nValue)
+void SetQuestPrerequisiteLevelMax(int nValue)
 {
     string sValue = IntToString(nValue);
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
     AddQuestPrerequisite(nQuestID, QUEST_VALUE_LEVEL_MAX, "", sValue);
 }
 
-void SetQuestPrerequisiteLevelMin(int nQuestID, int nValue)
+void SetQuestPrerequisiteLevelMin(int nValue)
 {
     string sValue = IntToString(nValue);
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
     AddQuestPrerequisite(nQuestID, QUEST_VALUE_LEVEL_MIN, "", sValue);
 }
 
-void SetQuestPrerequisiteQuest(int nQuestID, string sKey, int nValue = 1)
+void SetQuestPrerequisiteQuest(string sKey, int nValue = 1)
 {
     string sValue = IntToString(nValue);
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
     AddQuestPrerequisite(nQuestID, QUEST_VALUE_QUEST, sKey, sValue);
 }
 
-void SetQuestPrerequisiteQuestStep(int nQuestID, string sKey, int nValue)
+void SetQuestPrerequisiteQuestStep(string sKey, int nValue)
 {
     string sValue = IntToString(nValue);
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
     AddQuestPrerequisite(nQuestID, QUEST_VALUE_QUEST_STEP, sKey, sValue);
 }
 
-void SetQuestPrerequisiteRace(int nQuestID, int nKey, int nValue = TRUE)
+void SetQuestPrerequisiteRace(int nKey, int nValue = TRUE)
 {
     string sKey = IntToString(nKey);
-    string sValue = IntToString(nValue);    
+    string sValue = IntToString(nValue);   
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST); 
     AddQuestPrerequisite(nQuestID, QUEST_VALUE_RACE, sKey, sValue);
 }
 
-void SetQuestPrerequisiteXP(int nQuestID, int nXP)
+void SetQuestPrerequisiteXP(int nXP)
 {
     string sXP = IntToString(nXP);
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
     AddQuestPrerequisite(nQuestID, QUEST_VALUE_XP, "", sXP);
 }
 
-void SetQuestPrerequisiteSkill(int nQuestID, int nSkill, int nRank)
+void SetQuestPrerequisiteSkill(int nSkill, int nRank)
 {
     string sSkill = IntToString(nSkill);
     string sRank = IntToString(nRank);
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
     AddQuestPrerequisite(nQuestID, QUEST_VALUE_SKILL, sSkill, sRank);
 }
 
-void SetQuestPrerequisteAbility(int nQuestID, int nAbility, int nScore)
+void SetQuestPrerequisteAbility(int nAbility, int nScore)
 {
     string sAbility = IntToString(nAbility);
     string sScore = IntToString(nScore);
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
     AddQuestPrerequisite(nQuestID, QUEST_VALUE_ABILITY, sAbility, sScore);
 }
 
-void SetQuestStepObjectiveKill(int nQuestID, int nStep, string sKey, int nValue = 1)
+void SetQuestStepObjectiveKill(string sTargetTag, int nValue = 1)
 {
+    string sKey = sTargetTag;
     string sValue = IntToString(nValue);
-    _SetQuestObjective(nQuestID, nStep, QUEST_OBJECTIVE_KILL, sKey, sValue);
+    _SetQuestObjective(QUEST_OBJECTIVE_KILL, sKey, sValue);
 }
 
-void SetQuestStepObjectiveGather(int nQuestID, int nStep, string sKey, int nValue = 1)
+void SetQuestStepObjectiveGather(string sTargetTag, int nValue = 1)
 {
+    string sKey = sTargetTag;
     string sValue = IntToString(nValue);
-    _SetQuestObjective(nQuestID, nStep, QUEST_OBJECTIVE_GATHER, sKey, sValue);
+    _SetQuestObjective(QUEST_OBJECTIVE_GATHER, sKey, sValue);
 }
 
-void SetQuestStepObjectiveDeliver(int nQuestID, int nStep, string sKey, string sData, int nValue)
+void SetQuestStepObjectiveDeliver(string sTargetTag, string sData, int nValue)
 {
+    string sKey = sTargetTag;
     string sValue = IntToString(nValue);
-    _SetQuestObjective(nQuestID, nStep, QUEST_OBJECTIVE_DELIVER, sKey, sValue, sData);
+    _SetQuestObjective(QUEST_OBJECTIVE_DELIVER, sKey, sValue, sData);
 }
 
-void SetQuestStepObjectiveDiscover(int nQuestID, int nStep, string sKey, int nValue = 1)
+void SetQuestStepObjectiveDiscover(string sTargetTag, int nValue = 1)
 {
+    string sKey = sTargetTag;
     string sValue = IntToString(nValue);
-    _SetQuestObjective(nQuestID, nStep, QUEST_OBJECTIVE_DISCOVER, sKey, sValue);
+    _SetQuestObjective(QUEST_OBJECTIVE_DISCOVER, sKey, sValue);
 }
 
-void SetQuestStepObjectiveSpeak(int nQuestID, int nStep, string sKey, int nValue = 1)
+void SetQuestStepObjectiveSpeak(string sTargetTag, int nValue = 1)
 {
+    string sKey = sTargetTag;
     string sValue = IntToString(nValue);
-    _SetQuestObjective(nQuestID, nStep, QUEST_OBJECTIVE_SPEAK, sKey, sValue);
+    _SetQuestObjective(QUEST_OBJECTIVE_SPEAK, sKey, sValue);
 }
 
-void SetQuestStepPrewardAlignment(int nQuestID, int nStep, int nKey, int nValue)
+
+void SetQuestStepPrewardAlignment(int nAlignmentAxis, int nValue)
 {
-    string sKey = IntToString(nKey);
+    string sKey = IntToString(nAlignmentAxis);
     string sValue = IntToString(nValue);
-    _SetQuestPreward(nQuestID, nStep, QUEST_VALUE_ALIGNMENT, sKey, sValue);
+    _SetQuestPreward(QUEST_VALUE_ALIGNMENT, sKey, sValue);
 }
 
-void SetQuestStepPrewardGold(int nQuestID, int nStep, int nValue)
+void SetQuestStepPrewardGold(int nGold)
 {
+    string sValue = IntToString(nGold);
+    _SetQuestPreward(QUEST_VALUE_GOLD, "", sValue);
+}
+
+void SetQuestStepPrewardItem(string sResref, int nQuantity)
+{
+    string sKey = sResref;
+    string sValue = IntToString(nQuantity);
+    _SetQuestPreward(QUEST_VALUE_ITEM, sKey, sValue);
+}
+
+void SetQuestStepPrewardXP(int nXP)
+{
+    string sValue = IntToString(nXP);
+    _SetQuestPreward(QUEST_VALUE_XP, "", sValue);
+}
+
+void SetQuestStepPrewardMessage(string sMessage)
+{
+    string sValue = sMessage;
+    _SetQuestPreward(QUEST_VALUE_MESSAGE, "", sValue);
+}
+
+void SetQuestStepRewardAlignment(int nAlignmentAxis, int nValue)
+{
+    string sKey = IntToString(nAlignmentAxis);
     string sValue = IntToString(nValue);
-    _SetQuestPreward(nQuestID, nStep, QUEST_VALUE_GOLD, "", sValue);
+    _SetQuestReward(QUEST_VALUE_ALIGNMENT, sKey, sValue);
 }
 
-void SetQuestStepPrewardItem(int nQuestID, int nStep, string sKey, int nValue)
+void SetQuestStepRewardGold(int nGold)
 {
+    string sValue = IntToString(nGold);
+    _SetQuestReward(QUEST_VALUE_GOLD, "", sValue);
+}
+
+void SetQuestStepRewardItem(string sResref, int nQuantity = 1)
+{
+    string sKey = sResref;
+    string sValue = IntToString(nQuantity);
+    _SetQuestReward(QUEST_VALUE_ITEM, sKey, sValue);
+}
+
+void SetQuestStepRewardQuest(string sQuestTag, int nValue = TRUE)
+{
+    string sKey = sQuestTag;
     string sValue = IntToString(nValue);
-    _SetQuestPreward(nQuestID, nStep, QUEST_VALUE_ITEM, sKey, sValue);
+    _SetQuestReward(QUEST_VALUE_QUEST, sKey, sValue);
 }
 
-void SetQuestStepPrewardXP(int nQuestID, int nStep, int nValue)
+void SetQuestStepRewardXP(int nXP)
 {
-    string sValue = IntToString(nValue);
-    _SetQuestPreward(nQuestID, nStep, QUEST_VALUE_XP, "", sValue);
+    string sValue = IntToString(nXP);
+    _SetQuestReward(QUEST_VALUE_XP, "", sValue);
 }
 
-void SetQuestStepPrewardMessage(int nQuestID, int nStep, string sValue)
+void SetQuestStepRewardMessage(string sMessage)
 {
-    _SetQuestPreward(nQuestID, nStep, QUEST_VALUE_MESSAGE, "", sValue);
+    string sValue = sMessage;
+    _SetQuestReward(QUEST_VALUE_MESSAGE, "", sValue);
 }
 
-void SetQuestStepRewardAlignment(int nQuestID, int nStep, int nKey, int nValue)
+int AddQuestResolutionSuccess(int nStep = -1)
 {
-    string sKey = IntToString(nKey);
-    string sValue = IntToString(nValue);
-    _SetQuestReward(nQuestID, nStep, QUEST_VALUE_ALIGNMENT, sKey, sValue);
-}
+    nStep = AddQuestStep(nStep);
 
-void SetQuestStepRewardGold(int nQuestID, int nStep, int nValue)
-{
-    string sValue = IntToString(nValue);
-    _SetQuestReward(nQuestID, nStep, QUEST_VALUE_GOLD, "", sValue);
-}
-
-void SetQuestStepRewardItem(int nQuestID, int nStep, string sKey, int nValue = 1)
-{
-    string sValue = IntToString(nValue);
-    _SetQuestReward(nQuestID, nStep, QUEST_VALUE_ITEM, sKey, sValue);
-}
-
-void SetQuestStepRewardQuest(int nQuestID, int nStep, string sKey, int nValue = TRUE)
-{
-    string sValue = IntToString(nValue);
-    _SetQuestReward(nQuestID, nStep, QUEST_VALUE_QUEST, sKey, sValue);
-}
-
-void SetQuestStepRewardXP(int nQuestID, int nStep, int nValue)
-{
-    string sValue = IntToString(nValue);
-    _SetQuestReward(nQuestID, nStep, QUEST_VALUE_XP, "", sValue);
-}
-
-void SetQuestStepRewardMessage(int nQuestID, int nStep, string sValue)
-{
-    _SetQuestReward(nQuestID, nStep, QUEST_VALUE_MESSAGE, "", sValue);
-}
-
-int AddQuestResolutionSuccess(int nQuestID, string sJournalEntry = "", int nStep = -1)
-{
-    nStep = AddQuestStep(nQuestID, sJournalEntry, nStep);
-    
     string sType = IntToString(QUEST_STEP_TYPE_SUCCESS);
-    _SetQuestStepData(nQuestID, nStep, QUEST_STEP_TYPE, sType);
+    _SetQuestStepData(QUEST_STEP_TYPE, sType);
 
     return nStep;
 }
 
-int AddQuestResolutionFail(int nQuestID, string sJournalEntry = "", int nStep = -1)
+int AddQuestResolutionFail(int nStep = -1)
 {
-    nStep = AddQuestStep(nQuestID, sJournalEntry, nStep);
-    
+    nStep = AddQuestStep(nStep);
+
     string sType = IntToString(QUEST_STEP_TYPE_FAIL);
-    _SetQuestStepData(nQuestID, nStep, QUEST_STEP_TYPE, sType);
+    _SetQuestStepData(QUEST_STEP_TYPE, sType);
 
     return nStep;
 }

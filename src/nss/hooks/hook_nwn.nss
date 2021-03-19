@@ -97,7 +97,7 @@ void main()
         object oPC = GetModuleItemAcquiredBy();
 
         if (GetIsPC(oPC))
-            SignalQuestStepProgress(oPC, oItem, QUEST_OBJECTIVE_GATHER);
+            SignalQuestStepProgress(oPC, GetTag(oItem), QUEST_OBJECTIVE_GATHER);
     }
     else if (sEvent == "OnUnAcquireItem")
     {
@@ -105,7 +105,7 @@ void main()
         object oPC = GetModuleItemLostBy();
 
         if (GetIsPC(oPC))
-            SignalQuestStepRegress(oPC, oItem, QUEST_OBJECTIVE_GATHER);
+            SignalQuestStepRegress(oPC, GetTag(oItem), QUEST_OBJECTIVE_GATHER);
     }
     else if (sEvent == "OnCreatureConversation")
     {
@@ -121,7 +121,7 @@ void main()
 
 
         if (GetIsObjectValid(oPC) && GetIsPC(oPC))
-            SignalQuestStepProgress(oPC, oVictim, QUEST_OBJECTIVE_KILL);
+            SignalQuestStepProgress(oPC, GetTag(oVictim), QUEST_OBJECTIVE_KILL);
     }
     else if (sEvent == "OnCreatureSpawn")
     {
@@ -140,7 +140,7 @@ void main()
             return;
         }
 
-        SignalQuestStepProgress(oPC, oTrigger, QUEST_OBJECTIVE_DISCOVER);
+        SignalQuestStepProgress(oPC, GetTag(oTrigger), QUEST_OBJECTIVE_DISCOVER);
     }
     else if (sEvent == "OnPlaceableUsed")
     {
@@ -161,7 +161,7 @@ void main()
             object oItem = GetFirstItemInInventory(oPlaceable);
             while (GetIsObjectValid(oItem))
             {
-                SignalQuestStepProgress(oPC, oPlaceable, QUEST_OBJECTIVE_DELIVER, GetTag(oItem));
+                SignalQuestStepProgress(oPC, GetTag(oPlaceable), QUEST_OBJECTIVE_DELIVER, GetTag(oItem));
                 DestroyObject(oItem);
 
                 oItem = GetNextItemInInventory(oPlaceable);

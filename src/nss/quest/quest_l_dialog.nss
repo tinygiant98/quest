@@ -52,8 +52,8 @@ void DiscoveryDialog()
     int bHasOrdered = GetPCHasQuest(oPC, sOrdered);
     int bHasRandom = GetPCHasQuest(oPC, sRandom);
 
-    int bOrderedComplete = bHasOrdered ? GetIsPCQuestComplete(oPC, nOrderedID) : FALSE;
-    int bRandomComplete = bHasRandom ? GetIsPCQuestComplete(oPC, nRandomID) : FALSE;
+    int bOrderedComplete = bHasOrdered ? GetIsPCQuestComplete(oPC, sOrdered) : FALSE;
+    int bRandomComplete = bHasRandom ? GetIsPCQuestComplete(oPC, sRandom) : FALSE;
 
     switch (GetDialogEvent())
     {
@@ -204,10 +204,10 @@ void KillDialog()
     int bHasProtect = GetPCHasQuest(oPC, sProtect);
     int bHasTimed = GetPCHasQuest(oPC, sTimed);
 
-    int bOrderedComplete = bHasOrdered ? GetIsPCQuestComplete(oPC, nOrderedID) : FALSE;
-    int bRandomComplete = bHasRandom ? GetIsPCQuestComplete(oPC, nRandomID) : FALSE;
-    int bProtectComplete = bHasProtect ? GetIsPCQuestComplete(oPC, nProtectID) : FALSE;
-    int bTimedComplete = bHasTimed ? GetIsPCQuestComplete(oPC, nTimedID) : FALSE;
+    int bOrderedComplete = bHasOrdered ? GetIsPCQuestComplete(oPC, sOrdered) : FALSE;
+    int bRandomComplete = bHasRandom ? GetIsPCQuestComplete(oPC, sRandom) : FALSE;
+    int bProtectComplete = bHasProtect ? GetIsPCQuestComplete(oPC, sProtect) : FALSE;
+    int bTimedComplete = bHasTimed ? GetIsPCQuestComplete(oPC, sTimed) : FALSE;
     int bReset;
 
     switch (GetDialogEvent())
@@ -374,9 +374,9 @@ void GatherDialog()
     int bHasRandom = GetPCHasQuest(oPC, sRandom);
     int bHasDeliver = GetPCHasQuest(oPC, sDeliver);
 
-    int bOrderedComplete = bHasOrdered ? GetIsPCQuestComplete(oPC, nOrderedID) : FALSE;
-    int bRandomComplete = bHasRandom ? GetIsPCQuestComplete(oPC, nRandomID) : FALSE;
-    int bDeliverComplete = bHasDeliver ? GetIsPCQuestComplete(oPC, nDeliverID) : FALSE;
+    int bOrderedComplete = bHasOrdered ? GetIsPCQuestComplete(oPC, sOrdered) : FALSE;
+    int bRandomComplete = bHasRandom ? GetIsPCQuestComplete(oPC, sRandom) : FALSE;
+    int bDeliverComplete = bHasDeliver ? GetIsPCQuestComplete(oPC, sDeliver) : FALSE;
     int bReset;
 
     switch (GetDialogEvent())

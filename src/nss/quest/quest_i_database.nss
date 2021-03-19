@@ -43,7 +43,6 @@ void CreateModuleQuestTables(int bReset = FALSE)
                         "sScriptOnAdvance TEXT default NULL, " +
                         "sScriptOnComplete TEXT default NULL, " + 
                         "sScriptOnFail TEXT default NULL, " +
-                        "nStepOrder TEXT default '" + IntToString(QUEST_STEP_ORDER_SEQUENTIAL) + "', " +
                         "sTimeLimit TEXT default NULL, " +
                         "sCooldown TEXT default NULL, " +
                         "nJournalLocation TEXT default '1', " +
@@ -74,11 +73,12 @@ void CreateModuleQuestTables(int bReset = FALSE)
                             "ON DELETE CASCADE ON UPDATE CASCADE);";
 
     string sQuestStepProperties = "CREATE TABLE IF NOT EXISTS quest_step_properties (" +
-                        "quest_steps_id INTEGER NOT NULL default '0', " +
-                        "nCategoryType INTEGER NOT NULL default '0', " +
-                        "nValueType INTEGER NOT NULL default '0', " +
-                        "sKey TEXT NOT NULL default '~' COLLATE NOCASE, " +
-                        "sValue INTEGER default NULL, " +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "quest_steps_id INTEGER NOT NULL, " +
+                        "nCategoryType INTEGER NOT NULL, " +
+                        "nValueType INTEGER NOT NULL, " +
+                        "sKey TEXT NOT NULL COLLATE NOCASE, " +
+                        "sValue INTEGER default '', " +
                         "sData TEXT default '', " +
                         "FOREIGN KEY (quest_steps_id) REFERENCES quest_steps (id) " +
                             "ON DELETE CASCADE ON UPDATE CASCADE);";
@@ -483,8 +483,10 @@ int GetIsQuestActive(int nQuestID)
     return nActive;
 }
 
-int CountActiveQuestSteps(int nQuestID)
+int CountActiveQuestSteps(string sQuestTag)
 {
+    int nQuestID = GetQuestID(sQuestTag);
+
     sQuery = "SELECT COUNT(*) " +
              "FROM quest_steps " +
              "WHERE quests_id = @id " +
@@ -519,8 +521,10 @@ int CountAllQuestSteps(int nQuestID)
 }
 
 
-int CountQuestPrerequisites(int nQuestID)
+int CountQuestPrerequisites(string sQuestTag)
 {
+    int nQuestID = GetQuestID(sQuestTag);
+
     sQuery = "SELECT COUNT(id) " +
              "FROM quest_prerequisites " +
              "WHERE quests_id = @id;";
@@ -647,9 +651,28 @@ void DeleteQuestStepPropertyPair(int nQuestID, int nStep, int nCategoryType, int
     HandleSqlDebugging(sql);
 }
 
+string GetQuestStepPropertyValue(int nQuestID, int nStep, 
+                                 int nCategoryType, int nValueType)
+{
+    string sQuery = "SELECT sValue " +
+             "FROM quest_step_properties " +
+             "WHERE quest_steps_id = @id " +
+                "AND nCategoryType = @category_type " +
+                "AND nValueType = @value_type;";
+    sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlBindInt(sql, "@id", GetQuestStepID(nQuestID, nStep));
+    SqlBindInt(sql, "@category_type", nCategoryType);
+    SqlBindInt(sql, "@value_type", nValueType);
+
+    string sValue = SqlStep(sql) ? SqlGetString(sql, 0) : "";
+    HandleSqlDebugging(sql);
+    return sValue;
+}
+
 sqlquery GetQuestStepObjectiveData(int nQuestID, int nStep)
 {
-    sQuery = "SELECT quest_step_properties.nValueType, " +
+    sQuery = "SELECT quest_step_properties.id, " +
+                    "quest_step_properties.nValueType, " +
                     "quest_step_properties.sKey, " +
                     "quest_step_properties.sValue, " +
                     "quest_step_properties.sData " +
@@ -668,7 +691,8 @@ sqlquery GetQuestStepObjectiveData(int nQuestID, int nStep)
 
 sqlquery GetRandomQuestStepObjectiveData(int nQuestID, int nStep, int nRecords)
 {
-    sQuery = "SELECT quest_step_properties.nValueType, " +
+    sQuery = "SELECT quest_step_properties.id, " +
+                    "quest_step_properties.nValueType, " +
                     "quest_step_properties.sKey, " +
                     "quest_step_properties.sValue, " +
                     "quest_step_properties.sData " +
@@ -777,10 +801,8 @@ int GetPCHasQuest(object oPC, string sQuestTag)
     //return SqlStep(sql) ? SqlGetInt(sql, 0) : FALSE;
 }
 
-int GetIsPCQuestComplete(object oPC, int nQuestID)
+int GetIsPCQuestComplete(object oPC, string sQuestTag)
 {
-    string sQuestTag = GetQuestTag(nQuestID);
-
     sQuery = "SELECT COUNT(*) FROM quest_pc_step " +
                 "WHERE quest_tag = @tag;";
     sql = SqlPrepareQueryObject(oPC, sQuery);
@@ -1104,10 +1126,8 @@ void DeletePCQuestProgress(object oPC, int nQuestID)
     HandleSqlDebugging(sql);
 }
 
-int GetPCQuestStep(object oPC, int nQuestID)
+int GetPCQuestStep(object oPC, string sQuestTag)
 {
-    string sQuestTag = GetQuestTag(nQuestID);
-
     sQuery = "SELECT nStep FROM quest_pc_data " +
              "WHERE quest_tag = @tag;";
     sql = SqlPrepareQueryObject(oPC, sQuery);
@@ -1126,8 +1146,11 @@ int GetPCQuestStep(object oPC, int nQuestID)
     //return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
 }
 
-int GetNextPCQuestStep(int nQuestID, int nCurrentStep)
+int GetNextPCQuestStep(object oPC, string sQuestTag)
 {
+    int nQuestID = GetQuestID(sQuestTag);
+    int nCurrentStep = GetPCQuestStep(oPC, sQuestTag);
+
     sQuery = "SELECT nStep FROM quest_steps " +
              "WHERE quests_id = @id " +
                 "AND nStep > @step " +
