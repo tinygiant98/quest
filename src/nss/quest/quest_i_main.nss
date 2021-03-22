@@ -2577,6 +2577,14 @@ void SetQuestStepObjectiveRandom(int nObjectiveCount)
     _SetQuestStepData(QUEST_STEP_RANDOM_OBJECTIVES, sData);
 }   
 
+string GetRandomQuestCustomMessage(object oPC, string sQuestTag, int nStep = -1)
+{
+    if (nStep == -1)
+        nStep = GetPCQuestStep(oPC, sQuestTag);
+        
+    return GetPCQuestString(oPC, sQuestTag, QUEST_CUSTOM_MESSAGE, nStep);
+}
+
 string GetQuestStepObjectiveDescription(int nQuestID, int nObjectiveID)
 {
     string sQuestTag = GetQuestTag(nQuestID);

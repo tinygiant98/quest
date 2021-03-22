@@ -45,18 +45,6 @@ void main()
 {
     object oPC = GetPCChatSpeaker();
 
-    if (HasChatOption(oPC, "var"))
-    {
-        SetQuestInt("quest_discovery_random", "myVarName", 15);
-        int nRetrieve = GetQuestInt("quest_discovery_random", "myVarName");
-        QuestNotice("Retrieve INT -> " + IntToString(nRetrieve));
-
-        SetQuestString("quest_discovery_random", "myVarname", "string!!");
-        string sRetrieve = GetQuestString("quest_discovery_random", "myVarname");
-        QuestNotice("Retrieve STR -> " + sRetrieve);
-    }
-
-
     if (HasChatOption(oPC, "v, version"))
         Debug("Quest System Version -> " + ColorValue(QUEST_SYSTEM_VERSION));
 
@@ -369,10 +357,6 @@ void main()
                 Debug("  No quest data found");
 
             // Dump variables
-
-            //TEST
-            SetQuestInt("quest_discovery_random", "TEST_VARIABLE", 7);
-
             Debug(HexColorString("Dumping Quest Variables", COLOR_CYAN));
             if (GetTableExists(GetModule(), "quest_variables") == FALSE)
                 Debug(HexColorString("  Variables table does not exist on the module", COLOR_RED_LIGHT));
