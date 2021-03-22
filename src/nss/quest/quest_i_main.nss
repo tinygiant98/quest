@@ -1650,11 +1650,11 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 int nPC = GetXP(oPC);
                 
                 QuestDebug("  PC XP -> " + ColorValue(IntToString(nPC) + "xp"));
-                QuestDebug("  XP | " + (nXP >= 0 ? ">= " : "<= ") + IntToString(abs(nXP)) + "xp");
+                QuestDebug("  XP | " + (nXP >= 0 ? ">= " : "< ") + IntToString(abs(nXP)) + "xp");
 
                 if (nXP >= 0 && nPC >= nXP)
                     bQualifies = TRUE;
-                else if (nXP < 0 && nXP <= nXP)
+                else if (nXP < 0 && nXP < nXP)
                     bQualifies = TRUE;
                 else
                     bQualifies = FALSE;
@@ -1680,11 +1680,11 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
 
                     QuestDebug("  PC " + AbilityToString(nAbility) + " Score -> " + IntToString(nPC));
                     QuestDebug("  ABILITY | " + AbilityToString(nAbility) + " | Score " + 
-                        (nScore >= 0 ? ">= " : "<= ") + IntToString(nScore));
+                        (nScore >= 0 ? ">= " : "< ") + IntToString(nScore));
 
                     if (nScore >= 0 && nPC >= nScore)
                         bQualifies = TRUE;
-                    else if (nScore < 0 && nScore <= nScore)
+                    else if (nScore < 0 && nPC <= nScore)
                         bQualifies = TRUE;
                     else
                     {
@@ -2577,11 +2577,12 @@ void SetQuestStepObjectiveRandom(int nObjectiveCount)
     _SetQuestStepData(QUEST_STEP_RANDOM_OBJECTIVES, sData);
 }   
 
-string GetRandomQuestCustomMessage(object oPC, string sQuestTag, int nStep = -1)
+string GetRandomQuestCustomMessage(object oPC, string sQuestTag)
 {
+    int nStep = GetPCQuestStep(oPC, sQuestTag);
     if (nStep == -1)
-        nStep = GetPCQuestStep(oPC, sQuestTag);
-        
+        return "";
+
     return GetPCQuestString(oPC, sQuestTag, QUEST_CUSTOM_MESSAGE, nStep);
 }
 

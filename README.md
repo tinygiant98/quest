@@ -46,7 +46,8 @@ functions are provided:
 ***WARNING*** All non-PC quest data is held in volatile memory and will be lost on server
     reset.  Do not save QuestIDs persistently as they may change in the future with no
     ability to associate a changed ID with a Quest Tag.  If you must save persistent quest
-    data, identify it via the Quest Tag, not the QuestID.
+    data, identify it via the Quest Tag, not the QuestID.  All quest data stored in the
+    persistent PC sqlite database is identified with quest tags.
 
 NWN Journal Entries:
     This utility can be used with either the standard NWN or NWNX journal functions.  If you
@@ -73,7 +74,7 @@ This primary functionality of this utility resides in the ability to set various
 and quest steps.  These properties include quest prerequisites, step rewards, step prewards and step
 objectives.  Most properties can be "stacked" (more than one added).  Examples of this will follow.
     
-## Custom Quest-Assocated Variables:
+## Module-Level Quest-Associated Variables:
 There are several functions that allow the user to associate Int and String variables with any
 quest.  These variables are stored in the volatile module-associated sqlite database in a separate
 table and referenced to the associated quest by questID.  These functions allow for a convenient
@@ -88,6 +89,23 @@ as util_i_quest is included.
     GetQuestString("myQuestTag", "myVariableName")
     SetQuestString("myQuestTag", "myVariableName", "myStsringValue")
     DeleteQuestString("myQuestTag", "myVariableName")
+```
+
+## PC-Level Quest-Associated Variables:
+In addition to the module-level varibale function above, there is an optional variables table held in the
+PC's persistent sqlite database.  To store a variable into the PC variable table, use the following
+functions.
+
+>**NOTE** For all [Get|Set|Delete]PCQuest* functions below, `nStep` is an optional parameter
+
+```c
+    GetPCQuestInt(oPC, "myQuestTag", "myVarName", nStep);
+    SetPCQuestInt(oPC, "myQuestTag", "myVarName", nValue, nStep);
+    DeletePCQuestInt(oPC, "myQuestTag", "myVarName", nStep);
+
+    GetPCQuestString(oPC, "myQuestTag", "myVarName", nStep);
+    SetPCQuestString(oPC, "myQuestTag", "myVarName", sValue, nStep);
+    DeletePCQuestString(oPC, "myQuestTag", "myVarName", nStep);
 ```
 
 ## Quest-Level Properties:
@@ -147,7 +165,7 @@ prerequisites to each quest to narrow down which PCs can be assigned specific qu
 prerequisites are checked when requested and the PC must pass all required checks before being
 assigned a quest.  Party Member characteristics cannot be used to satisfy quest prerequisites.
 
-*    **ALIGNMENT**:
+*    #### **ALIGNMENT**:
         ```c
         SetQuestPrerequisiteAlignment(int nAlignmentAxis, int bNeutral = FALSE)
         // nAlignmentAxis -> ALIGNMENT_* Constant
@@ -176,7 +194,7 @@ assigned a quest.  Party Member characteristics cannot be used to satisfy quest 
             SetQuestPrerequisiteAlignment(ALIGNMENT_EVIL);
         ```
 
-*    **CLASS**:
+*    #### **CLASS**:
         ```c
         SetQuestPrerequisiteClass(int nClass, int nLevels = 1)
         // nClass  -> CLASS_TYPE_* Constant
@@ -203,7 +221,7 @@ assigned a quest.  Party Member characteristics cannot be used to satisfy quest 
             SetQuestPrerequisiteClass(CLASS_TYPE_PALADIN, 0);
         ```
 
-*    **GOLD**:
+*    #### **GOLD**:
         ```c
         SetQuestPrerequisiteGold(int nGold = 1)
         // nGold -> Gold Amount
@@ -213,7 +231,7 @@ assigned a quest.  Party Member characteristics cannot be used to satisfy quest 
         inventory and fails if they do not.  If this prerequisite is set twice for a single quest, the latest
         nGold value will overwrite any previous value.
 
-*    **ITEM**:
+*    #### **ITEM**:
         ```c
         SetQuestPrerequisiteItem(string sItemTag, int nQuantity = 1)
         // sItemTag  -> Tag of Required Item
@@ -233,7 +251,7 @@ assigned a quest.  Party Member characteristics cannot be used to satisfy quest 
             SetQuestPrerequisiteItem("item_gravedirt", 0);
         ```
 
-*    **LEVEL_MAX**:
+*    #### **LEVEL_MAX**:
         ```c
         SetQuestPrerequisteLevelMax(int nLevelMax)
         // nLevelMax -> Maximum Total Character Levels
@@ -242,7 +260,7 @@ assigned a quest.  Party Member characteristics cannot be used to satisfy quest 
         This property cannot be stacked.  This check passes if the PC total character levels are less than or equal
         to nLevelMax, and fails otherwise.
 
-*    **LEVEL_MIN**:
+*    #### **LEVEL_MIN**:
         ```c
         SetQuestPrerequisiteLevelMin(int nLevelMin)
         // nLevelMin -> Minimum Total Character Levels
@@ -251,7 +269,7 @@ assigned a quest.  Party Member characteristics cannot be used to satisfy quest 
         This property cannot be stacked.  This check passes if the PC total character levels are more than or equal
         to nLevelMin, and fails otherwise.
 
-*    **QUEST**:
+*    #### **QUEST**:
         ```c
         SetQuestPrerequisiteQuest(string sQuestTag, int nCompletionCount = 1)
         // sQuestTag        -> Quest Tag of Prerequisite Quest
@@ -266,11 +284,11 @@ assigned a quest.  Party Member characteristics cannot be used to satisfy quest 
         This example shows a requirement to have completed the flower collection quest at least once, but to never
         have completed the rat-killing quest:
         ```c
-            SetQuestPrerequisiteQuest("questFlowers");
-            SetQuestPrerequisiteQuest("questRats", 0);
+        SetQuestPrerequisiteQuest("questFlowers");
+        SetQuestPrerequisiteQuest("questRats", 0);
         ```
 
-*    **QUEST_STEP**:
+*    #### **QUEST_STEP**:
         ```c
         SetQuestPrerequisiteQuestStep(string sQuestTag, int nStep)
         // sQuestTag -> Quest Tag of the Prerequisite Quest
@@ -283,10 +301,10 @@ assigned a quest.  Party Member characteristics cannot be used to satisfy quest 
 
         This example shows a requirement to be on at least the second step of the prerequisite quest:
         ```c
-            SetQuestPrerequisiteQuestStep("myPrerequisiteQuestTag", 2);
+        SetQuestPrerequisiteQuestStep("myPrerequisiteQuestTag", 2);
         ```
 
-*    **RACE**:
+*    #### **RACE**:
         ```c
         SetQuestPrerequisiteRace(int nRace, int bAllowed = TRUE)
         // nRace    -> RACIAL_TYPE_* Constant
@@ -301,15 +319,48 @@ assigned a quest.  Party Member characteristics cannot be used to satisfy quest 
 
         This example shows a requirement for either a dwarf, a human or a halfling:
         ```c
-            SetQuestPrerequisiteRace(RACIAL_TYPE_DWARF);
-            SetQuestPrerequisiteRace(RACIAL_TYPE_HUMAN);
-            SetQuestPrerequisiteRace(RACIAL_TYPE_HALFLING);
+        SetQuestPrerequisiteRace(RACIAL_TYPE_DWARF);
+        SetQuestPrerequisiteRace(RACIAL_TYPE_HUMAN);
+        SetQuestPrerequisiteRace(RACIAL_TYPE_HALFLING);
         ```
 
         This examples show a requirement for any race except a human:
         ```c
-            SetQuestPrerequisiteRace(RACIAL_TYPE_HUMAN, FALSE);
+        SetQuestPrerequisiteRace(RACIAL_TYPE_HUMAN, FALSE);
         ```
+
+*    #### **XP**:
+        ```c
+        SetQuestPrerequisiteXP(int nXP)
+        // nXP -> Gold Amount
+        ```
+
+        This property cannot be stacked.  If this prerequisite is set twice for a single quest, the latest nXP value will overwrite any previous value.  Much like LevelMin and LevelMax, this prerequisite is designed for use at much higher levels or when you want to have more
+        control over exactly when a quest is assignable based on PC progression.
+
+        An nXP value of less than zero denotes that the PC must have less than nXP to pass the
+        check.  An nXP value of more than zero denotes that the PC must have at least nXP to pass
+        the check.
+
+*    #### **Ability**:
+        ```c
+        SetQuestPrerequisiteAbility(int nAbility, int nScore)
+        // nAbility -> ABILITY_* constant
+        // nScore   -> MIN/MAX score for the referenced ability
+        ```
+
+        This property can be stacked and all ability prerequisites will be treated as AND.  Bonuses (from all sources) are included in this calculation, so the number that shows on the character data sheet should be the same number used in this calculation.  An nScore value of less than zero denotes that the PC must have less than nScore points in nAbility to pass the check.  An nScore value of more than zero denotes that the PC must have at least nScore points in nAbility to pass the check.
+
+*    #### **Skill**:
+        ```c
+        SetQuestPrerequisiteSkill(int nSkill, int nRank)
+        // nSkill -> SKILL_* constant
+        // nRank  -> MIN/MAX rank for the referenced skill
+        ```
+
+        >**NOTE** Custom skills can be used, but will not display correctly in quest data dumps.  The calculations should still work correctly.
+
+        This property can be stacked and all skill requirements will be treated as AND.  Bonuses (from all sources) are included in this calculation, so the number that shows on the character data sheet should be the same number used in this calculation.  As nRank value of less than zero denotes that the PC must have less than nRank points in nSkill to pass the check.  An nRank value of more than zero denotes that the PC must have at least nRank points in nSkill to pass the check.
 
 ## Quest Step-Level Properties
 Each quest step contains the following properties.  Not all properties are required.
@@ -329,14 +380,15 @@ Each quest step contains the following properties.  Not all properties are requi
 ## Quest Step-Level Prerequisites
 Prerequisites cannot be assigned to invdividual steps.
 
-*    **Objectives** - These properties define the purpose of each step in a quest.  Final steps in a quest for either
+*    ### **Objectives** - 
+        These properties define the purpose of each step in a quest.  Final steps in a quest for either
         success or failure should not have objectives assigned to them.
         
-        **KILL**:
+        #### **KILL**:
         ```c
-            SetQuestStepObjectiveKill(string sTarget, int nQuantity = 1)
-            // sTarget   -> Tag or Resref of the Target Object
-            // nQuantity -> Quantity of Target Object
+        SetQuestStepObjectiveKill(string sTarget, int nQuantity = 1)
+        // sTarget   -> Tag or Resref of the Target Object
+        // nQuantity -> Quantity of Target Object
         ```
 
         This property can be stacked.  Kill targets are treated as **AND**, so the PC must kill the required number
@@ -347,15 +399,15 @@ Prerequisites cannot be assigned to invdividual steps.
         This example shows a requirement to kill at least seven orcs, but to not kill the princess.  There is no
         penalty if a non-party member kills the target object.
         ```c
-            SetQuestStepObjectiveKill("creature_orc", 7);
-            SetQuestStepObjectiveKill("creature_princess", 0);
+        SetQuestStepObjectiveKill("creature_orc", 7);
+        SetQuestStepObjectiveKill("creature_princess", 0);
         ```
 
-        **GATHER**:
+        #### **GATHER**:
         ```c
-            SetQuestStepObjectiveGather(string sTarget, int nQuantity = 1)
-            // sTarget   -> Tag or Resref of the Target Object
-            // nQuantity -> Quantity of Target Object
+        SetQuestStepObjectiveGather(string sTarget, int nQuantity = 1)
+        // sTarget   -> Tag or Resref of the Target Object
+        // nQuantity -> Quantity of Target Object
         ```
 
         This property can be stacked.  Gather targets are treated as AND, so the PC must gather the required number
@@ -363,20 +415,20 @@ Prerequisites cannot be assigned to invdividual steps.
 
         This examples shows a requirement to gather at least seven flower bouquets and one vase:
         ```c
-            SetQuestStepObjectiveGather("item_bouquet", 7);
-            SetQuestStepObjectiveGather("item_vase");
+        SetQuestStepObjectiveGather("item_bouquet", 7);
+        SetQuestStepObjectiveGather("item_vase");
         ```
 
-        **DELIVER**:
+        #### **DELIVER**:
             SetQuestStepObjectiveDeliver(int nQuestID, int nStep, string sKey, int nValue = 1)
             
             TODO - NEED TO FLESH THIS REQUIREMENT OUT A BIT -> It might need more than sKey and nValue to work right.
 
-        **DISCOVER**:
+        #### **DISCOVER**:
         ```c
-            SetQuestStepObjectiveDiscover(string sTarget, int nQuantity = 1)
-            // sTarget   -> Tag or Resref of the Target Object
-            // nQuantity -> Quantity of Target Object
+        SetQuestStepObjectiveDiscover(string sTarget, int nQuantity = 1)
+        // sTarget   -> Tag or Resref of the Target Object
+        // nQuantity -> Quantity of Target Object
         ```
             
         This property can be stacked.  Discover targets are treated as AND, so the PC must discover the required number
@@ -386,30 +438,32 @@ Prerequisites cannot be assigned to invdividual steps.
 
         This example shows a requirement to discover two different locations:
         ```c
-            SetQuestStepObjectiveDiscover("trigger_fishing");
-            SetQuestStepObjectiveDiscover("area_hollow");
+        SetQuestStepObjectiveDiscover("trigger_fishing");
+        SetQuestStepObjectiveDiscover("area_hollow");
         ```
 
-        **SPEAK**:
+        #### **SPEAK**:
         ```c
-            SetQuestStepObjectiveSpeak(string sTarget)
-            // sTarget   -> Tag or Resref of the Target Object
-            // nQuantity -> Quantity of Target Object
+        SetQuestStepObjectiveSpeak(string sTarget)
+        // sTarget   -> Tag or Resref of the Target Object
+        // nQuantity -> Quantity of Target Object
         ```
 
-            This property can be stacked.  Speak targets are treated as AND, so the PC must speak to each of the assigned target
-            objects to fulfill this quest step.  This property is inclusive only.
+        This property can be stacked.  Speak targets are treated as AND, so the PC must speak to each of the assigned target
+        objects to fulfill this quest step.  This property is inclusive only.
 
-            This example shows a requirement to converse with a store keep NPC:
-                SteQuestStepObjectiveSpeak(nQuestID, 1, "creature_StoreKeep");
+        This example shows a requirement to converse with a store keep NPC:
+            SteQuestStepObjectiveSpeak(nQuestID, 1, "creature_StoreKeep");
 
-*    **Prewards** - these are game objects or characteristics that are given or assigned to a PC at the beginning of a quest
-            step.  They can be used as a reward system for simply accepting a difficult quest (i.e. gold and xp to prepare
-            a PC for a difficult journey), to give the PC an item to deliver to another NPC or as a method to modify PC
-            characteristics (i.e. changing the PC's alignment when they accept an assassination quest).
-*    **Rewards** - these are game objects or characteristics that are give or assigned to a PC at the end of a quest step.
-            Rewards and prewards share the same types.  The primary difference between rewards and prewards is when they
-            are allotted.  Any other minor differences are noted in the descriptions below.
+*    ### **Prewards**
+        Prewards are game objects or characteristics that are given or assigned to a PC at the beginning of a quest
+        step.  They can be used as a reward system for simply accepting a difficult quest (i.e. gold and xp to prepare
+        a PC for a difficult journey), to give the PC an item to deliver to another NPC or as a method to modify PC
+        characteristics (i.e. changing the PC's alignment when they accept an assassination quest).
+*    ### **Rewards**
+        Rewards are game objects or characteristics that are given or assigned to a PC at the end of a quest step.
+        Rewards and prewards share the same types.  The primary difference between rewards and prewards is when they
+        are allotted.  Any other minor differences are noted in the descriptions below.
 
         >***Note*** Generally, for prewards and rewards that involve quantities, such as items, gold, xp, etc.,
             the system will credit the desired quantity if the passed value is greater than zero, or debit the desired
@@ -418,10 +472,10 @@ Prerequisites cannot be assigned to invdividual steps.
 
         **ALIGNMENT**:
         ```c
-            SetQuestStepPrewardAlignment(int nAlignmentAxis, int nValue)
-            SetQuestStepRewardAlignment(int nAlignmentAxis, int nValue)
-            // nAlignmentAxis -> ALIGNMENT_* Constant
-            // nValue         -> Alignment Shift Value
+        SetQuestStepPrewardAlignment(int nAlignmentAxis, int nValue)
+        SetQuestStepRewardAlignment(int nAlignmentAxis, int nValue)
+        // nAlignmentAxis -> ALIGNMENT_* Constant
+        // nValue         -> Alignment Shift Value
         ```
 
         This property can be stacked.  There should be one call for each alignment.  The PC will be awarded all
@@ -430,36 +484,37 @@ Prerequisites cannot be assigned to invdividual steps.
 
         This example shows an alignment preward for accepting an assassination quest:
         ```c
-            SetQuestStepPrewardAlignment(ALIGNMENT_EVIL, 20);
+        SetQuestStepPrewardAlignment(ALIGNMENT_EVIL, 20);
         ```
 
         This example show an alignment reward for completing a quest step that protects the local farmer's stock:
         ```c
-            SetQuestStepRewardAlignment(ALIGNMENT_GOOD, 20);
-            SetQuestStepRewardAlignment(ALIGNMENT_LAWFUL, 20);
+        SetQuestStepRewardAlignment(ALIGNMENT_GOOD, 20);
+        SetQuestStepRewardAlignment(ALIGNMENT_LAWFUL, 20);
         ```
 
         **GOLD**:
         ```c
-            SetQuestStepPrewardGold(int nGold)
-            SetQuestStepRewardGold(int nGold)
-            // nGold -> Gold Amount
+        SetQuestStepPrewardGold(int nGold)
+        SetQuestStepRewardGold(int nGold)
+        // nGold -> Gold Amount
         ```
 
         This property cannot be stacked.  An nGold greater than zero denotes that a PC will receive the specified
         amount of gold.  An nGold less than zero denotes that the PC will lose the specified amount of gold.
 
-        This example shows the PC paying 5000 gold to gain access to specified quest:
+        This example shows the PC paying 5000 gold to gain access to specified quest.  This would work in conjunction
+        with a quest prerequisite requing the PC have at least 5000gp on them to make the quest assignable.
         ```c
-            SetQuestStepPrewardGold(-5000);
+        SetQuestStepPrewardGold(-5000);
         ```
 
         **ITEM**:
         ```c
-            SetQuestStepPrewardItem(string sItemResref, int nQuantity = 1)
-            SetQuestStepRewardItem(string sItemResref, int nQuantity = 1)
-            // sItemResref -> Resref of [P]reward Item
-            // nQuantity   -> Quantity of [P]reward Item
+        SetQuestStepPrewardItem(string sItemResref, int nQuantity = 1)
+        SetQuestStepRewardItem(string sItemResref, int nQuantity = 1)
+        // sItemResref -> Resref of [P]reward Item
+        // nQuantity   -> Quantity of [P]reward Item
         ```
 
         This property can be stacked.  An nQuantity of greater than zero denotes that the PC will receive the designated
@@ -469,15 +524,15 @@ Prerequisites cannot be assigned to invdividual steps.
         This example shows the PC receiving a reward of several items, but losing a prewarded item, upon completion of
         a quest step:
         ```c
-            SetQuestStepRewardItem("item_cakes", 2);
-            SetQuestStepRewardItem("item_flour", -1);
+        SetQuestStepRewardItem("item_cakes", 2);
+        SetQuestStepRewardItem("item_flour", -1);
         ```
 
         **MESSAGE**:
         ```c
-            SetQuestStepPrewardMessage(string sMessage);
-            SetQuestStepRewardMessage(string sMessage);
-            // sMessage -> The message to display to the PC
+        SetQuestStepPrewardMessage(string sMessage);
+        SetQuestStepRewardMessage(string sMessage);
+        // sMessage -> The message to display to the PC
         ```
 
         This property can be stacked.  This property allows you to send a message to the PC either at the beginning of
@@ -486,14 +541,14 @@ Prerequisites cannot be assigned to invdividual steps.
 
         This example shows the PC receiving a message at the end of the specified step:
         ```c
-            SetQuestStepRewardMessage("Thanks for helping us keep the road clear of bandits.");
+        SetQuestStepRewardMessage("Thanks for helping us keep the road clear of bandits.");
         ```
 
         **QUEST**:
         ```c
-            SetQuestStepRewardQuest(string sQuestTag, int bGive = TRUE)
-            // sQuestTag -> Reward Quest Tag
-            // bGive     -> Assignment Flag
+        SetQuestStepRewardQuest(string sQuestTag, int bGive = TRUE)
+        // sQuestTag -> Reward Quest Tag
+        // bGive     -> Assignment Flag
         ```
 
         This property can be stacked.  An bGive of TRUE denotes that the quest should be assigned to the PC.  An bGive
@@ -505,9 +560,9 @@ Prerequisites cannot be assigned to invdividual steps.
 
         **XP**:
         ```c
-            SetQuestStepPrewardXP(int nXP)
-            SetquestStepRewardXP(int nXP)
-            // nXP -> XP Amount
+        SetQuestStepPrewardXP(int nXP)
+        SetquestStepRewardXP(int nXP)
+        // nXP -> XP Amount
         ```
 
         This property cannot be stacked.  An nXP greater than zero denotes that a PC will receive the specified
@@ -650,8 +705,9 @@ quest will immediately fail and go to the Failure Resolution step, if it exists.
 The system can also run scripts for each quest event type -> Accept, Advance, Complete and Fail.
 Before the script is run, up to three variables are stored on the module:  the current quest tag, the
 current quest step and the current quest event. You can retrieve these by using `GetCurrentQuest()`,
-`GetCurrentQuestStep()` and `GetCurrentQuestEvent()`.  These values will allow builder's to run 
-quest-specific code.  Additionally, OBJECT_SELF in all run scripts is the PC.
+`GetCurrentQuestStep()` and `GetCurrentQuestEvent()`.  `GetCurrentQuestStep()` is only available
+during the OnAdvance event and will return the step the PC is starting.  These values will allow 
+builder's to run quest-specific code.  Additionally, OBJECT_SELF in all run scripts is the PC.
 
 Here's a short example that creates a single goblin creature at waypoint "quest_test" when the PC
 reaches the first step of the quest with the tag "myFirstQuest".
@@ -673,3 +729,114 @@ void quest_OnAdvance()
     }
 }
 ```
+
+## Quest Step Partial Completion
+To prevent having to create a new quest for every possible combination and permutation of
+PC characterstic and interaction, `SetQuestStepObjectiveMinimum()` allows builder to require the
+PC to complete less than the total number of objectives assigned to any specific step.
+
+For example, if you have a common quest, but want the last SPEAK objective require that each
+different class type speak to a different NPC to complete their quest, you can assign all of the
+available NPCs to this step, but set the minimum completion requirement to 1 with
+`SetQuestStepObjectiveMinimum(1)`, which allows the quest step to be completed when the PC speaks to
+only one of the total number of NPCs assigned to that step.
+
+This property applies to any type of quest step objective.  If you want to give the ability for the PC
+to advance the quest by either killing five ogres OR two goblins, you can set it up this way:
+```c
+AddQuestStep();
+SetQuestStepObjectiveKill("ogre_a", 5);
+SetQuestStepObjectiveKill("goblin_a", 2);
+SetQuestStepObjectiveMinimum(1);
+```
+The PC will complete the step when either one of the two objectives are complete.  There is no limit to the number
+of objectives you can assign to a single step
+
+## Partial Randomization
+Many modules use small, "throw-away" repeatable quests that allows PCs to gain some experience at lower
+levels.  To prevent having to create many different quests for this capability, builders can use
+`SetQuestStepObjectiveRandom()` to select a specified number of step objectives that the PC has to complete
+to advance the quest.  For example in the snippet below, a quest step is created that selects two of the possible
+six objectives and assigns them to the PC.  Additionally, combining this capability with partial completion above,
+the PC is only required to complete one of the two assigned objectives.
+```c
+AddQuestStep();
+SetQuestStepObjectiveKill("ogre_a", 5);
+SetQuestStepObjectiveKill("goblin_a", 10);
+SetQuestStepObjectiveKill("nw_bat", 15);
+SetQuestStepObjectiveKill("nw_rat", 15);
+SetQuestStepObjectiveKill("rabid_cow", 3);
+SetQuestStepObjectiveKill("death_rabbit", 2);
+SetQuestStepObjectiveRandom(2);
+SetQuestStepObjectiveMinimum(1);
+```
+When partial randomization is used, a custom preward message is required if you want to give the PC feedback on what
+needs to be accomplished.  Because the objective string has to be dynamically built, it can't be inserted into the game's
+journal system, so `SetQuestJournalHandler()` should be set to `QUEST_JOURNAL_NONE` for semi-random quests.  Additionally,
+you must provide a message preward to start the custom message with, as well as objective descriptors and descriptions to 
+be included in the custom message.  Here's an example of how to modify the above code to make that happen, as well as an
+example custom message that will be generated:
+```c
+AddQuest();
+SetQuestJournalHandler(QUEST_JOURNAL_NONE);
+
+AddQuestStep();
+SetQuestStepPrewardMessage("Welcome!  We have quite the adventure waiting for you!");
+
+SetQuestStepObjectiveKill("ogre_a", 5);
+SetQuestStepObjectiveDescriptor("ogre");
+
+SetQuestStepObjectiveKill("goblin_a", 10);
+SetQuestStepObjectiveDescriptor("goblin");
+
+SetQuestStepObjectiveKill("nw_vampire", 15);
+SetQuestStepObjectiveDescriptor("vampire");
+SetQuestStepObjectiveDescription("with a wooden stake");
+
+SetQuestStepObjectiveKill("nw_troll", 15);
+SetQuestStepObjectiveDescriptor("troll");
+SetQuestStepObjectiveDescription("and burn their bodies");
+
+SetQuestStepObjectiveKill("rabid_cow", 3);
+SetQuestStepObjectiveDescriptor("rabid cow");
+
+SetQuestStepObjectiveKill("death_rabbit", 2);
+SetQuestStepObjectiveDescriptor("cute furry rabbit");
+
+SetQuestStepObjectiveRandom(3);
+SetQuestStepObjectiveMinimum(1);
+
+AddQuestResolutonSuccess();
+SetQuestStepRewardXP(500);
+SetQuestStepRewardGold(250);
+```
+The randomization process will select three of the six objectives, create a custom message,
+then assign the three objectives to the PC and display the custom message.  In the above
+snipped, if the system selectes the first (ogre), third (vampire) and sixth (rabbit) objectives, the
+created message will look like this:
+```
+Welcome!  We have quite the adventure waiting for you!  You must complete 1 of
+the following 3 objectives:
+  KILL 2 ogres
+  KILL 3 vampires with a wooden stake
+  KILL 2 cute furry rabbits
+```
+>**NOTE** Because the objective selection is random, the objectives may not be selected in the order in
+which they were created.  Additionally, the system pluralizes the descriptor if the quantity is greater
+than one, but it does so only by adding an 's' as it is outside the scope of this system to be a grammar
+checker.
+
+* `SetQuestStepPrewardMessage()` allows you to define the first part of the message.
+* `SetQuestStepObjectiveRandom()` determines the total possible number of objectives to complete
+* `SetQuestStepObjectiveMinimum()` determines the minimum number of objectives to be completed
+* `SetQuestStepObjectiveDescriptor()` allows the builder to define how the objective will appear
+* `SetQuestStepObjectiveDescription()` allows the builer to add additional comments to an objectives
+
+If the number of randomly selected objectives as defined in `SetQuestStepObjectiveRandom()` is the same
+as the minimum required as defined in `SetQuestStepObjectiveMinimum()`, the message will replace 'You must
+complete x of the following y objectives' with 'You must complete the following objective[s]'.
+
+The custom message is saved to the PC's sqlite database when the PC starts the step, so the message is
+persistent across resets/logouts.  If you need to access the custom message for this quest, you can
+obtain it with `GetRandomQuestCustomMessage(oPC, sQuestTag);` and the customized message will be returned,
+if it exists.
