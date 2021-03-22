@@ -65,7 +65,7 @@ void DefineRandomDiscoveryQuest()
 
     AddQuestStep();
     SetQuestRepetitions(0);
-    SetQuestStepPrewardMessage("You've been assigned the Random Discovery Quest and must do this");
+    SetQuestStepPrewardMessage("You've been assigned the Random Discovery Quest.");
     
     SetQuestStepObjectiveDiscover("quest_trigger_2");
     SetQuestStepObjectiveDescriptor("Quest Discovery Trigger 2");

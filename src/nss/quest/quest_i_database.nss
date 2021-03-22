@@ -69,6 +69,7 @@ void CreateModuleQuestTables(int bReset = FALSE)
                         "nStepType INTEGER default '0', " +
                         "nObjectiveMinimumCount INTEGER default '-1', " +
                         "nRandomObjectiveCount INTEGER default '-1', " +
+                        "UNIQUE (quests_id, nStep) ON CONFLICT IGNORE, " +
                         "FOREIGN KEY (quests_id) REFERENCES quest_quests (id) " +
                             "ON DELETE CASCADE ON UPDATE CASCADE);";
 
@@ -183,6 +184,31 @@ void CreateQuestVariablesTable(int bReset = FALSE)
     SqlStep(sql);
 
     HandleSqlDebugging(sql, "SQL:table", "quest_variables", "module");
+}
+
+void CreatePCVariablesTable(object oPC, int bReset = FALSE)
+{
+    string sPCVariables = "CREATE TABLE IF NOT EXISTS quest_pc_variables (" +
+                        "quest_tag TEXT NOT NULL, " +
+                        "nStep INTEGER NOT NULL default '0', " +
+                        "sType TEXT NOT NULL, " +
+                        "sName TEXT NOT NULL, " +
+                        "sValue TEXT NOT NULL, " +
+                        "UNIQUE (quest_tag, nStep, sType, sName) ON CONFLICT REPLACE, " +
+                        "FOREIGN KEY (quest_tag) REFERENCES quest_pc_data (quest_tag) " +
+                            "ON UPDATE CASCADE ON DELETE CASCADE);";
+
+    if (bReset)
+    {
+        sQuery = "DROP TABLE IF EXISTS quest_pc_variables;";
+        sql = SqlPrepareQueryObject(oPC, sQuery);
+        SqlStep(sql);
+    }
+
+    sql = SqlPrepareQueryObject(oPC, sPCVariables);
+    SqlStep(sql);
+
+    HandleSqlDebugging(sql, "SQL:table", "quest_pc_variables", GetName(oPC));
 }
 
 void CleanPCQuestTables(object oPC)
@@ -415,17 +441,22 @@ void _DeleteQuest(int nQuestID)
     SqlStep(sql);                
 }
 
-void _AddQuestStep(int nQuestID, string sJournalEntry, int nStep)
+void _AddQuestStep(int nQuestID, int nStep)
 {
-    string sQuest = "INSERT INTO quest_steps (quests_id, nStep, sJournalEntry) " +
-                    "VALUES (@quests_id, @nStep, @sJournalEntry);";
+    string sQuest = "INSERT INTO quest_steps (quests_id, nStep) " +
+                    "VALUES (@quests_id, @nStep);";
     sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuest);
     SqlBindInt(sql, "@quests_id", nQuestID);
     SqlBindInt(sql, "@nStep", nStep);
-    SqlBindString(sql, "@sJournalEntry", sJournalEntry);
     SqlStep(sql);
 
     HandleSqlDebugging(sql);
+
+    if (CountRowChanges(GetModule()) == 0)
+        QuestError(StepToString(nStep) + " for " + QuestToString(nQuestID) +
+            " already exists and cannot overwritten.  Check quest definitions " +
+            "to ensure the same step number is not being assigned to different " +
+            "steps.");
 }
 
 sqlquery GetQuestPrerequisites(int nQuestID)
@@ -520,7 +551,6 @@ int CountAllQuestSteps(int nQuestID)
     return nSteps;
 }
 
-
 int CountQuestPrerequisites(string sQuestTag)
 {
     int nQuestID = GetQuestID(sQuestTag);
@@ -556,6 +586,24 @@ sqlquery GetQuestProperties(int nQuestID)
     SqlBindInt(sql, "@nQuestID", nQuestID);
 
     return sql;
+}
+
+int GetTableExists(object oTarget, string sTable)
+{
+    string sQuery = "SELECT name FROM sqlite_master " +
+                "WHERE type='table' " +
+                "AND name='" + sTable + "';";
+    
+    sqlquery sql = SqlPrepareQueryObject(oTarget, sQuery);
+    return SqlStep(sql);
+}
+
+int CountQuestVariables(object oTarget, string sTable)
+{
+    string sQuery = "SELECT COUNT(*) " +
+                    "FROM " + sTable + ";";
+    sqlquery sql = SqlPrepareQueryObject(oTarget, sQuery);
+    return SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
 }
 
 int GetQuestExists(string sTag)
@@ -680,7 +728,7 @@ sqlquery GetQuestStepObjectiveData(int nQuestID, int nStep)
                 "ON quest_steps.id = quest_step_properties.quest_steps_id " +
              "WHERE quest_step_properties.nCategoryType = @category " +
                 "AND quest_steps.nStep = @step " +
-                "AND quest_steps.quests_id = @id;";
+                "AND quest_steps.quests_id = @id";
     sql = SqlPrepareQueryObject(GetModule(), sQuery);
     SqlBindInt(sql, "@category", QUEST_CATEGORY_OBJECTIVE);
     SqlBindInt(sql, "@step", nStep);

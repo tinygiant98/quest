@@ -108,6 +108,8 @@ void main()
 
             sqlquery sql;
             string sQuery, sRequestedQuest = GetChatArgument(oPC);
+            
+            // Dump all the quest date (or specific quest data)
             if (sRequestedQuest == "")
             {
                 sQuery = "SELECT * FROM quest_pc_data;";
@@ -149,6 +151,7 @@ void main()
                         ColorValue(FormatUnixTimestamp(nPCLastCompleteTime, QUEST_TIME_FORMAT)) + " UTC") +
                      "\n  Last Completion Type  " + ColorValue(StepTypeToString(nPCLastCompleteType)));
 
+                // Dump all the quest step data
                 string sQuery1 = "SELECT * FROM quest_pc_step " +
                                  "WHERE quest_tag = @tag;";
                 sqlquery sql1 = SqlPrepareQueryObject(oPC, sQuery1);
@@ -163,7 +166,7 @@ void main()
                     string sRequired = SqlGetString(sql1, ++n);
                     string sAcquired = SqlGetString(sql1, ++n);
 
-                    Debug(HexColorString("Dumping PC step data for " + sPCQuestTag + "/" + IntToString(nPCStep), COLOR_CYAN));
+                    Debug(HexColorString("Dumping PC step data for " + sPCQuestTag + " " + StepToString(nPCStep), COLOR_CYAN));
                     Debug("    Objective Type  " + ColorValue(sObjectiveType) +
                          "\n    Tag  " + ColorValue(sTag) +
                          "\n    sData  " + ColorValue(sData) +
@@ -176,6 +179,42 @@ void main()
 
             if (!bDataFound)
                 Debug("  No quest data found for " + PCToString(oPC));
+
+            // Dump variables
+            Debug(HexColorString("Dumping PC Quest Variables", COLOR_CYAN));
+            if (GetTableExists(oPC, "quest_pc_variables") == FALSE)
+                Debug(HexColorString("  Variables table does not exist on " + PCToString(oPC), COLOR_RED_LIGHT));
+            else if (CountQuestVariables(oPC, "quest_pc_variables") == 0)
+                Debug(HexColorString("  No variables found for " + PCToString(oPC), COLOR_RED_LIGHT));
+            else
+            {
+                if (sRequestedQuest == "")
+                {
+                    sQuery = "SELECT * FROM quest_pc_variables;";
+                    sql = SqlPrepareQueryObject(oPC, sQuery);
+                }
+                else
+                {
+                    sQuery = "SELECT * FROM quest_pc_variables WHERE quest_tag = @tag;";
+                    sql = SqlPrepareQueryObject(oPC, sQuery);
+                    SqlBindString(sql, "@tag", sRequestedQuest);
+                }
+
+                while(SqlStep(sql))
+                {
+                    string sPCQuestTag = SqlGetString(sql, 0);
+                    int nPCStep = SqlGetInt(sql, 1);
+                    string sPCType = SqlGetString(sql, 2);
+                    string sPCName = SqlGetString(sql, 3);
+                    string sPCValue = SqlGetString(sql, 4);
+
+                    Debug("  Quest Tag -> " + ColorValue(sPCQuestTag) + 
+                        "\n    Step -> " + (nPCStep > 0 ? StepToString(nPCStep) : ColorValue(IntToString(nPCStep), TRUE)) +
+                        "\n    Type -> " + ColorValue((sPCType == "INT" ? "INTEGER" : "STRING")) +
+                        "\n    Var Name -> " + ColorValue(sPCName) +
+                        "\n    Value -> " + ColorValue(sPCValue));
+                }
+            }
         }
         else 
         {
@@ -328,6 +367,52 @@ void main()
 
             if (!bDataFound)
                 Debug("  No quest data found");
+
+            // Dump variables
+
+            //TEST
+            SetQuestInt("quest_discovery_random", "TEST_VARIABLE", 7);
+
+            Debug(HexColorString("Dumping Quest Variables", COLOR_CYAN));
+            if (GetTableExists(GetModule(), "quest_variables") == FALSE)
+                Debug(HexColorString("  Variables table does not exist on the module", COLOR_RED_LIGHT));
+            else if (CountQuestVariables(GetModule(), "quest_variables") == 0)
+                Debug(HexColorString("  No quest variables found for the module", COLOR_RED_LIGHT));
+            else
+            {
+                if (sRequestedQuest == "")
+                {
+                    sQuery = "SELECT * FROM quest_variables;";
+                    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+                }
+                else
+                {
+                    Notice("sRequestedQuest -> " + sRequestedQuest +
+                        "\n  ID -> " + IntToString(GetQuestID(sRequestedQuest)));
+
+                    sQuery = "SELECT * FROM quest_variables WHERE quest_id = @id;";
+                    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+                    SqlBindInt(sql, "@id", GetQuestID(sRequestedQuest));
+                }
+
+                int bColor = FALSE;
+                while(SqlStep(sql))
+                {
+                    string sPCQuestTag = GetQuestTag(SqlGetInt(sql, 0));
+                    string sPCType = SqlGetString(sql, 1);
+                    string sPCName = SqlGetString(sql, 2);
+                    string sPCValue = SqlGetString(sql, 3);
+
+                    int nColor = bColor ? COLOR_GRAY : COLOR_GRAY_LIGHT;
+
+                    Debug(HexColorString("  Quest Tag -> ", nColor) + ColorValue(sPCQuestTag) + 
+                        HexColorString("\n    Type -> ", nColor) + ColorValue((sPCType == "INT" ? "INTEGER" : "STRING")) +
+                        HexColorString("\n    Var Name -> ", nColor) + ColorValue(sPCName) +
+                        HexColorString("\n    Value -> ", nColor) + ColorValue(sPCValue));
+
+                    bColor = !bColor;
+                }
+            }
         }
     }
 }

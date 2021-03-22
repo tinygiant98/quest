@@ -139,7 +139,7 @@ const string QUEST_SYSTEM_VERSION = "1.0.3";
 // Other crap
 const string QUEST_DESCRIPTOR = "DESCRIPTOR_";
 const string QUEST_DESCRIPTION = "DESCRIPTION_";
-const string QUEST_CUSTOM_MESSAGE = "CUSTOM_MESSAGE_";
+const string QUEST_CUSTOM_MESSAGE = "CUSTOM_MESSAGE";
 
 // Interal Data Control
 const string QUEST_BUILD_QUEST = "QUEST_BUILD_QUEST";
