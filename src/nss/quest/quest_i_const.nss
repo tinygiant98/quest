@@ -28,6 +28,7 @@ const string QUEST_COOLDOWN = "sCooldown";
 const string QUEST_JOURNAL_LOCATION = "nJournalLocation";
 const string QUEST_JOURNAL_DELETE = "nRemoveJournalOnComplete";
 const string QUEST_PRECOLLECTED_ITEMS = "nAllowPrecollectedItems";
+const string QUEST_USE_RESREFS = "nUseResrefs";
 
 const string QUEST_STEP_JOURNAL_ENTRY = "sJournalEntry";
 const string QUEST_STEP_TIME_LIMIT = "sTimeLimit";
@@ -36,6 +37,9 @@ const string QUEST_STEP_PROXIMITY = "nProximity";
 const string QUEST_STEP_TYPE = "nStepType";
 const string QUEST_STEP_OBJECTIVE_COUNT = "nObjectiveMinimumCount";
 const string QUEST_STEP_RANDOM_OBJECTIVES = "nRandomObjectiveCount";
+const string QUEST_STEP_USE_RESREFS = "nUseResrefs";
+
+const string QUEST_STEP_PROPERTY_USE_RESREFS = "nUseResrefs";
 
 // Quest PC Variable Names
 const string QUEST_PC_QUEST_TIME = "nQuestStartTime";
@@ -131,3 +135,13 @@ const string QUEST_TIME_FORMAT = "MMM d, yyyy @ HH:mm:ss";
 
 // Versioning
 const string QUEST_SYSTEM_VERSION = "1.0.3";
+
+// Other crap
+const string QUEST_DESCRIPTOR = "DESCRIPTOR_";
+const string QUEST_DESCRIPTION = "DESCRIPTION_";
+const string QUEST_CUSTOM_MESSAGE = "CUSTOM_MESSAGE";
+
+// Interal Data Control
+const string QUEST_BUILD_QUEST = "QUEST_BUILD_QUEST";
+const string QUEST_BUILD_STEP = "QUEST_BUILD_STEP";
+const string QUEST_BUILD_OBJECTIVE = "QUEST_BUILD_OBJECTIVE";

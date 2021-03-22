@@ -3,7 +3,7 @@
 #include "util_i_math"
 #include "quest_i_const"
 
-const int DISPLAY_DB_RETRIEVALS = FALSE;
+const int DISPLAY_DB_RETRIEVALS = TRUE;
 
 string AwardTypeToString(int nAwardType)
 {
@@ -88,7 +88,14 @@ string ClassToString(int nClass)
         case CLASS_TYPE_WIZARD: return "WIZARD"; 
     }
 
-    return "[NOT FOUND]";
+    // if we're here must be a custom class
+    string sField = "Name";
+    string sRef = Get2DAString("classes", sField, nClass);
+
+    if (sRef != "")
+        return GetStringByStrRef(StringToInt(sRef));
+    else
+        return "[NOT FOUND]";
 }
 
 string StepToString(int nStep)
@@ -406,10 +413,6 @@ string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, st
                 sKey = " ";
                 break;
         }
-    }
-    else
-    {
-
     }
 
     if (sKey != " ")
