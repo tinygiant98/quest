@@ -904,6 +904,17 @@ int ParseCommandLine(object oPC = OBJECT_INVALID, string sLine = "", string sDes
         sShortOpts = "";
     }
 
+    if (IsDebugging(DEBUG_LEVEL_DEBUG))
+        Debug("ParseCommandLine:" +
+              "\n  Chat received -> " + sLine +
+              "\n  Struct returned:" +
+              "\n    Chat Line         -> " + (GetStringLength(cl.chatLine) ? cl.chatLine : "<none>") + 
+              "\n    Command Character -> " + (GetStringLength(cl.cmdChar) ? cl.cmdChar : "<none>") +
+              "\n    Command           -> " + (GetStringLength(cl.cmd) ? cl.cmd : "<none>") +
+              "\n    Options           -> " + (GetStringLength(cl.options) ? cl.options : "<none>") +
+              "\n    Pairs             -> " + (GetStringLength(cl.pairs) ? cl.pairs : "<none>") +
+              "\n    Arguments         -> " + (GetStringLength(cl.args) ? cl.args : "<none>"));
+
     if (LOG_ALL_CHAT_COMMANDS)
         WriteTimestampedLogEntry("\n" +
                                  "Automatic Log Entry: Chat Command" +
