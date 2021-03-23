@@ -1001,43 +1001,41 @@ void _AwardQuest(object oPC, int nQuestID, int nFlag = TRUE, int bParty = FALSE)
 // Awards item(s) to oPC and/or their party members
 void _AwardItem(object oPC, string sResref, int nQuantity, int bParty = FALSE)
 {
-    int nCount;
+    int n, nCount = nQuantity;
     object oItem;
 
     if (bParty)
     {
         object oPartyMember = GetFirstFactionMember(oPC, TRUE);
-
         while (GetIsObjectValid(oPartyMember))
         {
-            nCount = nQuantity;
-            if (nCount < 0)
+            if (nQuantity < 0)
             {
-                while (nCount < 0)
-                {   // TODO this might not work as expected due to the destroy delay.
-                    // TODO loop inventory instead?
-                    oItem = GetItemPossessedBy(oPartyMember, sResref);
-                    DestroyObject(oItem);
-                    nCount++;
+                object oItem = GetFirstItemInInventory(oPartyMember);
+                while (GetIsObjectValid(oItem))
+                {
+                    if (GetResRef(oItem) == sResref)
+                        DestroyObject(oItem);
+                    oItem = GetNextItemInInventory(oPartyMember);
                 }
             }
             else
-                // TODO also needs work, nQuantity like this doesn't work for non-stackable items
-                CreateItemOnObject(sResref, oPartyMember, nQuantity);
+                for (n = 0; n < nQuantity; n++)
+                    CreateItemOnObject(sResref, oPartyMember);
 
             oPartyMember = GetNextFactionMember(oPC, TRUE);
         }
     }
     else
     {
-        nCount = nQuantity;
-        if (nCount < 0)
+        if (nQuantity < 0)
         {
-            while (nCount < 0)
+            object oItem = GetFirstItemInInventory(oPC);
+            while (GetIsObjectValid(oItem))
             {
-                oItem = GetItemPossessedBy(oPC, sResref);
-                DestroyObject(oItem);
-                nCount++;
+                if (GetResRef(oItem) == sResref)
+                    DestroyObject(oItem);
+                oItem = GetNextItemInInventory(oPC);
             }
         }
         else
@@ -1190,7 +1188,77 @@ void _AwardQuestStepAllotments(object oPC, int nQuestID, int nStep, int nCategor
             }
             case QUEST_VALUE_VARIABLE:
             {
-                // TODO award variable
+                if ((nAwardType & AWARD_VARIABLE || nAwardType == AWARD_ALL))
+                {
+                    string sType = _GetKey(sKey);
+                    string sVarName = _GetValue(sKey);
+                    string sOperator = _GetKey(sValue);
+                    sValue = _GetValue(sValue);
+
+                    if (sType == "STRING")
+                    {
+                        string sPC = GetLocalString(oPC, sVarName);
+
+                        if (sOperator == "=")
+                            sPC = sValue;
+                        else if (sOperator == "+")
+                            sPC += sValue;
+                        
+                        if (sOperator != "x" && sOperator != "X")
+                        {
+                            QuestDebug("Awarding variable " + sVarName + " with value " + sPC +
+                                "to " + PCToString(oPC));      
+                            SetLocalString(oPC, sVarName, sPC);
+                        }
+                        else
+                        {
+                            QuestDebug("Deleting variable " + sVarName + " from " +
+                                PCToString(oPC));
+                            DeleteLocalString(oPC, sVarName);
+                        }
+                    }
+                    else if (sType == "INT")
+                    {
+                        int nPC = GetLocalInt(oPC, sVarName);
+                        int nValue = StringToInt(sValue);
+
+                        if (sOperator == "=")
+                            nPC = nValue;
+                        else if (sOperator == "+")
+                            nPC += nValue;
+                        else if (sOperator == "-")
+                            nPC -= nValue;
+                        else if (sOperator == "++")
+                            nPC++;
+                        else if (sOperator == "--")
+                            nPC--;
+                        else if (sOperator == "*")
+                            nPC *= nValue;
+                        else if (sOperator == "/")
+                            nPC /= nValue;
+                        else if (sOperator == "%")
+                            nPC %= nValue;
+                        else if (sOperator == "|")
+                            nPC |= nValue;
+                        else if (sOperator == "&")
+                            nPC = nPC & nValue;
+                        else if (sOperator == "~")
+                            nPC = ~nPC;          
+                        else if (sOperator == "^")
+                            nPC = nPC ^ nValue;
+                        else if (sOperator == ">>")
+                            nPC = nPC >> nValue;
+                        else if (sOperator == "<<")
+                            nPC = nPC << nValue;
+                        else if (sOperator == ">>>")
+                            nPC = nPC >>> nValue;
+                        
+                        if (sOperator != "x" && sOperator != "X")
+                            SetLocalInt(oPC, sVarName, nPC);
+                        else
+                            DeleteLocalInt(oPC, sVarName);
+                    }
+                }
             }
         }
     }
@@ -1914,6 +1982,10 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                         else if (sOperator == "<=" && nPC <= nValue)
                             bQualifies = TRUE;
                         else if (sOperator == "!=" && nPC != nValue)
+                            bQualifies = TRUE;
+                        else if (sOperator == "|" && nPC | nValue)
+                            bQualifies = TRUE;
+                        else if (sOperator == "&" && nPC & nValue)
                             bQualifies = TRUE;
                         else
                         {
@@ -2671,13 +2743,13 @@ void SetQuestScriptOnAll(string sScript = "")
 
 int GetQuestJournalHandler(int nQuestID)
 {
-    string sResult = _GetQuestData(nQuestID, QUEST_JOURNAL_LOCATION);
+    string sResult = _GetQuestData(nQuestID, QUEST_JOURNAL_HANDLER);
     return StringToInt(sResult);
 }
 
 void SetQuestJournalHandler(int nJournalHandler = QUEST_JOURNAL_NWN)
 {
-    _SetQuestData(QUEST_JOURNAL_LOCATION, IntToString(nJournalHandler));
+    _SetQuestData(QUEST_JOURNAL_HANDLER, IntToString(nJournalHandler));
 }
 
 int GetQuestJournalDeleteOnComplete(int nQuestID)
@@ -3057,6 +3129,20 @@ void SetQuestStepPrewardReputation(string sFaction, int nChange)
     _SetQuestPreward(QUEST_VALUE_REPUTATION, sKey, sValue);
 }
 
+void SetQuestStepPrewardVariableInt(string sVarName, string sOperator, int nValue)
+{
+    string sKey = "INT:" + sVarName;
+    string sValue = sOperator + ":" + IntToString(nValue);
+    _SetQuestPreward(QUEST_VALUE_VARIABLE, sKey, sValue);
+}
+
+void SetQuestStepPrewardVariableString(string sVarName, string sOperator, string sValue)
+{
+    string sKey = "STRING:" + sVarName;
+    string sValue = sOperator + ":" + sValue;
+    _SetQuestPreward(QUEST_VALUE_VARIABLE, sKey, sValue);
+}
+
 void SetQuestStepRewardAlignment(int nAlignmentAxis, int nValue)
 {
     string sKey = IntToString(nAlignmentAxis);
@@ -3101,6 +3187,20 @@ void SetQuestStepRewardReputation(string sFaction, int nChange)
     string sKey = sFaction;
     string sValue = IntToString(nChange);
     _SetQuestReward(QUEST_VALUE_REPUTATION, sKey, sValue);
+}
+
+void SetQuestStepRewardVariableInt(string sVarName, string sOperator, int nValue)
+{
+    string sKey = "INT:" + sVarName;
+    string sValue = sOperator + ":" + IntToString(nValue);
+    _SetQuestReward(QUEST_VALUE_VARIABLE, sKey, sValue);
+}
+
+void SetQuestStepRewardVariableString(string sVarName, string sOperator, string sValue)
+{
+    string sKey = "STRING:" + sVarName;
+    string sValue = sOperator + ":" + sValue;
+    _SetQuestReward(QUEST_VALUE_VARIABLE, sKey, sValue);
 }
 
 int AddQuestResolutionSuccess(int nStep = -1)

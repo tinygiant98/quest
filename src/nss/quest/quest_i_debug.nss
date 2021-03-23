@@ -322,17 +322,6 @@ string CategoryTypeToString(int nCategoryType)
     return "[NOT FOUND]";
 }
 
-string StepOrderToString(int nStepOrder)
-{
-    switch (nStepOrder)
-    {
-        case QUEST_STEP_ORDER_SEQUENTIAL: return "SEQUENTIAL";
-        case QUEST_STEP_ORDER_RANDOM: return "RANDOM";
-    }
-
-    return "[NOT FOUND]";
-}
-
 string ResolutionToString(int bQualifies)
 {
     string sResult = "Assignable";

@@ -45,7 +45,7 @@ void CreateModuleQuestTables(int bReset = FALSE)
                         "sScriptOnFail TEXT default NULL, " +
                         "sTimeLimit TEXT default NULL, " +
                         "sCooldown TEXT default NULL, " +
-                        "nJournalLocation TEXT default '1', " +
+                        "nJournalHandler TEXT default '1', " +
                         "nRemoveJournalOnComplete TEXT default '0', " +
                         "nAllowPrecollectedItems TEXT default '1', " +
                         "nRemoveQuestOnCompleted TEXT default '0', " +

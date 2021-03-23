@@ -17,7 +17,6 @@ const string QUEST_CURRENT_EVENT = "QUEST_CURRENT_EVENT";
 // Table column names
 const string QUEST_ACTIVE = "nActive";
 const string QUEST_REPETITIONS = "nRepetitions";
-const string QUEST_STEP_ORDER = "nStepOrder";
 const string QUEST_TITLE = "sJournalTitle";
 const string QUEST_TIME_LIMIT = "sTimeLimit";
 const string QUEST_SCRIPT_ON_ACCEPT = "sScriptOnAccept";
@@ -25,7 +24,7 @@ const string QUEST_SCRIPT_ON_ADVANCE = "sScriptOnAdvance";
 const string QUEST_SCRIPT_ON_COMPLETE = "sScriptOnComplete";
 const string QUEST_SCRIPT_ON_FAIL = "sScriptOnFail";
 const string QUEST_COOLDOWN = "sCooldown";
-const string QUEST_JOURNAL_LOCATION = "nJournalLocation";
+const string QUEST_JOURNAL_HANDLER = "nJournalHandler";
 const string QUEST_JOURNAL_DELETE = "nRemoveJournalOnComplete";
 const string QUEST_PRECOLLECTED_ITEMS = "nAllowPrecollectedItems";
 const string QUEST_DELETE = "nRemoveQuestOnCompleted";
@@ -110,10 +109,6 @@ const int QUEST_EVENT_ON_ACCEPT = 1;
 const int QUEST_EVENT_ON_ADVANCE = 2;
 const int QUEST_EVENT_ON_COMPLETE = 3;
 const int QUEST_EVENT_ON_FAIL = 4;
-
-// Step Order
-const int QUEST_STEP_ORDER_SEQUENTIAL = 1;
-const int QUEST_STEP_ORDER_RANDOM = 2;
 
 // Journal Locations
 const int QUEST_JOURNAL_NONE = 0;
