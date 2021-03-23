@@ -58,7 +58,8 @@ void main()
     {
         object oPC = GetEnteringObject();
         CreatePCQuestTables(oPC);
-        UpdatePCQuestTable(oPC);
+        UpdatePCQuestTables(oPC);
+        CleanPCQuestTables(oPC);
         UpdateJournalQuestEntries(oPC);
     }
     else if (sEvent == "OnPlayerChat")

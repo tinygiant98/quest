@@ -47,7 +47,10 @@ void CreateModuleQuestTables(int bReset = FALSE)
                         "sCooldown TEXT default NULL, " +
                         "nJournalLocation TEXT default '1', " +
                         "nRemoveJournalOnComplete TEXT default '0', " +
-                        "nAllowPrecollectedItems TEXT default '1');";
+                        "nAllowPrecollectedItems TEXT default '1', " +
+                        "nRemoveQuestOnCompleted TEXT default '0', " +
+                        "nQuestVersion TEXT default '0', " +
+                        "nQuestVersionAction TEXT default '0');";
 
     string sQuestPrerequisites = "CREATE TABLE IF NOT EXISTS quest_prerequisites (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -125,7 +128,8 @@ void CreatePCQuestTables(object oPC, int bReset = FALSE)
         "nQuestStartTime INTEGER default '0', " +
         "nStepStartTime INTEGER default '0', " +
         "nLastCompleteTime INTEGER default '0', " +
-        "nLastCompleteType INTEGER default '0');";
+        "nLastCompleteType INTEGER default '0', " +
+        "nQuestVersion INTEGER default '0');";
 
     string sQuestStep = "CREATE TABLE IF NOT EXISTS quest_pc_step (" +
         "quest_tag TEXT, " +
@@ -209,29 +213,6 @@ void CreatePCVariablesTable(object oPC, int bReset = FALSE)
     SqlStep(sql);
 
     HandleSqlDebugging(sql, "SQL:table", "quest_pc_variables", GetName(oPC));
-}
-
-void CleanPCQuestTables(object oPC)
-{
-    sQuery = "SELECT GROUP_CONCAT(sTag) " +
-             "FROM quest_quests;";
-    sql = SqlPrepareQueryObject(GetModule(), sQuery);
-    
-    if (SqlStep(sql))
-    {
-        string sQuestTags = SqlGetString(sql, 0);
-
-        Notice(sQuestTags);
-
-        sQuery = "DELETE FROM quest_pc_data " +
-                 "WHERE quest_tag NOT IN (@tags);";
-        sql = SqlPrepareQueryObject(oPC, sQuery);
-        SqlBindString(sql, "@tags", sQuestTags);
-
-        SqlStep(sql);
-    }
-
-    HandleSqlDebugging(sql);
 }
 
 int GetLastInsertedID(string sTable)
@@ -809,7 +790,6 @@ void _AddQuestToPC(object oPC, int nQuestID)
              "VALUES (@tag);";
     sql = SqlPrepareQueryObject(oPC, sQuery);
     SqlBindString(sql, "@tag", sQuestTag);
-
     SqlStep(sql);
 
     HandleSqlDebugging(sql);
@@ -819,12 +799,7 @@ void DeletePCQuest(object oPC, int nQuestID)
 {
     string sQuestTag = GetQuestTag(nQuestID);
 
-    sQuery = "DELETE FROM quest_pc_step " + 
-             "WHERE quest_tag = @tag;";
-    sql = SqlPrepareQueryObject(oPC, sQuery);
-    SqlStep(sql);
-
-    sQuery = "DELETE FROM quest_pc_data " +
+    sQuery = "DELETE FROM quest_pc_data " + 
              "WHERE quest_tag = @tag;";
     sql = SqlPrepareQueryObject(oPC, sQuery);
     SqlBindString(sql, "@tag", sQuestTag);
@@ -1293,7 +1268,7 @@ int GetPCQuestStepAcquired(object oPC, int nQuestID)
     //return SqlStep(sql) ? SqlGetString(sql, 0) : "";
 }
 
-void UpdatePCQuestTable(object oPC)
+void UpdatePCQuestTables(object oPC)
 {
     // First update @ 1.0.2 -- adding an nLastCompleteType column to update journal
     // entries OnClientEnter (this is a work around for the bug that prevents journal
@@ -1319,13 +1294,44 @@ void UpdatePCQuestTable(object oPC)
 
         sError = SqlGetError(sql);
         if (sError == "")
-            QuestDebug(PCToString(oPC) + "'s quest tables updated to " + QUEST_SYSTEM_VERSION);
+            QuestDebug(PCToString(oPC) + "'s quest tables updated to 1.0.2");
         else
             Notice("Error: " + sError);
     }
     else
-        QuestDebug(PCToString(oPC) + "'s quest tables verified at " + QUEST_SYSTEM_VERSION);
+        QuestDebug(PCToString(oPC) + "'s quest tables verified at 1.0.2");
 
     // End update @ 1.0.2
+
+    // Update @ 1.1.1 -- adding a nQuestVersion column to allow cleaning quest tables
+    // when a quest version is updated.
+
+    sQuery = "SELECT nQuestVersion " +
+             "FROM quest_pc_data;";
+    sql = SqlPrepareQueryObject(oPC, sQuery);
+    SqlStep(sql);
+
+    sError = SqlGetError(sql);
+    if (sError != "")
+    {
+        sQuery = "ALTER TABLE quest_pc_data " +
+                 "ADD COLUMN nQuestVersion INTEGER default '0';";
+        sql = SqlPrepareQueryObject(oPC, sQuery);
+        SqlStep(sql);
+
+        sError = SqlGetError(sql);
+        if (sError == "")
+            QuestDebug(PCToString(oPC) + "'s quest tables updated to 1.1.1");
+        else
+            Notice("Error: " + sError);
+    }
+    else
+        QuestDebug(PCToString(oPC) + "'s quest tables verified at 1.1.1");
+
+    // Ensure we're not wiping everyone's quest data, so update to the latest version of the
+    // quest as a default, since this is still early in the process.
+
+
+    // End update @ 1.1.1
 
 }

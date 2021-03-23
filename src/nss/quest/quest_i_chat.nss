@@ -92,7 +92,7 @@ void main()
 
             string sPCQuestTag;
             int nPCStepStartTime, nPCQuestStartTime, nPCLastCompleteTime, nPCLastCompleteType;
-            int n, nPCStep, nPCCompletions, nPCAttempts, nPCFailures, bDataFound;
+            int n, nPCStep, nPCCompletions, nPCAttempts, nPCFailures, bDataFound, nPCQuestVersion;
 
             sqlquery sql;
             string sQuery, sRequestedQuest = GetChatArgument(oPC);
@@ -122,6 +122,7 @@ void main()
                 nPCStepStartTime = SqlGetInt(sql, ++n);
                 nPCLastCompleteTime = SqlGetInt(sql, ++n);
                 nPCLastCompleteType = SqlGetInt(sql, ++n);
+                nPCQuestVersion = SqlGetInt(sql, ++n);
 
                 Debug(HexColorString("Dumping PC data for " + sPCQuestTag, COLOR_CYAN));
                 Debug("  Step  " + ColorValue(IntToString(nPCStep)) +
@@ -137,7 +138,8 @@ void main()
                      "\n  Last Completion Time  " + (nPCLastCompleteTime == 0 ? 
                         ColorValue(IntToString(nPCLastCompleteTime), TRUE) :
                         ColorValue(FormatUnixTimestamp(nPCLastCompleteTime, QUEST_TIME_FORMAT)) + " UTC") +
-                     "\n  Last Completion Type  " + ColorValue(StepTypeToString(nPCLastCompleteType)));
+                     "\n  Last Completion Type  " + ColorValue(StepTypeToString(nPCLastCompleteType)) +
+                     "\n  Quest Version  " + ColorValue(IntToString(nPCQuestVersion)));
 
                 // Dump all the quest step data
                 string sQuery1 = "SELECT * FROM quest_pc_step " +
@@ -166,7 +168,7 @@ void main()
             }
 
             if (!bDataFound)
-                Debug("  No quest data found for " + PCToString(oPC));
+                Debug(HexColorString("  No quest data found for " + PCToString(oPC), COLOR_RED_LIGHT));
 
             // Dump variables
             Debug(HexColorString("Dumping PC Quest Variables", COLOR_CYAN));
@@ -215,7 +217,8 @@ void main()
 
             int nStepID, nQuestID, nStep, nPartyCompletion, nProximity, nStepType;
             int nJournalLocation, nDeleteOnComplete, nAllowPrecollected, bDataFound;
-            int nMinimumObjectives, nRandomObjectives;
+            int nMinimumObjectives, nRandomObjectives, nQuestVersion, nQuestVersionAction;
+            int nRemoveOnComplete;
             string sJournalEntry, sTimeLimit;
 
             sqlquery sql;
@@ -252,6 +255,9 @@ void main()
                 nJournalLocation = SqlGetInt(sql, ++n);
                 nDeleteOnComplete = SqlGetInt(sql, ++n);
                 nAllowPrecollected = SqlGetInt(sql, ++n);
+                nRemoveOnComplete = SqlGetInt(sql, ++n);
+                nQuestVersion = SqlGetInt(sql, ++n);
+                nQuestVersionAction = SqlGetInt(sql, ++n);
 
                 bDataFound = TRUE;
 
@@ -268,7 +274,10 @@ void main()
                     "\n  Cooldown Time  " + ColorValue(sCooldown) +
                     "\n  Journal Handler  " + ColorValue(JournalLocationToString(nJournalLocation)) +
                     "\n  Delete Journal on Quest Completion  " + ColorValue((nDeleteOnComplete ? "TRUE":"FALSE")) +
-                    "\n  Allow Precollected Items  " + ColorValue((nAllowPrecollected ? "TRUE":"FALSE")));
+                    "\n  Allow Precollected Items  " + ColorValue((nAllowPrecollected ? "TRUE":"FALSE")) +
+                    "\n  Delete Quest on Quest Completion  " + ColorValue((nRemoveOnComplete ? "TRUE":"FALSE")) +
+                    "\n  Quest Version  " + ColorValue(IntToString(nQuestVersion)) +
+                    "\n  Quest Version Action  " + ColorValue(VersionActionToString(nQuestVersionAction)));
 
                 if (CountQuestPrerequisites(sTag) > 0)
                 {
@@ -371,10 +380,7 @@ void main()
                 }
                 else
                 {
-                    Notice("sRequestedQuest -> " + sRequestedQuest +
-                        "\n  ID -> " + IntToString(GetQuestID(sRequestedQuest)));
-
-                    sQuery = "SELECT * FROM quest_variables WHERE quest_id = @id;";
+                    sQuery = "SELECT * FROM quest_variables WHERE quests_id = @id;";
                     sql = SqlPrepareQueryObject(GetModule(), sQuery);
                     SqlBindInt(sql, "@id", GetQuestID(sRequestedQuest));
                 }

@@ -5,6 +5,32 @@
 
 const int DISPLAY_DB_RETRIEVALS = TRUE;
 
+string _GetKey(string sPair)
+{
+    int nIndex;
+
+    if ((nIndex = FindSubString(sPair, ":")) == -1)
+        nIndex = FindSubString(sPair, "=");
+
+    if (nIndex == -1)
+        return sPair;
+    else
+        return GetSubString(sPair, 0, nIndex);
+}
+
+string _GetValue(string sPair)
+{
+    int nIndex;
+
+    if ((nIndex = FindSubString(sPair, ":")) == -1)
+        nIndex = FindSubString(sPair, "=");
+
+    if (nIndex == -1)
+        return sPair;
+    else
+        return GetSubString(sPair, ++nIndex, GetStringLength(sPair));
+}
+
 string AwardTypeToString(int nAwardType)
 {
     switch (nAwardType)
@@ -231,11 +257,12 @@ string ValueTypeToString(int nValueType, int nCategoryType = QUEST_CATEGORY_PRER
             case QUEST_VALUE_QUEST: return "QUEST";
             case QUEST_VALUE_RACE: return "RACE";
             case QUEST_VALUE_XP: return "XP";
-            case QUEST_VALUE_FACTION: return "FACTION";
+            case QUEST_VALUE_REPUTATION: return "REPUTATION";
             case QUEST_VALUE_MESSAGE: return "MESSAGE";
             case QUEST_VALUE_QUEST_STEP: return "QUEST_STEP";
             case QUEST_VALUE_SKILL: return "SKILL";
             case QUEST_VALUE_ABILITY: return "ABILITY";
+            case QUEST_VALUE_VARIABLE: return "VARIABLE";
         }
     }
     else
@@ -348,6 +375,18 @@ string SkillToString(int nSkill)
         case SKILL_TAUNT: return "TAUNT";
         case SKILL_TUMBLE: return "TUMBLE";
         case SKILL_USE_MAGIC_DEVICE: return "USE MAGIC DEVICE";
+    }
+
+    return "[NOT FOUND]";
+}
+
+string VersionActionToString(int nQuestVersionAction)
+{
+    switch (nQuestVersionAction)
+    {
+        case QUEST_VERSION_ACTION_NONE: return "NONE";
+        case QUEST_VERSION_ACTION_RESET: return "RESET";
+        case QUEST_VERSION_ACTION_DELETE: return "DELETE";
     }
 
     return "[NOT FOUND]";
@@ -481,6 +520,15 @@ string TranslateValue(int nValueType, string sKey, string sValue)
             sKey = " ";
             sValue += "xp";
             break;
+        case QUEST_VALUE_REPUTATION:
+            sKey = " ";
+            sValue = (StringToInt(sValue) >= 0 ? ">=" : "<") + sValue;
+            break;
+        case QUEST_VALUE_VARIABLE:
+            sKey = _GetKey(sKey) + " " + _GetValue(sKey);
+            sValue = _GetKey(sValue) + " " + (_GetKey(sKey) == "STRING" ? "\"" + _GetValue(sValue) + "\"" :
+                                                    _GetValue(sValue));
+            break;
     }
 
     if (sKey != " ")
@@ -509,32 +557,6 @@ string TimeVectorToString(string sTimeVector)
     }
 
     return sResult;
-}
-
-string _GetKey(string sPair)
-{
-    int nIndex;
-
-    if ((nIndex = FindSubString(sPair, ":")) == -1)
-        nIndex = FindSubString(sPair, "=");
-
-    if (nIndex == -1)
-        return sPair;
-    else
-        return GetSubString(sPair, 0, nIndex);
-}
-
-string _GetValue(string sPair)
-{
-    int nIndex;
-
-    if ((nIndex = FindSubString(sPair, ":")) == -1)
-        nIndex = FindSubString(sPair, "=");
-
-    if (nIndex == -1)
-        return sPair;
-    else
-        return GetSubString(sPair, ++nIndex, GetStringLength(sPair));
 }
 
 string _GetQuestTag(int nQuestID)

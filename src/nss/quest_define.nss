@@ -59,12 +59,14 @@ void DefineRandomDiscoveryQuest()
     AddQuest("quest_discovery_random");
     SetQuestPrerequisiteLevelMin(1);
     SetQuestPrerequisiteLevelMax(3);
-
-    SetQuestScripts();
+    SetQuestRepetitions(0);
+    SetQuestVersion(1);
+    SetQuestVersionActionDelete();
     SetQuestJournalHandler(QUEST_JOURNAL_NONE);
 
+    SetQuestScripts();
+    
     AddQuestStep();
-    SetQuestRepetitions(0);
     SetQuestStepPrewardMessage("You've been assigned the Random Discovery Quest.");
     
     SetQuestStepObjectiveDiscover("quest_trigger_2");
