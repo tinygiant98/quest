@@ -5,6 +5,28 @@ Specificially, the following files are required:  util_i_color.nss, util_i_csvli
 
 >*** WARNING *** This documentation is still a work-in-progress.  If anything in this documentation doesn't work the way you expect, refer to the code or find me on the Neverwinter Vault Discord...
 
+## Table of Contents
+* [System Description](#description)
+* [Usage Notes](#usage-notes)
+* [Module-Level Quest-Associated Variables](#module-level-quest-associated-variables)
+* [PC-Level Quest-Associated Variables](#pc-level-quest-associated-variables)
+* [Quest Properties](#quest-level-properties)
+* [Quest Prerequisites](#quest-prerequisites)
+      * [Alignment](#alignment) | [Class](#class) | [Gold](#gold) | [Item](#item)
+      * [Level Max](#level_max) | [Level Min](#level_min) | [Quest](#quest) | [Quest Step](#quest_step)
+      * [Race](#race) | [XP](#xp) | [Ability](#ability) | [Skill](#skill) | [Variable](#variable)
+* [Quest Step Properties](#quest-step-level-properties)
+   * [Objectives](#objectives)
+      * [Kill](#kill) | [Gather](#gather) | [Deliver](#deliver) | [Discover](#discover) | [Speak](#speak)
+   * [Prewards](#prewards)
+   * [Rewards](#rewards)
+* Usage Examples
+   * [Defining Quests](#defining-quests)
+   * [Rogue Quest Example](#definition-example)
+   * [Partial Completion Example](#quest-step-partial-completion)
+   * [Random Quest Example](#partial-randomization)
+   * [Conversation Usage Example](#)
+
 ## Description:
 This system is designed to allow builders/scripters to fully define quests within script without the need for game journal editing.  The greatest use of this utility comes from pairing it with NWNX journal functions, which completely obviates the need for editing journal entries in the toolset.  Since there are many modules that cannot or will not use NWNX, I've included functionality for interfacing with the game's journal system.
 
@@ -15,13 +37,13 @@ This system is designed to allow builders/scripters to fully define quests withi
 ***NOTE***   This system makes extensive use of Quest IDs, which are defined and used internally.  You never need to know a Quest's ID number to utilize this system.  All QuestIDs are associate with a user-supplied Quest Tag (sQuestTag) which is provided when a quest is added.  All user-facing function use this quest tag to identify the appropriate quest for modification.
 
 ```c
-AddQuest("myQuestTag", "This is the title of my quest");
+AddQuest("myQuestTag");
 ```
 
 Because each Quest Tag must be unique, the quest system can internally convert between QuestID and Quest Tag when required.  If a user absolutely requires the conversion for other uses, two functions are provided:
 ```c
-    string GetQuestTag(int nQuestID)  // will return the Quest Tag associated with nQuestID
-    int GetQuestID(string sQuestTag)  // will return the Quest ID associated with sQuestTag
+string GetQuestTag(int nQuestID);  // will return the Quest Tag associated with nQuestID
+int GetQuestID(string sQuestTag);  // will return the Quest ID associated with sQuestTag
 ```
 
 ***WARNING*** All non-PC quest data is held in volatile memory and will be lost on server
@@ -70,7 +92,6 @@ In addition to the module-level varibale function above, there is an optional va
 ```
 
 ## Quest-Level Properties:
-
 Each quest contains the following properties.  Not all properties are required.
 
 *    **Quest Tag** - The primary identification method for the quest.  This tag will be used in the vast majority of interactions between the module and the quest system.  Once set, it should never be changed.
@@ -294,7 +315,7 @@ prerequisites to each quest to narrow down which PCs can be assigned specific qu
 
         This property can be stacked and all skill requirements will be treated as AND.  Bonuses (from all sources) are included in this calculation, so the number that shows on the character data sheet should be the same number used in this calculation.  As nRank value of less than zero denotes that the PC must have less than nRank points in nSkill to pass the check.  An nRank value of more than zero denotes that the PC must have at least nRank points in nSkill to pass the check.
 
-*     #### **Variable**:
+*    #### **Variable**:
         ```c
         SetQuestPrerequisiteVariableInt(string sVarName, string sOperator, int nValue);
         SetQuestPrerequisiteVariableString(string sVarName, string sOperator, string sValue);
@@ -308,9 +329,6 @@ prerequisites to each quest to narrow down which PCs can be assigned specific qu
         For string values, `sOperator` can only be `=` or `!=`.  This allows for a prerequisite that requires the local variable nVarName to be equal to or not equal to sValue.
 
         For int values, `sOperator` can be `=`, `<`, `<=`, `>=`, `>`, `!=`.  Additionally, for advanced usage, `|` and `&` are also valid operators, however, do not use these unless you fully understand bitwise operations or you will likely not get the value you're seeking.
-
-## Quest Step-Level Prerequisites
-Prerequisites cannot be assigned to invdividual steps.
 
 ## Quest Step-Level Properties
 Each quest step contains the following properties.  Not all properties are required.
