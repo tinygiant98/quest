@@ -173,7 +173,7 @@ void CreateQuestVariablesTable(int bReset = FALSE)
                         "sType TEXT NOT NULL, " +
                         "sName TEXT NOT NULL, " +
                         "sValue TEXT NOT NULL, " +
-                        "UNIQUE (sType, sName) ON CONFLICT REPLACE, " +
+                        "UNIQUE (quests_id, sType, sName) ON CONFLICT REPLACE, " +
                         "FOREIGN KEY (quests_id) REFERENCES quest_quests (id) " +
                             "ON UPDATE CASCADE ON DELETE CASCADE);";
     
