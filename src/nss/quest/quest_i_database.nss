@@ -84,6 +84,7 @@ void CreateModuleQuestTables(int bReset = FALSE)
                         "sKey TEXT NOT NULL COLLATE NOCASE, " +
                         "sValue INTEGER default '', " +
                         "sData TEXT default '', " +
+                        "bParty INTEGER default '0', " +
                         "FOREIGN KEY (quest_steps_id) REFERENCES quest_steps (id) " +
                             "ON DELETE CASCADE ON UPDATE CASCADE);";
 
@@ -381,7 +382,7 @@ int GetQuestID(string sQuestTag)
     sql = SqlPrepareQueryObject(GetModule(), sQuery);
     SqlBindString(sql, "@sQuestTag", sQuestTag);
 
-    return SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
+    return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
 }
 
 void AddQuestPrerequisite(int nQuestID, int nValueType, string sKey, string sValue)
@@ -633,7 +634,7 @@ int GetQuestStepID(int nQuestID, int nStep)
 
 sqlquery GetQuestStepPropertySets(int nQuestID, int nStep, int nCategoryType)
 {
-    string sQuery = "SELECT nValueType, sKey, sValue, sData " +
+    string sQuery = "SELECT nValueType, sKey, sValue, sData, bParty " +
                     "FROM quest_step_properties " +
                     "WHERE nCategoryType = @category " +
                         "AND quest_steps_id = @id;";

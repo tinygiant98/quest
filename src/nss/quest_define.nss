@@ -59,6 +59,7 @@ void DefineRandomDiscoveryQuest()
     AddQuest("quest_discovery_random");
     SetQuestPrerequisiteLevelMin(1);
     SetQuestPrerequisiteLevelMax(3);
+    SetQuestPrerequisiteGold(500, LESS_THAN_OR_EQUAL_TO);
     SetQuestRepetitions(0);
     SetQuestVersion(1);
     SetQuestVersionActionDelete();

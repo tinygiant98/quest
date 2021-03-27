@@ -31,14 +31,9 @@ void _UnassignQuestFromPC(object oPC)
 {
     string sQuestTag = GetChatKeyValue(oPC, "unassign");
     if (sQuestTag == "")
-    {
         CreatePCQuestTables(oPC);
-    }
     else
-    {
-        int nQuestID = GetQuestID(sQuestTag);
-        UnassignQuest(oPC, nQuestID);
-    }
+        UnassignQuest(oPC, sQuestTag);
 }
 
 void main()
@@ -270,8 +265,8 @@ void main()
                     "\n  Advance Script  " + ColorValue(sAdvance) +
                     "\n  Complete Script  " + ColorValue(sComplete) +
                     "\n  Fail Script  " + ColorValue(sFail) +
-                    "\n  Time Limit  " + ColorValue(sTime) +
-                    "\n  Cooldown Time  " + ColorValue(sCooldown) +
+                    "\n  Time Limit  " + ColorValue(TimeVectorToString(sTime)) +
+                    "\n  Cooldown Time  " + ColorValue(TimeVectorToString(sCooldown)) +
                     "\n  Journal Handler  " + ColorValue(JournalLocationToString(nJournalLocation)) +
                     "\n  Delete Journal on Quest Completion  " + ColorValue((nDeleteOnComplete ? "TRUE":"FALSE")) +
                     "\n  Allow Precollected Items  " + ColorValue((nAllowPrecollected ? "TRUE":"FALSE")) +
@@ -329,7 +324,7 @@ void main()
 
                         string sStep = HexColorString(IntToString(nStep), COLOR_CYAN);
                         Debug("    " + sStep + "  Journal  " + ColorValue(sJournalEntry) +
-                            "\n        Time Limit  " + ColorValue(sTimeLimit == "" ? "" : "(" + sTimeLimit + ")") +
+                            "\n        Time Limit  " + ColorValue(TimeVectorToString(sTimeLimit)) +
                             "\n        Party Completion  " + ColorValue((nPartyCompletion ? "TRUE":"FALSE")) +
                             "\n        Proximity Required  " + ColorValue((nProximity ? "TRUE":"FALSE")) +
                             "\n        Step Type  " + ColorValue(StepTypeToString(nStepType)) +
@@ -354,7 +349,8 @@ void main()
                             string sKey = SqlGetString(sqlNew, ++n);
                             string sValue = SqlGetString(sqlNew, ++n);
                             string sData = SqlGetString(sqlNew, ++n);
-                            Notice(TranslateCategoryValue(nCategoryType, nValueType, sKey, sValue, sData));
+                            int bParty = SqlGetInt(sqlNew, ++n);
+                            Notice(TranslateCategoryValue(nCategoryType, nValueType, sKey, sValue, sData, bParty));
                         }
                     }       
                 }
@@ -395,10 +391,10 @@ void main()
 
                     int nColor = bColor ? COLOR_GRAY : COLOR_GRAY_LIGHT;
 
-                    Debug(HexColorString("  Quest Tag -> ", nColor) + ColorValue(sPCQuestTag) + 
-                        HexColorString("\n    Type -> ", nColor) + ColorValue((sPCType == "INT" ? "INTEGER" : "STRING")) +
-                        HexColorString("\n    Var Name -> ", nColor) + ColorValue(sPCName) +
-                        HexColorString("\n    Value -> ", nColor) + ColorValue(sPCValue));
+                    Debug(HexColorString("  Quest Tag -> ", nColor) + ColorValue(sPCQuestTag, FALSE, bColor) + 
+                        HexColorString("\n    Type -> ", nColor) + ColorValue((sPCType == "INT" ? "INTEGER" : "STRING"), FALSE, bColor) +
+                        HexColorString("\n    Var Name -> ", nColor) + ColorValue(sPCName, FALSE, bColor) +
+                        HexColorString("\n    Value -> ", nColor) + ColorValue(sPCValue, FALSE, bColor));
 
                     bColor = !bColor;
                 }

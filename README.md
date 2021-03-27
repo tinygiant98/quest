@@ -1,7 +1,8 @@
 
-Note: The quest system files will not function without other utility includes from squattingmonk's sm-utils.  These utilities can be sourced from this repo under the 'utils' folder.  However, when this system reaches its final resting place, you might have to visit squattingmonk's nwn-core-framework or sm-utils repo to obtain these files.
+## Acknowledgments
+Although primarily authored by tinygiant, this system has been influenced by many others.  The base idea for the quest system's structure came from a similiar implementation (though in C#) by Zunath in his SWLOR server.  Additionally, the style and accessor function content are directly influenced by the coding style of squattingmonk, in addition to using several of his helper utilities (see the next paragraph).  Finally, this system was extensively tested by Corinne on the Legends of Aurica server.  Much of the additional functionality beyond the 1.0 release is directly sourced from Corinne (such as random quests, minimum objectives and variables as prerequistes and [p]rewards).  Other feature ideas were sourced from Tonden and Skarltar from the Dark Sun team.  Many thanks to those that helped brainstorm, add features, review and test this system!
 
-Specificially, the following files are required:  util_i_color.nss, util_i_csvlists.nss, util_i_debug.nss, util_i_math.nss, util_i_string.nss
+>Note: The quest system files will not function without other utility includes from squattingmonk's sm-utils.  These utilities can be sourced from this repo under the 'utils' folder.  However, when this system reaches its final resting place, you might have to visit squattingmonk's nwn-core-framework or sm-utils repo to obtain these files.  Specificially, the following files are required:  util_i_color.nss, util_i_csvlists.nss, util_i_debug.nss, util_i_math.nss, util_i_string.nss
 
 >*** WARNING *** This documentation is still a work-in-progress.  If anything in this documentation doesn't work the way you expect, refer to the code or find me on the Neverwinter Vault Discord...
 

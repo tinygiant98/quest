@@ -9,6 +9,9 @@
 //  None!  Leave me alone.
 // -----------------------------------------------------------------------------
 
+// Versioning
+const string QUEST_SYSTEM_VERSION = "1.1.3";
+
 // Variable names for event scripts
 const string QUEST_CURRENT_QUEST = "QUEST_CURRENT_QUEST";
 const string QUEST_CURRENT_STEP = "QUEST_CURRENT_STEP";
@@ -47,6 +50,7 @@ const string QUEST_PC_LAST_COMPLETE_TYPE = "nLastCompleteType";
 const string QUEST_PC_COMPLETIONS = "nCompletions";
 const string QUEST_PC_STEP = "nStep";
 const string QUEST_PC_VERSION = "nQuestVersion";
+const string QUEST_PC_ATTEMPTS = "nAttempts";
 
 // Quest Categories and Values
 const int QUEST_CATEGORY_PREREQUISITE = 1;
@@ -131,9 +135,6 @@ const int QUEST_MATCH_ALL = 3;
 // Time Format
 const string QUEST_TIME_FORMAT = "MMM d, yyyy @ HH:mm:ss";
 
-// Versioning
-const string QUEST_SYSTEM_VERSION = "1.1.1";
-
 // Other crap
 const string QUEST_DESCRIPTOR = "DESCRIPTOR_";
 const string QUEST_DESCRIPTION = "DESCRIPTION_";
@@ -148,3 +149,11 @@ const string QUEST_BUILD_OBJECTIVE = "QUEST_BUILD_OBJECTIVE";
 const int QUEST_VERSION_ACTION_NONE = 0;
 const int QUEST_VERSION_ACTION_DELETE = 1;
 const int QUEST_VERSION_ACTION_RESET = 2;
+
+// Comparison constants
+const string EQUAL_TO = "=";
+const string GREATER_THAN = ">";
+const string LESS_THAN = "<";
+const string GREATER_THAN_OR_EQUAL_TO = ">=";
+const string LESS_THAN_OR_EQUAL_TO = "<=";
+const string NOT_EQUAL_TO = "!=";

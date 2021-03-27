@@ -177,14 +177,14 @@ string JournalLocationToString(int nJournalLocation)
     return "[NOT FOUND]";
 }
 
-string ColorValue(string sValue, int nZeroIsEmpty = FALSE)
+string ColorValue(string sValue, int nZeroIsEmpty = FALSE, int bStripe = FALSE)
 {
     if (sValue == "" || (nZeroIsEmpty && sValue == "0") || sValue == "-1")
         return HexColorString("[EMPTY]", COLOR_GRAY);
     else if (sValue == "[NOT FOUND]")
         return HexColorString(sValue, COLOR_RED_LIGHT);
     else
-        return HexColorString(sValue, COLOR_BLUE_LIGHT);
+        return HexColorString(sValue, bStripe ? COLOR_BLUE : COLOR_BLUE_LIGHT);
 }
 
 string ScriptTypeToString(int nScriptType)
@@ -381,7 +381,7 @@ string VersionActionToString(int nQuestVersionAction)
     return "[NOT FOUND]";
 }
 
-string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, string sValue, string sData)
+string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, string sValue, string sData, int bParty)
 {
     string sIndent = "            ";
     string sDelimiter = HexColorString(" | ", COLOR_GRAY);
@@ -491,9 +491,14 @@ string TranslateValue(int nValueType, string sKey, string sValue)
                 sValue = "Excluded";
             break;
         case QUEST_VALUE_GOLD:
+        {
+            string sOperator = _GetKey(sValue);
+            sValue = sOperator + " " + _GetValue(sValue) + "gp";
+
             sKey = " ";
-            sValue += "gp";
+            //sValue += "gp";
             break;
+        }
         case QUEST_VALUE_LEVEL_MAX:
             sKey = " ";
             sValue = "<= " + sValue;
