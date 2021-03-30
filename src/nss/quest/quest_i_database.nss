@@ -1199,7 +1199,7 @@ int GetNextPCQuestStep(object oPC, string sQuestTag)
 
 sqlquery GetPCQuestData(object oPC)
 {
-    sQuery = "SELECT quest_tag, nStep, nCompletions, nLastCompleteType " +
+    sQuery = "SELECT quest_tag, nStep, nCompletions, nFailures, nLastCompleteType " +
              "FROM quest_pc_data;";
     sql = SqlPrepareQueryObject(oPC, sQuery);
     return sql;
@@ -1280,6 +1280,7 @@ void UpdatePCQuestTables(object oPC)
     // success of failure in order to determine which journal entry to show since this
     // system allows for an entry for both types.
 
+    string sAction;
     sQuery = "SELECT nLastCompleteType " +
              "FROM quest_pc_data;";
     sql = SqlPrepareQueryObject(oPC, sQuery);
@@ -1295,12 +1296,11 @@ void UpdatePCQuestTables(object oPC)
 
         sError = SqlGetError(sql);
         if (sError == "")
-            QuestDebug(PCToString(oPC) + "'s quest tables updated to 1.0.2");
+            QuestDebug("Stale quest table found on " + PCToString(oPC) + "; " +
+                "table definition updated to 1.0.2 (add nLastCompleteType column)");
         else
             Notice("Error: " + sError);
     }
-    else
-        QuestDebug(PCToString(oPC) + "'s quest tables verified at 1.0.2");
 
     // End update @ 1.0.2
 
@@ -1322,17 +1322,15 @@ void UpdatePCQuestTables(object oPC)
 
         sError = SqlGetError(sql);
         if (sError == "")
-            QuestDebug(PCToString(oPC) + "'s quest tables updated to 1.1.1");
+            QuestDebug("Stale quest table found on " + PCToString(oPC) + "; " +
+                "table definition updated to 1.1.1 (add nQuestVersion column)");
         else
             Notice("Error: " + sError);
     }
-    else
-        QuestDebug(PCToString(oPC) + "'s quest tables verified at 1.1.1");
 
     // Ensure we're not wiping everyone's quest data, so update to the latest version of the
     // quest as a default, since this is still early in the process.
 
 
     // End update @ 1.1.1
-
 }

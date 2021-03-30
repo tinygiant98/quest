@@ -19,6 +19,14 @@ void SetObjectEvents()
         StripPlaceableEvents(oSign);
     }
 
+    string sTriggers = "1,2,3";
+    for (n = 0; n < nCount; n++)
+    {
+        string sTrigger = "quest_trigger_" + GetListItem(sTriggers, n);
+        object oTrigger = GetObjectByTag(sTrigger);
+        StripTriggerEvents(oTrigger);
+    }
+
     object oSign = GetObjectByTag("kill_quest_sign");
     StripPlaceableEvents(oSign);
 
@@ -141,6 +149,7 @@ void main()
             return;
         }
 
+        Notice("Triggered!");
         SignalQuestStepProgress(oPC, GetTag(oTrigger), QUEST_OBJECTIVE_DISCOVER);
     }
     else if (sEvent == "OnPlaceableUsed")

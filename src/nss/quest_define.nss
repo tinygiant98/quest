@@ -63,7 +63,8 @@ void DefineRandomDiscoveryQuest()
     SetQuestRepetitions(0);
     SetQuestVersion(1);
     SetQuestVersionActionDelete();
-    SetQuestJournalHandler(QUEST_JOURNAL_NONE);
+    DeleteQuestJournalEntriesOnCompletion();
+    //SetQuestJournalHandler(QUEST_JOURNAL_NONE);
 
     SetQuestScripts();
     

@@ -1126,8 +1126,6 @@ void CleanPCQuestTables(object oPC)
         int nQuestVersion = SqlGetInt(sql, 1);
         int nQuestID = GetQuestID(sQuestTag);
 
-        Notice("Clean: sQuestTag " + sQuestTag + " v" + IntToString(nQuestVersion));
-
         sQuery = "SELECT nQuestVersion " +
                  "FROM quest_quests " +
                  "WHERE sTag = @tag;";
@@ -2755,7 +2753,7 @@ void SendJournalQuestEntry(object oPC, int nQuestID, int nStep, int bComplete = 
                 AddJournalQuestEntry(sQuestTag, nStep, oPC, FALSE, FALSE, TRUE);
             
             QuestDebug("Journal Quest entry for " + QuestToString(nQuestID) + " " + StepToString(nStep) +
-                " has been dispatched to the NWN journal system");
+                " on " + PCToString(oPC) + " has been dispatched to the NWN journal system");
             break;
         case QUEST_JOURNAL_NWNX:
             QuestError("Journal Quest entries for " + QuestToString(nQuestID) + " have been designated for " +
@@ -2766,15 +2764,22 @@ void SendJournalQuestEntry(object oPC, int nQuestID, int nStep, int bComplete = 
 
 void UpdateJournalQuestEntries(object oPC)
 {
+    QuestDebug("Restoring journal quest entries for " + PCToString(oPC));
+    int nUpdate, nTotal;
+
     sqlquery sqlPCQuestData = GetPCQuestData(oPC);
     while (SqlStep(sqlPCQuestData))
     {
+        nTotal++;
         string sQuestTag = SqlGetString(sqlPCQuestData, 0);
         int nStep = SqlGetInt(sqlPCQuestData, 1);
         int nCompletions = SqlGetInt(sqlPCQuestData, 2);
-        int nLastCompleteType = SqlGetInt(sqlPCQuestData, 3);
+        int nFailures = SqlGetInt(sqlPCQuestData, 3);
+        int nLastCompleteType = SqlGetInt(sqlPCQuestData, 4);
+        int bComplete;
 
         int nQuestID = GetQuestID(sQuestTag);
+        nCompletions += nFailures;
 
         if (nStep == 0)
         {
@@ -2785,12 +2790,16 @@ void UpdateJournalQuestEntries(object oPC)
                 if (nLastCompleteType == 0)
                     nLastCompleteType = 1;
 
+                bComplete = TRUE;
                 nStep = GetQuestCompletionStep(nQuestID, nLastCompleteType);
             }
         }
-        if (StringToInt(_GetQuestData(nQuestID, QUEST_JOURNAL_DELETE)) == FALSE)
-            SendJournalQuestEntry(oPC, nQuestID, nStep);
+
+        SendJournalQuestEntry(oPC, nQuestID, nStep, bComplete);
     }
+
+    QuestDebug("Found " + IntToString(nTotal) + " quest" + (nTotal == 1 ? "" : "s") + " on " + 
+        PCToString(oPC) + "; restoring journal entries");
 }
 
 void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUCCESS)
