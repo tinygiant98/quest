@@ -25,7 +25,6 @@ void DefineOrderedDiscoveryQuest()
 
     SetQuestScripts();
 
-    //AddQuestStep(nQuestID);
     AddQuestStep();
     SetQuestStepObjectiveDiscover("quest_trigger_1");
     SetQuestStepPrewardMessage("You've been assigned the Ordered Discovery Quest");
@@ -74,6 +73,7 @@ void DefineRandomDiscoveryQuest()
     SetQuestStepObjectiveDiscover("quest_trigger_2");
     SetQuestStepObjectiveDescriptor("Quest Discovery Trigger 2");
     SetQuestStepObjectiveDescription("and skip around it");
+    SetQuestStepObjectiveFeedback("You've found Trigger #2, Great Job!");
     
     SetQuestStepObjectiveDiscover("quest_trigger_3");
     SetQuestStepObjectiveDescriptor("Quest Discovery Trigger 3");
@@ -81,8 +81,8 @@ void DefineRandomDiscoveryQuest()
     SetQuestStepObjectiveDiscover("quest_trigger_1");
     SetQuestStepObjectiveDescriptor("Quest Discovery Trigger 1");
     
-    SetQuestStepObjectiveRandom(2);
-    SetQuestStepObjectiveMinimum(1);
+    //SetQuestStepObjectiveRandom(2);
+    //SetQuestStepObjectiveMinimum(1);
 
     AddQuestResolutionSuccess();
     SetQuestStepRewardMessage("Congratulations, you've completed the Random Discovery sample quest");
@@ -102,13 +102,15 @@ void DefineOrderedKillQuest()
     AddQuest("quest_kill_ordered");
     SetQuestPrerequisiteLevelMin(1);
     SetQuestPrerequisiteLevelMax(5);
-    SetQuestPrerequisiteQuest("quest_discovery_ordered", 1);
+    SetQuestTitle("Goblin Massacre");
+    SetQuestString("quest_kill_ordered", "myteststring", "**test**");
 
     SetQuestScripts();
 
     AddQuestStep();
     SetQuestStepPrewardMessage("There's a mighty horde of goblin over there.  You do you.");
-    SetQuestStepObjectiveKill("nw_goblina", 1);
+    SetQuestStepObjectiveKill("nw_goblina", 5);
+    SetQuestStepObjectiveFeedback("<quest_title> <acquired>/<required> goofy goblins destroyed // <myteststring>");
     
     AddQuestStep();
     SetQuestStepPrewardMessage("Thank you so much, but look out, there be another one behind you!");

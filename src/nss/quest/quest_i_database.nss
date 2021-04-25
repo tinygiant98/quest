@@ -139,6 +139,7 @@ void CreatePCQuestTables(object oPC, int bReset = FALSE)
         "sData TEXT default '' COLLATE NOCASE, " +
         "nRequired INTEGER, " +
         "nAcquired INTEGER default '0', " +
+        "nObjectiveID INTEGER, " +
         "FOREIGN KEY (quest_tag) REFERENCES quest_pc_data (quest_tag) " +
             "ON UPDATE CASCADE ON DELETE CASCADE);";
 
@@ -979,7 +980,7 @@ sqlquery GetTargetQuestData(object oPC, string sTargetTag, int nObjectiveType, s
 
 sqlquery GetPCIncrementableSteps(object oPC, string sTargetTag, int nObjectiveType, string sData = "")
 {
-    sQuery = "SELECT quest_tag FROM quest_pc_step " +
+    sQuery = "SELECT quest_tag, nObjectiveID, nRequired, nAcquired FROM quest_pc_step " +
              "WHERE sTag = @target_tag " +
                 "AND nObjectiveType = @objective_type" +
                 (sData == "" ? ";" : " AND sData = @data;");
@@ -1206,19 +1207,21 @@ sqlquery GetPCQuestData(object oPC)
 }
 
 void AddQuestStepObjectiveData(object oPC, int nQuestID, int nObjectiveType, 
-                               string sTargetTag, int nQuantity, string sData = "")
+                               string sTargetTag, int nQuantity, int nObjectiveID,
+                               string sData = "")
 {
     string sQuestTag = GetQuestTag(nQuestID);
 
     sQuery = "INSERT INTO quest_pc_step (quest_tag, nObjectiveType, " +
-                "sTag, sData, nRequired) " +
-             "VALUES (@quest_tag, @type, @tag, @data, @qty);";
+                "sTag, sData, nRequired, nObjectiveID) " +
+             "VALUES (@quest_tag, @type, @tag, @data, @qty, @id);";
     sql = SqlPrepareQueryObject(oPC, sQuery);
     SqlBindString(sql, "@quest_tag", sQuestTag);
     SqlBindInt(sql, "@type", nObjectiveType);
     SqlBindString(sql, "@tag", sTargetTag);
     SqlBindInt(sql, "@qty", nQuantity);
     SqlBindString(sql, "@data", sData);
+    SqlBindInt(sql, "@id", nObjectiveID);
 
     SqlStep(sql);
 
@@ -1331,6 +1334,31 @@ void UpdatePCQuestTables(object oPC)
     // Ensure we're not wiping everyone's quest data, so update to the latest version of the
     // quest as a default, since this is still early in the process.
 
-
     // End update @ 1.1.1
+
+    // Update @ 1.1.4 -- adding nObjectiveID column to allow for partial step completion
+    // feedback.
+
+    sQuery = "SELECT nObjectiveID " +
+             "FROM quest_pc_step;";
+    sql = SqlPrepareQueryObject(oPC, sQuery);
+    SqlStep(sql);
+
+    sError = SqlGetError(sql);
+    if (sError != "")
+    {
+        sQuery = "ALTER TABLE quest_pc_step " +
+                 "ADD COLUMN nObjectiveID INTEGER default '0';";
+        sql = SqlPrepareQueryObject(oPC, sQuery);
+        SqlStep(sql);
+
+        sError = SqlGetError(sql);
+        if (sError == "")
+            QuestDebug("Stale quest step table found on " + PCToString(oPC) + "; " +
+                "table definition updated to 1.1.4 (add nObjectiveID column)");
+        else
+            Notice("Error: " + sError);
+    }
+
+    // End update @ 1.1.4
 }

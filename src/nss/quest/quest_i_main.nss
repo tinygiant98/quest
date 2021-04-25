@@ -528,6 +528,10 @@ void SetQuestStepObjectiveDescriptor(string sDescriptor);
 // instructions on this function.  Not meant for use outside the quest definition process.
 void SetQuestStepObjectiveDescription(string sDescription);
 
+// TODO
+string GetQuestStepObjectiveFeedback(int nQuestID, int nObjectiveID);
+void SetQuestStepObjectiveFeedback(string sFeedback);
+
 // ---< AddQuestResolutionSuccess >---
 // A wrapper for AddQuestStep(), adds a step specifically designated for quest success.  This
 // is the only step that is required for every quest.  If using NWN as the quest's journal
@@ -1236,7 +1240,6 @@ void _SetQuestObjective(int nValueType, string sKey, string sValue, string sData
 {
     int nCategoryType = QUEST_CATEGORY_OBJECTIVE;
     _SetQuestStepProperty(nCategoryType, nValueType, sKey, sValue, sData);
-
 }
 
 // Private accessor for setting quest step prewards
@@ -2711,7 +2714,7 @@ void CopyQuestStepObjectiveData(object oPC, int nQuestID, int nStep)
         int nQuantity = SqlGetInt(sqlStepData, 3);
         string sData = SqlGetString(sqlStepData, 4);
 
-        AddQuestStepObjectiveData(oPC, nQuestID, nObjectiveType, sTag, nQuantity, sData);
+        AddQuestStepObjectiveData(oPC, nQuestID, nObjectiveType, sTag, nQuantity, nObjectiveID, sData);
 
         // For random quests, build the message
         if (nRandom && sPrewardMessage != "")
@@ -2915,7 +2918,7 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
     }
 }
 
-void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
+int CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
 {
     int QUEST_STEP_INCOMPLETE = 0;
     int QUEST_STEP_COMPLETE = 1;
@@ -3038,7 +3041,11 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
 
     if (nStatus != QUEST_STEP_INCOMPLETE)
         AdvanceQuest(oPC, nQuestID, nStatus);
+
+    return nStatus;
 }
+
+string EvalQuestTokens(string sToken, object oPC, string sQuestTag, int nAcquired, int nRequired);
 
 int SignalQuestStepProgress(object oPC, string sTargetTag, int nObjectiveType, string sData = "")
 {
@@ -3046,7 +3053,7 @@ int SignalQuestStepProgress(object oPC, string sTargetTag, int nObjectiveType, s
 
     // This prevents the false-positives that occur during login events such as OnItemAcquire
     if (GetIsObjectValid(GetArea(oPC)) == FALSE)
-        return QUEST_MATCH_NONE;
+        return nMatch;
 
     QuestDebug(sTargetTag + " is signalling " +
         "quest " + HexColorString("progress", COLOR_GREEN_LIGHT) + " triggered by " + PCToString(oPC) + " for objective " +
@@ -3056,7 +3063,7 @@ int SignalQuestStepProgress(object oPC, string sTargetTag, int nObjectiveType, s
         oPC = GetMaster(oPC);
 
     if (GetIsPC(oPC) == FALSE)
-        return QUEST_MATCH_NONE;
+        return nMatch;
 
     // Deal with the subject PC
     if (IncrementQuestStepQuantity(oPC, sTargetTag, nObjectiveType, sData) > 0)
@@ -3068,12 +3075,16 @@ int SignalQuestStepProgress(object oPC, string sTargetTag, int nObjectiveType, s
         while (SqlStep(sqlQuestData))
         {    
             string sQuestTag = SqlGetString(sqlQuestData, 0);
+            int nObjectiveID = SqlGetInt(sqlQuestData, 1);
+            int nRequired = SqlGetInt(sqlQuestData, 2);
+            int nAcquired = SqlGetInt(sqlQuestData, 3);
+
             int nQuestID = GetQuestID(sQuestTag);
             int nStep = GetPCQuestStep(oPC, sQuestTag);
 
             if (GetIsQuestActive(nQuestID) == FALSE)
             {
-                QuestDebug(QuestToString(nQuestID) + " is currently invactive and cannot be " +
+                QuestDebug(QuestToString(nQuestID) + " is currently inactive and cannot be " +
                     "credited to " + PCToString(oPC));
                 DecrementQuestStepQuantityByQuest(oPC, sQuestTag, sTargetTag, nObjectiveType, sData);
                 continue;
@@ -3081,6 +3092,16 @@ int SignalQuestStepProgress(object oPC, string sTargetTag, int nObjectiveType, s
         
             nMatch = QUEST_MATCH_PC;
             CheckQuestStepProgress(oPC, nQuestID, nStep);
+            
+            if (nAcquired < nRequired && nObjectiveID != 0)
+            {
+                string sMessage = GetQuestStepObjectiveFeedback(nQuestID, nObjectiveID);
+                if (sMessage != "")
+                {
+                    sMessage = EvalQuestTokens(sMessage, oPC, sQuestTag, nAcquired, nRequired);
+                    SendMessageToPC(oPC, sMessage);
+                }
+            }
         }
     }
     else
@@ -3171,6 +3192,56 @@ int SignalQuestStepRegress(object oPC, string sTargetTag, int nObjectiveType, st
             (sData == "" ? "" : " and " + sData));
 
     return nMatch;
+}
+
+string EvalQuestToken(string sToken, object oPC, string sQuestTag, int nAcquired, int nRequired)
+{
+    string sResult;
+
+    if (sToken == "acquired") return IntToString(nAcquired);
+    else if (sToken == "required") return IntToString(nRequired);
+    else if (sToken == "remaining") return IntToString(nRequired - nAcquired);
+    else if (sToken == "quest_title") return HexColorString(GetQuestTitle(sQuestTag), COLOR_ORANGE_LIGHT);
+    else
+    {
+        sResult = GetQuestString(sQuestTag, sToken);
+        if (sResult != "")
+            return sResult;
+    }
+
+    return "";
+}
+
+string EvalQuestTokens(string sString, object oPC, string sQuestTag, int nAcquired, int nRequired)
+{
+    string sRet, sToken;
+    int nPos, nClose;
+    int nOpen = FindSubString(sString, "<");
+
+    while (nOpen >= 0)
+    {
+        nClose = FindSubString(sString, ">", nOpen);
+
+        // If no matching bracket, this isn't a token
+        if (nClose < 0)
+            break;
+
+        // Add everything before the bracket to the return value
+        sRet += GetSubString(sString, nPos, nOpen - nPos);
+
+        // Everything between the brackets is our token
+        sToken = GetSubString(sString, nOpen + 1, nClose - nOpen - 1);
+
+        sRet += EvalQuestToken(sToken, oPC, sQuestTag, nAcquired, nRequired);
+        nPos = nClose + 1;
+
+        // Update position and find the next token
+        nOpen = FindSubString(sString, "<", nPos);
+    }
+
+    // Add any remaining text to the return value
+    sRet += GetStringRight(sString, GetStringLength(sString) - nPos);
+    return sRet;
 }
 
 string CreateTimeVector(int nYears = 0, int nMonths = 0, int nDays = 0,
@@ -3547,6 +3618,21 @@ void SetQuestStepObjectiveDescriptor(string sDescriptor)
     SetQuestString(sQuestTag, QUEST_DESCRIPTOR + IntToString(nObjectiveID), sDescriptor);
 }
 
+string GetQuestStepObjectiveFeedback(int nQuestID, int nObjectiveID)
+{
+    string sQuestTag = GetQuestTag(nQuestID);
+    return GetQuestString(sQuestTag, QUEST_FEEDBACK + IntToString(nObjectiveID));
+}
+
+void SetQuestStepObjectiveFeedback(string sFeedback)
+{
+    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
+    int nObjectiveID = GetLocalInt(GetModule(), QUEST_BUILD_OBJECTIVE);
+    string sQuestTag = GetQuestTag(nQuestID);
+
+    SetQuestString(sQuestTag, QUEST_FEEDBACK + IntToString(nObjectiveID), sFeedback);
+}
+
 void SetQuestPrerequisiteAlignment(int nAlignmentAxis, int bNeutral = FALSE)
 {
     string sKey = IntToString(nAlignmentAxis);
@@ -3657,6 +3743,11 @@ void SetQuestPrerequisiteVariableString(string sVarName, string sOperator, strin
 {
     int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
     AddQuestPrerequisite(nQuestID, QUEST_VALUE_VARIABLE, "STRING:" + sVarName, sOperator + ":" + sValue);
+}
+
+void SetQuestStepFeedback(string sFeedback)
+{
+    string s;
 }
 
 void SetQuestStepObjectiveKill(string sTargetTag, int nValue = 1)

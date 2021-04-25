@@ -10,7 +10,7 @@
 // -----------------------------------------------------------------------------
 
 // Versioning
-const string QUEST_SYSTEM_VERSION = "1.1.3";
+const string QUEST_SYSTEM_VERSION = "1.1.4";
 
 // Variable names for event scripts
 const string QUEST_CURRENT_QUEST = "QUEST_CURRENT_QUEST";
@@ -139,6 +139,7 @@ const string QUEST_TIME_FORMAT = "MMM d, yyyy @ HH:mm:ss";
 const string QUEST_DESCRIPTOR = "DESCRIPTOR_";
 const string QUEST_DESCRIPTION = "DESCRIPTION_";
 const string QUEST_CUSTOM_MESSAGE = "CUSTOM_MESSAGE";
+const string QUEST_FEEDBACK = "FEEDBACK_";
 
 // Interal Data Control
 const string QUEST_BUILD_QUEST = "QUEST_BUILD_QUEST";
