@@ -348,8 +348,26 @@ Each quest step contains the following properties.  Not all properties are requi
         * `SetQuestStepObjectiveRandom(nCount);`
         * `GetRandomQuestCustomMessage(oPC, sQuestTag);`
         * `SetQuestStepObjectiveDescriptor(sDescriptor);`
-        * `SetQuestStepObjectiveDescription(sDesscription);`
+        * `SetQuestStepObjectiveDescription(sDescription);`
+*    **Non-sequential Objective Feedback** - Non-sequential quests are created by adding multiple objectives to a single step.  The PC is allowed to accomplish any of these objectives at any time, but must accomplish all of them to have the step judged complete.
+        * `SetQuestStepObjectieFeedback(sFeedback);`
+Any feedback sent through this specific function has token evaluator to allow for customize feedback.  The available tokens are \<acquired>, \<required>, \<reamining>, \<quest_title> and \<varname>.  This feedback, if provided, will be sent every time the target quantity is increased toward the objective requirement, but will not be sent on objective completion.
+        * \<acquired> - the quantity of targets the PC has completed toward the objective
+        * \<required> - the total number of targets required to complete the objective
+        * \<remaining> - the remaining number of targets required to complete the objective
+        * \<quest_title> - the quest title as set by `SetQuestTitle()`
+        * \<varname> - the variable name of any string variable as set by `SetQuestString()`
 
+        ```c
+        SetQuestTitle("Kill the Gobbies!");
+        SetQuestString(sQuestTag, "mytestvariable", "**test**");
+        ...
+        SetQuestStepObjectiveFeedback("<quest_title> <acquired>/<required> killed!  Only <remaining> more to go.  <mytestvariable>");
+        ```
+        would produce the following feedback to the PC:
+        ```
+        Kill the Gobbies! 3/5 killed! Only 2 more to go.  **test**
+        ```
 *    ### **Objectives** - 
         These properties define the purpose of each step in a quest.  Final steps in a quest for either success or failure should not have objectives assigned to them.
         
