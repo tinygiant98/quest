@@ -3093,7 +3093,7 @@ int SignalQuestStepProgress(object oPC, string sTargetTag, int nObjectiveType, s
             nMatch = QUEST_MATCH_PC;
             CheckQuestStepProgress(oPC, nQuestID, nStep);
             
-            if (nAcquired < nRequired && nObjectiveID != 0)
+            if (nAcquired <= nRequired && nObjectiveID != 0)
             {
                 string sMessage = GetQuestStepObjectiveFeedback(nQuestID, nObjectiveID);
                 if (sMessage != "")
