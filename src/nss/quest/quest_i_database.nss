@@ -1010,10 +1010,12 @@ int CountPCIncrementableSteps(object oPC, string sTargetTag, int nObjectiveType,
 int IncrementQuestStepQuantity(object oPC, string sTargetTag, int nObjectiveType, string sData = "")
 {
     sQuery = "UPDATE quest_pc_step " +
-             "SET nAcquired = min(nRequired, nAcquired + 1) " +
+             //"SET nAcquired = min(nRequired, nAcquired + 1) " +
+             "SET nAcquired = nAcquired + 1 " +
              "WHERE nObjectiveType = @type " +
                 //"AND quest_tag = @quest_tag " +
-                "AND sTag = @tag" +
+                "AND sTag = @tag " +
+                "AND nAcquired < nRequired " +
                 (sData == "" ? ";" : " AND sData = @data;");
     sql = SqlPrepareQueryObject(oPC, sQuery);
     SqlBindInt(sql, "@type", nObjectiveType);
