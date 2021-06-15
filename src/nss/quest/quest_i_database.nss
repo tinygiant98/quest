@@ -1278,14 +1278,13 @@ void UpdatePCQuestTables(object oPC)
 {
     // First update @ 1.0.2 -- adding an nLastCompleteType column to update journal
     // entries OnClientEnter (this is a work around for the bug that prevents journal
-    // integers from persistently saving in the base game, possibly introducted in 
+    // integers from persistently saving in the base game, possibly introduced in 
     // .14).  https://github.com/Beamdog/nwn-issues/issues/258
 
     // The purpose of this new column is to know whether the last completion was a
     // success of failure in order to determine which journal entry to show since this
     // system allows for an entry for both types.
 
-    string sAction;
     sQuery = "SELECT nLastCompleteType " +
              "FROM quest_pc_data;";
     sql = SqlPrepareQueryObject(oPC, sQuery);
@@ -1363,4 +1362,28 @@ void UpdatePCQuestTables(object oPC)
     }
 
     // End update @ 1.1.4
+
+    // Update @ 1.1.5 -- workaround for weird case of missing `nFailures` column from
+    // early in the testing process.
+
+    sQuery = "SELECT nFailures " +
+             "FROM quest_pc_data;";
+    sql = SqlPrepareQueryObject(oPC, sQuery);
+    SqlStep(sql);
+
+    sError = SqlGetError(sql);
+    if (sError != "")
+    {
+        sQuery = "ALTER TABLE quest_pc_data " +
+                 "ADD COLUMN nFailures INTEGER default '0';";
+        sql = SqlPrepareQueryObject(oPC, sQuery);
+        SqlStep(sql);
+
+        sError = SqlGetError(sql);
+        if (sError == "")
+            QuestDebug("Stale quest data table found on " + PCToString(oPC) + "; " +
+                "table definition updated to 1.1.5 (add nFailures column)");
+        else
+            Notice("Error: " + sError);
+    }
 }
