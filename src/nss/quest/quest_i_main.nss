@@ -1574,6 +1574,39 @@ void _AwardQuestStepAllotments(object oPC, int nQuestID, int nStep, int nCategor
 
         switch (nValueType)
         {
+            case QUEST_VALUE_MESSAGE:
+            {
+                if ((nAwardType & AWARD_MESSAGE) || nAwardType == AWARD_ALL)
+                {
+                    string sMessage;
+
+                    // If this is a random quest, we need to override the
+                    // preward message
+                    if (StringToInt(_GetQuestStepData(nQuestID, nStep, QUEST_STEP_RANDOM_OBJECTIVES)) != -1 &&
+                        nCategoryType == QUEST_CATEGORY_PREWARD)
+                    {
+                        string sQuestTag = GetQuestTag(nQuestID);
+                        string sCustomMessage = GetPCQuestString(oPC, sQuestTag, QUEST_CUSTOM_MESSAGE, nStep);
+                        if (sCustomMessage == "")
+                            QuestDebug("Custom preward message for " + QuestToString(nQuestID) + " " + StepToString(nStep) +
+                                " not created; there is no preward message to build from");
+                        else
+                        {
+                            sMessage = sCustomMessage;
+                            QuestDebug("Overriding standard preward message for " + QuestToString(nQuestID) + " " +
+                                StepToString(nStep) + " with customized preward message for random quest creation: " +
+                                ColorValue(sMessage));
+                        }                            
+                    }
+
+                    if (sMessage == "")
+                        sMessage = sValue;
+                    
+                    sMessage = HexColorString(sMessage, COLOR_CYAN);
+                    SendMessageToPC(oPC, sMessage);
+                }
+                continue;
+            }
             case QUEST_VALUE_GOLD:
             {
                 if ((nAwardType & AWARD_GOLD) || nAwardType == AWARD_ALL)
@@ -1619,39 +1652,6 @@ void _AwardQuestStepAllotments(object oPC, int nQuestID, int nStep, int nCategor
                     int nValue = StringToInt(sValue);
                     int nFlag = StringToInt(sValue);
                     _AwardQuest(oPC, nValue, nFlag, bParty);
-                }
-                continue;
-            }
-            case QUEST_VALUE_MESSAGE:
-            {
-                if ((nAwardType & AWARD_MESSAGE) || nAwardType == AWARD_ALL)
-                {
-                    string sMessage;
-
-                    // If this is a random quest, we need to override the
-                    // preward message
-                    if (StringToInt(_GetQuestStepData(nQuestID, nStep, QUEST_STEP_RANDOM_OBJECTIVES)) != -1 &&
-                        nCategoryType == QUEST_CATEGORY_PREWARD)
-                    {
-                        string sQuestTag = GetQuestTag(nQuestID);
-                        string sCustomMessage = GetPCQuestString(oPC, sQuestTag, QUEST_CUSTOM_MESSAGE, nStep);
-                        if (sCustomMessage == "")
-                            QuestDebug("Custom preward message for " + QuestToString(nQuestID) + " " + StepToString(nStep) +
-                                " not created; there is no preward message to build from");
-                        else
-                        {
-                            sMessage = sCustomMessage;
-                            QuestDebug("Overriding standard preward message for " + QuestToString(nQuestID) + " " +
-                                StepToString(nStep) + " with customized preward message for random quest creation: " +
-                                ColorValue(sMessage));
-                        }                            
-                    }
-
-                    if (sMessage == "")
-                        sMessage = sValue;
-                    
-                    sMessage = HexColorString(sMessage, COLOR_CYAN);
-                    SendMessageToPC(oPC, sMessage);
                 }
                 continue;
             }
@@ -2821,8 +2821,7 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
         {
             // Next step is the last step, go to the completion step
             nNextStep = GetQuestCompletionStep(nQuestID);
-            
-            
+                        
             if (nNextStep == -1)
             {
                 QuestDebug("Could not locate success completion step for " + QuestToString(nQuestID) +
@@ -2832,8 +2831,8 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
             }
             
             DeletePCQuestProgress(oPC, nQuestID);
-            SendJournalQuestEntry(oPC, nQuestID, nNextStep, TRUE);
             _AwardQuestStepAllotments(oPC, nQuestID, nCurrentStep, QUEST_CATEGORY_REWARD);
+            SendJournalQuestEntry(oPC, nQuestID, nNextStep, TRUE);
             _AwardQuestStepAllotments(oPC, nQuestID, nNextStep, QUEST_CATEGORY_REWARD);
             IncrementPCQuestCompletions(oPC, nQuestID, GetUnixTimeStamp());
             RunQuestScript(oPC, sQuestTag, QUEST_SCRIPT_TYPE_ON_COMPLETE);
@@ -3089,10 +3088,7 @@ int SignalQuestStepProgress(object oPC, string sTargetTag, int nObjectiveType, s
                 DecrementQuestStepQuantityByQuest(oPC, sQuestTag, sTargetTag, nObjectiveType, sData);
                 continue;
             }
-        
-            nMatch = QUEST_MATCH_PC;
-            CheckQuestStepProgress(oPC, nQuestID, nStep);
-            
+                   
             if (nAcquired <= nRequired && nObjectiveID != 0)
             {
                 string sMessage = GetQuestStepObjectiveFeedback(nQuestID, nObjectiveID);
@@ -3102,6 +3098,9 @@ int SignalQuestStepProgress(object oPC, string sTargetTag, int nObjectiveType, s
                     SendMessageToPC(oPC, sMessage);
                 }
             }
+
+            nMatch = QUEST_MATCH_PC;
+            CheckQuestStepProgress(oPC, nQuestID, nStep);
         }
     }
     else

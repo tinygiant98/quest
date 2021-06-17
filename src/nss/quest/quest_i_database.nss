@@ -1386,4 +1386,6 @@ void UpdatePCQuestTables(object oPC)
         else
             Notice("Error: " + sError);
     }
+
+    // End update @ 1.1.5
 }
