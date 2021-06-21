@@ -45,7 +45,7 @@ void CreateModuleQuestTables(int bReset = FALSE)
                         "sScriptOnFail TEXT default NULL, " +
                         "sTimeLimit TEXT default NULL, " +
                         "sCooldown TEXT default NULL, " +
-                        "nJournalHandler TEXT default '1', " +
+                        "nJournalHandler TEXT default '" + IntToString(QUEST_CONFIG_JOURNAL_HANDLER) + "', " +
                         "nRemoveJournalOnComplete TEXT default '0', " +
                         "nAllowPrecollectedItems TEXT default '1', " +
                         "nRemoveQuestOnCompleted TEXT default '0', " +
@@ -189,6 +189,7 @@ void CreateQuestVariablesTable(int bReset = FALSE)
     sql = SqlPrepareQueryObject(GetModule(), sQuestVariables);
     SqlStep(sql);
 
+    SetLocalInt(GetModule(), QUEST_VARIABLE_TABLES_INITIALIZED, TRUE);
     HandleSqlDebugging(sql, "SQL:table", "quest_variables", "module");
 }
 
@@ -1200,11 +1201,26 @@ int GetNextPCQuestStep(object oPC, string sQuestTag)
     //return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
 }
 
-sqlquery GetPCQuestData(object oPC)
+sqlquery GetPCQuestData(object oPC, string sQuestTag = "")
 {
     sQuery = "SELECT quest_tag, nStep, nCompletions, nFailures, nLastCompleteType " +
-             "FROM quest_pc_data;";
+             "FROM quest_pc_data " +
+             (sQuestTag == "" ? "" : "WHERE quest_tag = @sQuestTag") + ";";
     sql = SqlPrepareQueryObject(oPC, sQuery);
+    if (sQuestTag != "")
+        SqlBindString(sql, "@sQuestTag", sQuestTag);
+
+    return sql;
+}
+
+sqlquery GetPCQuestStepData(object oPC, string sQuestTag)
+{
+    sQuery = "SELECT quest_tag, nObjectiveType, sTag, sData, nRequired, nAcquired, nObjectiveID " +
+             "FROM quest_pc_step " +
+             "WHERE quest_tag = @sQuestTag;";
+    sqlquery sql = SqlPrepareQueryObject(oPC, sQuery);
+    SqlBindString(sql, "@sQuestTag", sQuestTag);
+
     return sql;
 }
 

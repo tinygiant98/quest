@@ -80,6 +80,8 @@ int GetNextPCQuestStep(object oPC, string sQuestTag);
 #include "quest_i_debug"
 #include "quest_i_database"
 
+#include "nwnx_player"
+
 // -----------------------------------------------------------------------------
 //                          Quest System Function Prototypes
 // -----------------------------------------------------------------------------
@@ -880,7 +882,8 @@ string _GetQuestData(int nQuestID, string sField)
 void _SetQuestVariable(int nQuestID, string sType, string sVarName, string sValue)
 {
     // Don't create the table unless we need it
-    CreateQuestVariablesTable();
+    if (GetLocalInt(GetModule(), QUEST_VARIABLE_TABLES_INITIALIZED) == FALSE)
+        CreateQuestVariablesTable();
 
     string sQuery = "INSERT INTO quest_variables (quests_id, sType, sName, sValue) " +
                     "VALUES (@id, @type, @name, @value);";
@@ -1112,6 +1115,61 @@ string _GetQuestStepData(int nQuestID, int nStep, string sField)
 
     return sResult;
     //return SqlStep(sql) ? SqlGetString(sql, 0) : "";
+}
+
+void DisplayPCQuestData(object oPC, object oDestination, string sQuestTag = "", int bVerbose = FALSE)
+{
+    if (GetIsPC(oPC) == FALSE)
+        return;
+
+    string sMessage;
+
+    sqlquery sql = GetPCQuestData(oPC, sQuestTag);
+    while (SqlStep(sql))
+    {   
+        if (GetStringLength(sMessage) > 0)
+            sMessage += "\n";
+
+        sQuestTag = SqlGetString(sql, 0);
+        int nStep = SqlGetInt(sql, 1);
+        string sCompletions = SqlGetString(sql, 2);
+        string sFailures = SqlGetString(sql, 3);
+
+        int nQuestID = GetQuestID(sQuestTag);
+        string sQuestTitle = _GetQuestData(nQuestID, QUEST_TITLE);
+
+        sMessage += ColorHeading("* ") + QuestToString(nQuestID) + " " + StepToString(nStep) + " " + 
+            (sQuestTitle == "" ? HexColorString("[Title Not Assigned]", COLOR_RED_LIGHT) : ColorHeading("[Title] ") + ColorValue(sQuestTitle));
+
+        sqlquery sqlData = GetPCQuestStepData(oPC, sQuestTag);
+        while (SqlStep(sqlData))
+        {
+            int nObjectiveType = SqlGetInt(sqlData, 1);
+            string sTargetTag = SqlGetString(sqlData, 2);
+            string sTargetData = SqlGetString(sqlData, 3);
+            string sRequired = SqlGetString(sqlData, 4);
+            string sAcquired = SqlGetString(sqlData, 5);
+
+            sMessage += "\n   " + ColorHeading("> Objective Type -> ") + ColorValue(ObjectiveTypeToString(nObjectiveType));
+
+            if (nObjectiveType == QUEST_OBJECTIVE_DELIVER)
+            {
+                sMessage += "\n      " + ColorHeading("- Destination Tag -> ") + ColorValue(sTargetTag) +
+                            "\n      " + ColorHeading("- Target Tag -> ") + ColorValue(sTargetData);
+            }
+            else
+                sMessage += "\n      "+ ColorHeading("- Objective Tag -> ") + ColorValue(sTargetTag);
+
+            sMessage += "\n      " + ColorHeading("- Objective Status -> ") + ColorValue(sAcquired + "/" + sRequired);
+        }
+    }
+
+    sMessage = HexColorString("Current quest status for ", COLOR_CYAN) + PCToString(oPC) + "\n" + sMessage;
+
+    if (GetIsPC(oDestination))
+        SendMessageToPC(oDestination, sMessage);
+    else
+        WriteTimestampedLogEntry(UnColorString(sMessage));
 }
 
 void CleanPCQuestTables(object oPC)
@@ -2739,10 +2797,7 @@ void SendJournalQuestEntry(object oPC, int nQuestID, int nStep, int bComplete = 
 {
     string sQuestTag = GetQuestTag(nQuestID);
     int nDestination = GetQuestJournalHandler(sQuestTag);
-    int bDelete;
-    
-    if (bComplete)
-        bDelete = StringToInt(_GetQuestData(nQuestID, QUEST_JOURNAL_DELETE));
+    int bDelete = StringToInt(_GetQuestData(nQuestID, QUEST_JOURNAL_DELETE));
 
     switch (nDestination)
     {
@@ -2759,9 +2814,27 @@ void SendJournalQuestEntry(object oPC, int nQuestID, int nStep, int bComplete = 
                 " on " + PCToString(oPC) + " has been dispatched to the NWN journal system");
             break;
         case QUEST_JOURNAL_NWNX:
-            QuestError("Journal Quest entries for " + QuestToString(nQuestID) + " have been designated for " +
-                "NWNX, however NWNX functionality has not yet been instituted.");
-            break;
+        {
+            if (bComplete && bDelete)
+                RemoveJournalQuestEntry(sQuestTag, oPC, FALSE, FALSE);
+            else
+            {
+                struct NWNX_Player_JournalEntry je;
+                je.sName = _GetQuestData(nQuestID, QUEST_TITLE);
+                je.sText = _GetQuestStepData(nQuestID, nStep, QUEST_STEP_JOURNAL_ENTRY);
+                je.sTag = sQuestTag;
+                je.nQuestCompleted = bComplete;
+
+                string sEmpty = "[Empty]";
+                if (je.sName == "") je.sName = sEmpty;
+                if (je.sText == "") je.sTag = sEmpty;
+
+                NWNX_Player_AddCustomJournalEntry(oPC, je);
+            }
+
+            QuestDebug("Journal Quest entry for " + QuestToString(nQuestID) + " " + StepToString(nStep) +
+                " on " + PCToString(oPC) + " has been dispatched to the NWN journal system via NWNX");
+        }
     }
 }
 

@@ -10,7 +10,7 @@
 // -----------------------------------------------------------------------------
 
 // Versioning
-const string QUEST_SYSTEM_VERSION = "1.1.6";
+const string QUEST_SYSTEM_VERSION = "1.2.0";
 
 // Variable names for event scripts
 const string QUEST_CURRENT_QUEST = "QUEST_CURRENT_QUEST";
@@ -158,3 +158,18 @@ const string LESS_THAN = "<";
 const string GREATER_THAN_OR_EQUAL_TO = ">=";
 const string LESS_THAN_OR_EQUAL_TO = "<=";
 const string NOT_EQUAL_TO = "!=";
+
+// Other Variables
+const string QUEST_VARIABLE_TABLES_INITIALIZED = "QUEST_VARIABLE_TABLES_INITIALIZED";
+
+// -----------------------------------------------------------------------------
+//                             Quest System Configuration
+// -----------------------------------------------------------------------------
+
+// [ ] Move to its own file ...
+
+// Set this value to the standard journal handler you'd like to use.  If you use a combination,
+// set this to the one you use most often.  For any journal entries that don't use the
+// handler set below, you must specifically designate its handler with SetQuestJournalHandler().
+const int QUEST_CONFIG_JOURNAL_HANDLER = QUEST_JOURNAL_NWN;
+

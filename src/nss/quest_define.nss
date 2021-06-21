@@ -56,18 +56,20 @@ void DefineRandomDiscoveryQuest()
     //         Find and enter quest_trigger_3
     
     AddQuest("quest_discovery_random");
+    SetQuestTitle("Random Discovery (NWNX)");
     SetQuestPrerequisiteLevelMin(1);
     SetQuestPrerequisiteLevelMax(3);
     SetQuestPrerequisiteGold(500, LESS_THAN_OR_EQUAL_TO);
     SetQuestRepetitions(0);
     SetQuestVersion(1);
     SetQuestVersionActionDelete();
-    DeleteQuestJournalEntriesOnCompletion();
-    //SetQuestJournalHandler(QUEST_JOURNAL_NONE);
+    //DeleteQuestJournalEntriesOnCompletion();
+    SetQuestJournalHandler(QUEST_JOURNAL_NWNX);
 
     SetQuestScripts();
     
     AddQuestStep();
+    SetQuestStepJournalEntry("Please find the triggers randomly! (NWNX)");
     SetQuestStepPrewardMessage("You've been assigned the Random Discovery Quest.");
     
     SetQuestStepObjectiveDiscover("quest_trigger_2");
@@ -85,6 +87,7 @@ void DefineRandomDiscoveryQuest()
     //SetQuestStepObjectiveMinimum(1);
 
     AddQuestResolutionSuccess();
+    SetQuestStepJournalEntry("Yay, you did it! (NWNX)");
     SetQuestStepRewardMessage("Congratulations, you've completed the Random Discovery sample quest");
     SetQuestStepRewardGold(50);
     SetQuestStepRewardXP(50);

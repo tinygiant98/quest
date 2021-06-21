@@ -149,7 +149,6 @@ void main()
             return;
         }
 
-        Notice("Triggered!");
         SignalQuestStepProgress(oPC, GetTag(oTrigger), QUEST_OBJECTIVE_DISCOVER);
     }
     else if (sEvent == "OnPlaceableUsed")

@@ -177,6 +177,11 @@ string JournalLocationToString(int nJournalLocation)
     return "[NOT FOUND]";
 }
 
+string ColorHeading(string sValue)
+{
+    return HexColorString(sValue, COLOR_GRAY_LIGHT);
+}
+
 string ColorValue(string sValue, int nZeroIsEmpty = FALSE, int bStripe = FALSE)
 {
     if (sValue == "" || (nZeroIsEmpty && sValue == "0") || sValue == "-1")

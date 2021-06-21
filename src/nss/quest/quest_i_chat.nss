@@ -14,9 +14,10 @@
 #include "quest_i_main"
 #include "quest_i_debug"
 
-void _AssignQuestToPC(object oPC)
+void _AssignQuestToPC(object oPC, string sQuestTag = "")
 {
-    string sQuestTag = GetChatKeyValue(oPC, "assign");
+    if (sQuestTag == "")
+        sQuestTag = GetChatKeyValue(oPC, "assign");
 
     if (GetIsQuestAssignable(oPC, sQuestTag))
     {
@@ -27,9 +28,11 @@ void _AssignQuestToPC(object oPC)
         Debug(HexColorString("Quest " + sQuestTag + " is NOT assignable", COLOR_RED_LIGHT));
 }
 
-void _UnassignQuestFromPC(object oPC)
+void _UnassignQuestFromPC(object oPC, string sQuestTag = "")
 {
-    string sQuestTag = GetChatKeyValue(oPC, "unassign");
+    if (sQuestTag == "")
+        sQuestTag = GetChatKeyValue(oPC, "unassign");
+    
     if (sQuestTag == "")
         CreatePCQuestTables(oPC);
     else
@@ -51,6 +54,11 @@ void main()
         SendChatResult("Created item {tag} " + GetTag(oItem) +
                        " {name} " + GetName(oItem) + " on " + GetName(oPC), oPC);
         return;
+    }
+
+    if (HasChatOption(oPC, "view"))
+    {
+        DisplayPCQuestData(oPC, oPC);
     }
 
     if (HasChatOption(oPC, "load"))
@@ -76,6 +84,20 @@ void main()
     if (HasChatOption(oPC, "unassign") || HasChatKey(oPC, "unassign"))
     {
         _UnassignQuestFromPC(oPC);
+    }
+
+    if (HasChatOption(oPC, "nwnx"))
+    {
+        if (HasChatOption(oPC, "d"))
+        {
+            _UnassignQuestFromPC(oPC, "quest_discovery_random");
+            SendChatResult("Removing quest_discovery_random via NWNX", oPC);
+        }
+        else
+        {
+            _AssignQuestToPC(oPC, "quest_discovery_random");
+            SendChatResult("Assigning quest_discovery_random via nwnx", oPC);
+        }
     }
 
     if (HasChatOption(oPC, "dump"))

@@ -6,3 +6,4 @@
 
 # Ignore the nasher directory
 .nasher/
+server/
