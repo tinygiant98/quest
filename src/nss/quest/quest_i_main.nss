@@ -2819,9 +2819,16 @@ void SendJournalQuestEntry(object oPC, int nQuestID, int nStep, int bComplete = 
                 RemoveJournalQuestEntry(sQuestTag, oPC, FALSE, FALSE);
             else
             {
+                string sText;
+                if (StringToInt(_GetQuestStepData(nQuestID, nStep, QUEST_STEP_RANDOM_OBJECTIVES)) != -1 &&
+                    QUEST_CONFIG_USE_CUSTOM_MESSAGE == TRUE)
+                    sText = GetPCQuestString(oPC, sQuestTag, QUEST_CUSTOM_MESSAGE, nStep);
+                else
+                    sText = _GetQuestStepData(nQuestID, nStep, QUEST_STEP_JOURNAL_ENTRY);
+                    
                 struct NWNX_Player_JournalEntry je;
                 je.sName = _GetQuestData(nQuestID, QUEST_TITLE);
-                je.sText = _GetQuestStepData(nQuestID, nStep, QUEST_STEP_JOURNAL_ENTRY);
+                je.sText = sText;
                 je.sTag = sQuestTag;
                 je.nQuestCompleted = bComplete;
 

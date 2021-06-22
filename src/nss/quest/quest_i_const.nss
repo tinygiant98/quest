@@ -173,3 +173,7 @@ const string QUEST_VARIABLE_TABLES_INITIALIZED = "QUEST_VARIABLE_TABLES_INITIALI
 // handler set below, you must specifically designate its handler with SetQuestJournalHandler().
 const int QUEST_CONFIG_JOURNAL_HANDLER = QUEST_JOURNAL_NWN;
 
+// For semi-randomized quest objectives, you can override the standard journal entry with
+// the custom message created for the random objectives.  To override the step's normal
+// journal entry, set this value to TRUE.
+const int QUEST_CONFIG_USE_CUSTOM_MESSAGE = TRUE;
