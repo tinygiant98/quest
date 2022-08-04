@@ -20,7 +20,7 @@
 /*
     The following prototype are listed separately from the primary quest system
     prototypes because they are database-related direct-access functions.  These
-    functions are avaialable for general use by including quest_i_database.
+    functions are available for general use by including quest_i_database.
 */
 
 // ---< CreateModuleQuestTables >---

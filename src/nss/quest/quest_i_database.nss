@@ -180,14 +180,9 @@ void CreateQuestVariablesTable(int bReset = FALSE)
                             "ON UPDATE CASCADE ON DELETE CASCADE);";
     
     if (bReset)
-    {
-        sQuery = "DROP TABLE IF EXISTS quest_variables;";
-        sql = SqlPrepareQueryObject(GetModule(), sQuery);
-        SqlStep(sql);
-    }
+        SqlStep(SqlPrepareQueryObject(GetModule(), "DROP TABLE IF EXISTS quest_variables;"));
     
-    sql = SqlPrepareQueryObject(GetModule(), sQuestVariables);
-    SqlStep(sql);
+    SqlStep(SqlPrepareQueryObject(GetModule(), sQuestVariables));
 
     HandleSqlDebugging(sql, "SQL:table", "quest_variables", "module");
 }
@@ -205,22 +200,15 @@ void CreatePCVariablesTable(object oPC, int bReset = FALSE)
                             "ON UPDATE CASCADE ON DELETE CASCADE);";
 
     if (bReset)
-    {
-        sQuery = "DROP TABLE IF EXISTS quest_pc_variables;";
-        sql = SqlPrepareQueryObject(oPC, sQuery);
-        SqlStep(sql);
-    }
+        SqlStep(SqlPrepareQueryObject(oPC, "DROP TABLE IF EXISTS quest_pc_variables;"));
 
-    sql = SqlPrepareQueryObject(oPC, sPCVariables);
-    SqlStep(sql);
-
+    SqlStep(SqlPrepareQueryObject(oPC, sPCVariables));
     HandleSqlDebugging(sql, "SQL:table", "quest_pc_variables", GetName(oPC));
 }
 
 int GetLastInsertedID(string sTable)
 {
-    sQuery = "SELECT seq FROM sqlite_sequence WHERE name = @name;";
-    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    sql = SqlPrepareQueryObject(GetModule(), "SELECT seq FROM sqlite_sequence WHERE name = @name;");
     SqlBindString(sql, "@name", sTable);
     
     return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
@@ -238,16 +226,14 @@ string GetQuestTag(int nQuestID)
 
 int CountRowChanges(object oTarget)
 {
-    sQuery = "SELECT CHANGES();";
-    sql = SqlPrepareQueryObject(oTarget, sQuery);
+    sql = SqlPrepareQueryObject(oTarget, "SELECT CHANGES();");
     return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
 }
 
 string GetTimeStamp()
 {
     //sQuery = "SELECT strftime('%s', 'now')";
-    sQuery = "SELECT CURRENT_TIMESTAMP;";
-    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    sql = SqlPrepareQueryObject(GetModule(), "SELECT CURRENT_TIMESTAMP;");
     SqlStep(sql);
     
     return SqlGetString(sql, 0);
@@ -255,8 +241,7 @@ string GetTimeStamp()
 
 int GetUnixTimeStamp()
 {
-    sQuery = "SELECT strftime('%s', 'now')";
-    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    sql = SqlPrepareQueryObject(GetModule(), "SELECT strftime('%s', 'now')");
     SqlStep(sql);
 
     return SqlGetInt(sql, 0);
@@ -264,14 +249,12 @@ int GetUnixTimeStamp()
 
 string GetGreaterTimeStamp(string sTime1, string sTime2)
 {
-    sQuery = "SELECT strftime('%s', '" + sTime1 + "');";
-    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    sql = SqlPrepareQueryObject(GetModule(), "SELECT strftime('%s', '" + sTime1 + "');");
     SqlStep(sql);
 
     int nTime1 = SqlGetInt(sql, 0);
 
-    sQuery = "SELECT strftime('%s', '" + sTime2 + "');";
-    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    sql = SqlPrepareQueryObject(GetModule(), "SELECT strftime('%s', '" + sTime2 + "');");
     SqlStep(sql);
 
     int nTime2 = SqlGetInt(sql, 0);
@@ -291,10 +274,7 @@ int GetGreaterUnixTimeStamp(int nTime1, int nTime2 = 0)
     if (nTime2 == 0)
         nTime2 = GetUnixTimeStamp();
 
-    if (nTime1 == nTime2 || nTime1 > nTime2)
-        return nTime1;
-    else
-        return nTime2;
+    return (nTime1 >= nTime2) ? nTime1 : nTime2;
 }
 
 int GetModifiedUnixTimeStamp(int nTimeStamp, string sTimeVector)
@@ -379,8 +359,7 @@ string QuestToString(int nQuestID)
 
 int GetQuestID(string sQuestTag)
 {
-    sQuery = "SELECT id FROM quest_quests WHERE sTag = @sQuestTag;";
-    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    sql = SqlPrepareQueryObject(GetModule(), "SELECT id FROM quest_quests WHERE sTag = @sQuestTag;");
     SqlBindString(sql, "@sQuestTag", sQuestTag);
 
     return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
