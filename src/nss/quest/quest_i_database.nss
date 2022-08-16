@@ -846,6 +846,11 @@ int GetIsPCQuestComplete(object oPC, string sQuestTag)
     //return SqlStep(sql) ? SqlGetInt(sql, 0) == 0 : FALSE;
 }
 
+int GetPCHasQuestAssigned(object oPC, string sQuestTag)
+{
+    return GetPCHasQuest(oPC, sQuestTag) && !GetIsPCQuestComplete(oPC, sQuestTag);
+}
+
 int GetPCQuestCompletions(object oPC, string sQuestTag)
 {
     sQuery = "SELECT nCompletions FROM quest_pc_data " +
