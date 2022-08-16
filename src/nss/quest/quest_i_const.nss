@@ -10,7 +10,7 @@
 // -----------------------------------------------------------------------------
 
 // Versioning
-const string QUEST_SYSTEM_VERSION = "1.2.0";
+const string QUEST_SYSTEM_VERSION = "1.2.1";
 
 // Variable names for event scripts
 const string QUEST_CURRENT_QUEST = "QUEST_CURRENT_QUEST";

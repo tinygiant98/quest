@@ -56,7 +56,7 @@ void DefineRandomDiscoveryQuest()
     //         Find and enter quest_trigger_3
     
     AddQuest("quest_discovery_random");
-    SetQuestTitle("Random Discovery (NWNX)");
+    SetQuestTitle("Random Discovery");
     SetQuestPrerequisiteLevelMin(1);
     SetQuestPrerequisiteLevelMax(3);
     SetQuestPrerequisiteGold(500, LESS_THAN_OR_EQUAL_TO);
@@ -64,33 +64,35 @@ void DefineRandomDiscoveryQuest()
     SetQuestVersion(1);
     SetQuestVersionActionDelete();
     //DeleteQuestJournalEntriesOnCompletion();
-    SetQuestJournalHandler(QUEST_JOURNAL_NWNX);
+    SetQuestJournalHandler(QUEST_JOURNAL_NWN);
 
     SetQuestScripts();
     
     AddQuestStep();
-    SetQuestStepJournalEntry("Please find the triggers randomly! (NWNX)");
-    SetQuestStepPrewardMessage("You've been assigned the Random Discovery Quest.");
-    
-    SetQuestStepObjectiveDiscover("quest_trigger_2");
-    SetQuestStepObjectiveDescriptor("Quest Discovery Trigger 2");
-    SetQuestStepObjectiveDescription("and skip around it");
-    SetQuestStepObjectiveFeedback("You've found Trigger #2, Great Job!");
-    
-    SetQuestStepObjectiveDiscover("quest_trigger_3");
-    SetQuestStepObjectiveDescriptor("Quest Discovery Trigger 3");
+        SetQuestStepJournalEntry("Please find the triggers randomly!");
+        SetQuestStepPrewardMessage("You've been assigned the Random Discovery Quest.");
+        
+        SetQuestStepObjectiveDiscover("quest_trigger_2");
+        SetQuestStepObjectiveDescriptor("Quest Discovery Trigger 2");
+        SetQuestStepObjectiveDescription("and skip around it");
+        //SetQuestStepObjectiveFeedback("You've found Trigger #2, Great Job!");
+        
+        SetQuestStepObjectiveDiscover("quest_trigger_3");
+        SetQuestStepObjectiveDescriptor("Quest Discovery Trigger 3");
+        SetQuestStepObjectiveFeedback("<quest_title> <acquired>/<required> waypoints found");
 
-    SetQuestStepObjectiveDiscover("quest_trigger_1");
-    SetQuestStepObjectiveDescriptor("Quest Discovery Trigger 1");
-    
-    //SetQuestStepObjectiveRandom(2);
-    //SetQuestStepObjectiveMinimum(1);
+        SetQuestStepObjectiveDiscover("quest_trigger_1");
+        SetQuestStepObjectiveDescriptor("Quest Discovery Trigger 1");
+        SetQuestStepObjectiveFeedback("<quest_title> <acquired>/<required> waypoints found");
+
+        SetQuestStepObjectiveRandom(3);
+        SetQuestStepObjectiveMinimum(2);
 
     AddQuestResolutionSuccess();
-    SetQuestStepJournalEntry("Yay, you did it! (NWNX)");
-    SetQuestStepRewardMessage("Congratulations, you've completed the Random Discovery sample quest");
-    SetQuestStepRewardGold(50);
-    SetQuestStepRewardXP(50);
+        SetQuestStepJournalEntry("Yay, you did it!");
+        SetQuestStepRewardMessage("Congratulations, you've completed the Random Discovery sample quest");
+        SetQuestStepRewardGold(50);
+        SetQuestStepRewardXP(50);
 }
 
 void DefineOrderedKillQuest()
@@ -112,7 +114,7 @@ void DefineOrderedKillQuest()
 
     AddQuestStep();
     SetQuestStepPrewardMessage("There's a mighty horde of goblin over there.  You do you.");
-    SetQuestStepObjectiveKill("nw_goblina", 5);
+    SetQuestStepObjectiveKill("nw_goblina", 2, 5);
     SetQuestStepObjectiveFeedback("<quest_title> <acquired>/<required> goofy goblins destroyed // <myteststring>");
     
     AddQuestStep();
@@ -140,23 +142,23 @@ void DefineRandomKillQuest()
     //         Kill a single bat
 
     AddQuest("quest_kill_random");
-    SetQuestPrerequisiteLevelMin(1);
-    SetQuestPrerequisiteLevelMax(5);
-    SetQuestPrerequisiteQuest("quest_discovery_random", -1);
+        SetQuestPrerequisiteLevelMin(1);
+        SetQuestPrerequisiteLevelMax(5);
+        SetQuestPrerequisiteQuest("quest_discovery_random", -1);
 
     SetQuestScripts();
 
     AddQuestStep();
-    SetQuestStepPrewardMessage("Help, rodents!");
-    SetQuestStepObjectiveKill("nw_goblina", 1);
-    SetQuestStepObjectiveKill("nw_rat001", 1);
-    SetQuestStepObjectiveKill("nw_bat", 1);
+        SetQuestStepPrewardMessage("Help, rodents!");
+        SetQuestStepObjectiveKill("nw_goblina", 1);
+        SetQuestStepObjectiveKill("nw_rat001", 1);
+        SetQuestStepObjectiveKill("nw_bat", 1);
 
     AddQuestResolutionSuccess();
-    SetQuestStepRewardMessage("Thank you so much adventurer.  I don't know how we would survive without you.");
-    SetQuestStepRewardGold(50);
-    SetQuestStepRewardXP(50);
-    SetQuestStepRewardAlignment(ALIGNMENT_GOOD, 20);
+        SetQuestStepRewardMessage("Thank you so much adventurer.  I don't know how we would survive without you.");
+        SetQuestStepRewardGold(50);
+        SetQuestStepRewardXP(50);
+        SetQuestStepRewardAlignment(ALIGNMENT_GOOD, 20);
 }
 
 void DefineProtectKillQuest()

@@ -20,7 +20,7 @@
 /*
     The following prototype are listed separately from the primary quest system
     prototypes because they are database-related direct-access functions.  These
-    functions are avaialable for general use by including quest_i_database.
+    functions are available for general use by including quest_i_database.
 */
 
 // ---< CreateModuleQuestTables >---
@@ -559,44 +559,52 @@ int AddQuestResolutionFail(int nStep = -1);
 // the PC's party, if PartyCompletable) to kill at least that number of targets.  If
 // nQuantity is set to zero, this objective is considered a PROTECTION objective and the
 // quest will fail if the target is killed (by any method) before the quest step is
-// complete.  Not meant for use outside the quest definition process.
-void SetQuestStepObjectiveKill(string sTargetTag, int nQuantity = 1);
+// complete.  Set nMax to a number greater than nQuantity to create a range from which
+// a quantity will be selected upon quest assignment.  For PROTECTION quests where
+// nQuantity = 0, set nMax to a negative number denoting how many of sTargetTag can be
+// killed before the quest is considered failed.  Not meant for use outside the 
+// quest definition process.
+void SetQuestStepObjectiveKill(string sTargetTag, int nQuantity = 1, int nMax = 0);
 
 // ---< SetQuestStepObjectiveGather >---
 // Assign a GATHER objective to the active step of the quest currently being defined.  The
 // target is identified by sTargetTag and the quantity to fulfill the step requirements
 // is nQuantity.  Setting nQuantity to a number greater than zero requires the PC (or
 // the PC's party, if PartyCompletable) to collect at least that number of targets.  If
-// nQuantity is set to zero, this objective is ignored.  Not meant for use outside 
-// the quest definition process.
-void SetQuestStepObjectiveGather(string sTargetTag, int nQuantity = 1);
+// nQuantity is set to zero, this objective is ignored.  Set nMax to a number greater than
+// nQuantity to create a range from which a quantity will be selected upon quest
+// assignment.  Not meant for use outside the quest definition process.
+void SetQuestStepObjectiveGather(string sTargetTag, int nQuantity = 1, int nMax = 0);
 
 // ---< SetQuestStepObjectiveDeliver >---
 // Assign a DELIVER objective to the active step of the quest currently being defined.  This
 // objective requires the PC (or party members) to deliver nQuantity sItemTags to sTargetTag
 // to fulfill the step requirements.  Setting nQuantity to a number greater than zero requires
 // the PC (or the PC's party, if PartyCompletable) to deliver at least that number of targets.  If
-// nQuantity is set to zero, this objective is ignored.  Not meant for use outside 
-// the quest definition process.
-void SetQuestStepObjectiveDeliver(string sTargetTag, string sItemTag, int nQuantity = 1);
+// nQuantity is set to zero, this objective is ignored.  Set nMax to a number greater than
+// nQuantity to create a range from which a quantity will be selected upon quest
+// assignment.  Not meant for use outside the quest definition process.
+void SetQuestStepObjectiveDeliver(string sTargetTag, string sItemTag, int nQuantity = 1, int nMax = 0);
 
 // ---< SetQuestStepObjectiveDiscover >---
 // Assign a DISCOVER objective to the active step of the quest currently being defined.  This
 // objective requires the PC (or party members) to find nQuantity sTargetTags
 // to fulfill the step requirements.  Setting nQuantity to a number greater than zero requires
 // the PC (or the PC's party, if PartyCompletable) to deliver at least that number of targets.  If
-// nQuantity is set to zero, this objective is ignored.  Not meant for use outside 
-// the quest definition process.
-void SetQuestStepObjectiveDiscover(string sTargetTag, int nQuantity = 1);
+// nQuantity is set to zero, this objective is ignored.  Set nMax to a number greater than
+// nQuantity to create a range from which a quantity will be selected upon quest
+// assignment.  Not meant for use outside the quest definition process.
+void SetQuestStepObjectiveDiscover(string sTargetTag, int nQuantity = 1, int nMax = 0);
 
 // ---< SetQuestStepObjectiveSpeak >---
 // Assign a SPEAK objective to the active step of the quest currently being defined.  This
 // objective requires the PC (or party members) to speak to nQuantity sTargetTags
 // to fulfill the step requirements.  Setting nQuantity to a number greater than zero requires
 // the PC (or the PC's party, if PartyCompletable) to deliver at least that number of targets.  If
-// nQuantity is set to zero, this objective is ignored.  Not meant for use outside 
-// the quest definition process.
-void SetQuestStepObjectiveSpeak(string sTargetTag, int nQuantity = 1);
+// nQuantity is set to zero, this objective is ignored.  Set nMax to a number greater than
+// nQuantity to create a range from which a quantity will be selected upon quest
+// assignment. Not meant for use outside the quest definition process.
+void SetQuestStepObjectiveSpeak(string sTargetTag, int nQuantity = 1, int nMax = 0);
 
 // ---< SetQuestStepPrewardAlignment >---
 // Provides a preward allotment for the assigned PC when the active step of the quest
@@ -1256,7 +1264,8 @@ int _GetIsPropertyStackable(int nPropertyType)
         return TRUE;
 }
 
-void _SetQuestStepProperty(int nCategoryType, int nValueType, string sKey, string sValue, string sData = "", int bParty = FALSE)
+void _SetQuestStepProperty(int nCategoryType, int nValueType, string sKey, string sValue,
+                           string sValueMax = "", string sData = "", int bParty = FALSE)
 {
     int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
     int nStep = GetLocalInt(GetModule(), QUEST_BUILD_STEP);
@@ -1268,14 +1277,15 @@ void _SetQuestStepProperty(int nCategoryType, int nValueType, string sKey, strin
     }
 
     string sQuery = "INSERT INTO quest_step_properties " +
-                        "(quest_steps_id, nCategoryType, nValueType, sKey, sValue, sData, bParty) " +
-                    "VALUES (@step_id, @category, @type, @key, @value, @data, @party);";
+                        "(quest_steps_id, nCategoryType, nValueType, sKey, sValue, sValueMax, sData, bParty) " +
+                    "VALUES (@step_id, @category, @type, @key, @value, @max, @data, @party);";
     sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
     SqlBindInt(sql, "@step_id", GetQuestStepID(nQuestID, nStep));
     SqlBindInt(sql, "@type", nValueType);
     SqlBindInt(sql, "@category", nCategoryType);
     SqlBindString(sql, "@key", sKey);
     SqlBindString(sql, "@value", sValue);
+    SqlBindString(sql, "@max", sValueMax);
     SqlBindString(sql, "@data", sData);
     SqlBindInt(sql, "@party", bParty);
 
@@ -1294,24 +1304,21 @@ void _SetQuestStepProperty(int nCategoryType, int nValueType, string sKey, strin
 }
 
 // Private accessor for setting quest step objectives
-void _SetQuestObjective(int nValueType, string sKey, string sValue, string sData = "")
+void _SetQuestObjective(int nValueType, string sKey, string sValue, string sValueMax, string sData = "")
 {
-    int nCategoryType = QUEST_CATEGORY_OBJECTIVE;
-    _SetQuestStepProperty(nCategoryType, nValueType, sKey, sValue, sData);
+    _SetQuestStepProperty(QUEST_CATEGORY_OBJECTIVE, nValueType, sKey, sValue, sValueMax, sData);
 }
 
 // Private accessor for setting quest step prewards
 void _SetQuestPreward(int nValueType, string sKey, string sValue, int bParty = FALSE)
 {
-    int nCategoryType = QUEST_CATEGORY_PREWARD;
-    _SetQuestStepProperty(nCategoryType, nValueType, sKey, sValue, "", bParty);
+    _SetQuestStepProperty(QUEST_CATEGORY_PREWARD, nValueType, sKey, sValue, "0", "", bParty);
 }
 
 // Private accessor for setting quest step rewards
 void _SetQuestReward(int nValueType, string sKey, string sValue, int bParty = FALSE)
 {
-    int nCategoryType = QUEST_CATEGORY_REWARD;
-    _SetQuestStepProperty(nCategoryType, nValueType, sKey, sValue, "", bParty);
+    _SetQuestStepProperty(QUEST_CATEGORY_REWARD, nValueType, sKey, sValue, "0", "", bParty);
 }
 
 void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUCCESS);
@@ -2770,7 +2777,11 @@ void CopyQuestStepObjectiveData(object oPC, int nQuestID, int nStep)
         int nObjectiveType = SqlGetInt(sqlStepData, 1);
         string sTag = SqlGetString(sqlStepData, 2);
         int nQuantity = SqlGetInt(sqlStepData, 3);
-        string sData = SqlGetString(sqlStepData, 4);
+        int nQuantityMax = SqlGetInt(sqlStepData, 4);
+        string sData = SqlGetString(sqlStepData, 5);
+
+        if (nQuantity > 0 && nQuantityMax > nQuantity)
+            nQuantity += Random(nQuantityMax - nQuantity);
 
         AddQuestStepObjectiveData(oPC, nQuestID, nObjectiveType, sTag, nQuantity, nObjectiveID, sData);
 
@@ -2949,8 +2960,9 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
                     if (nValueType == QUEST_OBJECTIVE_GATHER)
                     {
                         string sItemTag = SqlGetString(sObjectiveData, 1);
-                        int nQuantity = SqlGetInt(sObjectiveData, 2);
-                        string sData = SqlGetString(sObjectiveData, 3);
+                        //int nQuantity = SqlGetInt(sObjectiveData, 2);
+                        //int nQuantityMax = SqlGetInt(sObjectiveData, 3);
+                        string sData = SqlGetString(sObjectiveData, 4);
                         int bParty = GetQuestStepPartyCompletion(sQuestTag, nNextStep);
                         int n, nPCCount = GetPCItemCount(oPC, sItemTag, bParty);
 
@@ -3171,6 +3183,7 @@ int SignalQuestStepProgress(object oPC, string sTargetTag, int nObjectiveType, s
                    
             if (nAcquired <= nRequired && nObjectiveID != 0)
             {
+                Debug("---------nRequired = " + IntToString(nRequired));
                 string sMessage = GetQuestStepObjectiveFeedback(nQuestID, nObjectiveID);
                 if (sMessage != "")
                 {
@@ -3829,39 +3842,44 @@ void SetQuestStepFeedback(string sFeedback)
     string s;
 }
 
-void SetQuestStepObjectiveKill(string sTargetTag, int nValue = 1)
+void SetQuestStepObjectiveKill(string sTargetTag, int nValue = 1, int nMax = 0)
 {
     string sKey = sTargetTag;
     string sValue = IntToString(nValue);
-    _SetQuestObjective(QUEST_OBJECTIVE_KILL, sKey, sValue);
+    string sMax = IntToString(nMax);
+    _SetQuestObjective(QUEST_OBJECTIVE_KILL, sKey, sValue, sMax);
 }
 
-void SetQuestStepObjectiveGather(string sTargetTag, int nValue = 1)
+void SetQuestStepObjectiveGather(string sTargetTag, int nValue = 1, int nMax = 0)
 {
     string sKey = sTargetTag;
     string sValue = IntToString(nValue);
-    _SetQuestObjective(QUEST_OBJECTIVE_GATHER, sKey, sValue);
+    string sMax = IntToString(nMax);
+    _SetQuestObjective(QUEST_OBJECTIVE_GATHER, sKey, sValue, sMax);
 }
 
-void SetQuestStepObjectiveDeliver(string sTargetTag, string sData, int nValue)
+void SetQuestStepObjectiveDeliver(string sTargetTag, string sData, int nValue, int nMax = 0)
 {
     string sKey = sTargetTag;
     string sValue = IntToString(nValue);
-    _SetQuestObjective(QUEST_OBJECTIVE_DELIVER, sKey, sValue, sData);
+    string sMax = IntToString(nMax);
+    _SetQuestObjective(QUEST_OBJECTIVE_DELIVER, sKey, sValue, sMax, sData);
 }
 
-void SetQuestStepObjectiveDiscover(string sTargetTag, int nValue = 1)
+void SetQuestStepObjectiveDiscover(string sTargetTag, int nValue = 1, int nMax = 0)
 {
     string sKey = sTargetTag;
     string sValue = IntToString(nValue);
-    _SetQuestObjective(QUEST_OBJECTIVE_DISCOVER, sKey, sValue);
+    string sMax = IntToString(nMax);
+    _SetQuestObjective(QUEST_OBJECTIVE_DISCOVER, sKey, sValue, sMax);
 }
 
-void SetQuestStepObjectiveSpeak(string sTargetTag, int nValue = 1)
+void SetQuestStepObjectiveSpeak(string sTargetTag, int nValue = 1, int nMax = 0)
 {
     string sKey = sTargetTag;
     string sValue = IntToString(nValue);
-    _SetQuestObjective(QUEST_OBJECTIVE_SPEAK, sKey, sValue);
+    string sMax = IntToString(nMax);
+    _SetQuestObjective(QUEST_OBJECTIVE_SPEAK, sKey, sValue, sMax);
 }
 
 void SetQuestStepPrewardAlignment(int nAlignmentAxis, int nValue, int bParty = FALSE)

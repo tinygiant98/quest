@@ -278,7 +278,7 @@ string ValueTypeToString(int nValueType, int nCategoryType = QUEST_CATEGORY_PRER
 
 string GetPrefix()
 {
-    return HexColorString("(quest) ", COLOR_GOLD);
+    return HexColorString("[quest] ", COLOR_GOLD);
 }
 
 void QuestDebug(string sMessage)
@@ -386,11 +386,13 @@ string VersionActionToString(int nQuestVersionAction)
     return "[NOT FOUND]";
 }
 
-string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, string sValue, string sData, int bParty)
+string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, string sValue, 
+                              string sValueMax, string sData, int bParty)
 {
     string sIndent = "            ";
     string sDelimiter = HexColorString(" | ", COLOR_GRAY);
-    int nValue;
+    int nValue = StringToInt(sValue);
+    int nValueMax = StringToInt(sValueMax);
 
     string sCategory = HexColorString(CategoryTypeToString(nCategoryType), COLOR_GREEN_LIGHT);
     string sValueType = ColorValue(ValueTypeToString(nValueType, nCategoryType));
@@ -401,13 +403,13 @@ string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, st
         {
             case QUEST_VALUE_ALIGNMENT:
                 sKey = AlignmentAxisToString(StringToInt(sKey));
-                nValue = StringToInt(sValue);
+                //nValue = StringToInt(sValue);
                 if (nValue == 0)
                     sValue = "Any";
                 break;
             case QUEST_VALUE_CLASS:
                 sKey = ClassToString(StringToInt(sKey));
-                nValue = StringToInt(sValue);
+                //nValue = StringToInt(sValue);
                 if (nValue == -1)
                     sValue = "Any";
                 else if (nValue == 0)
@@ -417,7 +419,7 @@ string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, st
                 break;
             case QUEST_VALUE_RACE:
                 sKey = RaceToString(StringToInt(sKey));
-                nValue = StringToInt(sValue);
+                //nValue = StringToInt(sValue);
                 if (nValue == 1)
                     sValue = "Included";
                 else
@@ -453,6 +455,9 @@ string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, st
 
     if (sValue == "")
         sValue = IntToString(nValue);
+
+    if (nValue > 0 && nValueMax > nValue)
+        sValue += " -> " + sValueMax;
 
     sValue = ColorValue(sValue);
 
@@ -560,9 +565,9 @@ string TimeVectorToString(string sTimeVector)
 
 string _GetQuestTag(int nQuestID)
 {
-    sQuery = "SELECT sTag FROM quest_quests " +
+    string sQuery = "SELECT sTag FROM quest_quests " +
              "WHERE id = @id;";
-    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
     SqlBindInt(sql, "@id", nQuestID);
 
     return (SqlStep(sql) ? SqlGetString(sql, 0) : "");

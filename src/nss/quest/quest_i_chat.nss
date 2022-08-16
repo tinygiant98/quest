@@ -370,9 +370,11 @@ void main()
                             int nValueType = SqlGetInt(sqlNew, ++n);
                             string sKey = SqlGetString(sqlNew, ++n);
                             string sValue = SqlGetString(sqlNew, ++n);
+                            string sValueMax = SqlGetString(sqlNew, ++n);
                             string sData = SqlGetString(sqlNew, ++n);
                             int bParty = SqlGetInt(sqlNew, ++n);
-                            Notice(TranslateCategoryValue(nCategoryType, nValueType, sKey, sValue, sData, bParty));
+
+                            Notice(TranslateCategoryValue(nCategoryType, nValueType, sKey, sValue, sValueMax, sData, bParty));
                         }
                     }       
                 }

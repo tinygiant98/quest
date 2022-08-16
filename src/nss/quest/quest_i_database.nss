@@ -83,6 +83,7 @@ void CreateModuleQuestTables(int bReset = FALSE)
                         "nValueType INTEGER NOT NULL, " +
                         "sKey TEXT NOT NULL COLLATE NOCASE, " +
                         "sValue INTEGER default '', " +
+                        "sValueMax INTEGER default '', " +
                         "sData TEXT default '', " +
                         "bParty INTEGER default '0', " +
                         "FOREIGN KEY (quest_steps_id) REFERENCES quest_steps (id) " +
@@ -551,7 +552,6 @@ int CountQuestPrerequisites(string sQuestTag)
 
     HandleSqlDebugging(sql);
     return nCount;
-    //return SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
 }
 
 sqlquery GetQuestData(int nQuestID)
@@ -707,6 +707,7 @@ sqlquery GetQuestStepObjectiveData(int nQuestID, int nStep)
                     "quest_step_properties.nValueType, " +
                     "quest_step_properties.sKey, " +
                     "quest_step_properties.sValue, " +
+                    "quest_step_properties.sValueMax, " +
                     "quest_step_properties.sData " +
              "FROM quest_steps INNER JOIN quest_step_properties " +
                 "ON quest_steps.id = quest_step_properties.quest_steps_id " +
@@ -727,6 +728,7 @@ sqlquery GetRandomQuestStepObjectiveData(int nQuestID, int nStep, int nRecords)
                     "quest_step_properties.nValueType, " +
                     "quest_step_properties.sKey, " +
                     "quest_step_properties.sValue, " +
+                    "quest_step_properties.sValueMax, " +
                     "quest_step_properties.sData " +
              "FROM quest_steps INNER JOIN quest_step_properties " +
                 "ON quest_steps.id = quest_step_properties.quest_steps_id " +
