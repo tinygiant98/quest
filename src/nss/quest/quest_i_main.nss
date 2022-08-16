@@ -3183,7 +3183,6 @@ int SignalQuestStepProgress(object oPC, string sTargetTag, int nObjectiveType, s
                    
             if (nAcquired <= nRequired && nObjectiveID != 0)
             {
-                Debug("---------nRequired = " + IntToString(nRequired));
                 string sMessage = GetQuestStepObjectiveFeedback(nQuestID, nObjectiveID);
                 if (sMessage != "")
                 {

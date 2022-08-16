@@ -1135,7 +1135,7 @@ sqlquery GetQuestStepSumsFailure(object oPC, int nQuestID)
     sQuery = "SELECT quest_tag, SUM(nRequired), SUM(nAcquired) " +
              "FROM quest_pc_step " +
              "WHERE quest_tag = @tag " +
-                "AND nRequired = @zero " +
+                "AND nRequired <= @zero " +
              "GROUP BY quest_tag;";
     sql = SqlPrepareQueryObject(oPC, sQuery);
     SqlBindString(sql, "@tag", sQuestTag);
