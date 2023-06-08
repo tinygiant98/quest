@@ -1994,7 +1994,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                     bAssignable = TRUE;
                 else
                 {
-                    QuestError(PCToString(oPC) + " has completed " + QuestToString(nQuestID) + 
+                    QuestDebug(PCToString(oPC) + " has completed " + QuestToString(nQuestID) + 
                         " successfully the maximum number of times; quest cannot be re-assigned" +
                         "\n  PC Quest Completion Count -> " + ColorValue(IntToString(nCompletions)) +
                         "\n  Quest Repetitions Setting -> " + ColorValue(IntToString(nReps)));

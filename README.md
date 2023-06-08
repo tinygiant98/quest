@@ -6,6 +6,10 @@ Although primarily authored by tinygiant, this system has been influenced by man
 
 >*** WARNING *** This documentation is still a work-in-progress.  If anything in this documentation doesn't work the way you expect, refer to the code or find me on the Neverwinter Vault Discord...
 
+## Changelog
+*** 1.2.3 ***
+- Minor change to quiet down the debugging output.
+
 ## Table of Contents
 * [System Description](#description)
 * [Usage Notes](#usage-notes)
