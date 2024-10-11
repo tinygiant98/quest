@@ -80,4 +80,10 @@ void main()
         StripTriggerEvents(GetObjectByTag("quest_trigger_2"));
         StripTriggerEvents(GetObjectByTag("quest_trigger_3"));
     }
+    else if (sCurrentQuest == "quest_protect_only")
+    {
+        object oProtect = CreateObject(OBJECT_TYPE_CREATURE, "nw_oldman", GetLocation(oPC));
+        SetEventScript(oProtect, EVENT_SCRIPT_CREATURE_ON_DEATH, "hook_creature05");
+        SetLocalObject(oProtect, "QUEST_PROTECTOR", oPC);
+    }
 }

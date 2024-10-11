@@ -284,6 +284,30 @@ void DefineDeliveryQuest()
     SetQuestStepRewardGold(15);
 }
 
+void DefineProtectOnlyQuest()
+{
+    AddQuest("quest_protect_only");
+        //SetQuestPrerequisiteLevelMin(3);
+        //SetQuestPrerequisiteLevelMax(5);
+        //SetQuestPrerequisiteAlignment(ALIGNMENT_GOOD, TRUE);
+
+    SetQuestScripts();
+
+    AddQuestStep();
+        SetQuestStepPrewardMessage("Protect the Old Man!");
+        SetQuestStepObjectiveSpeak("nw_oldman");
+        SetQuestStepObjectiveKill("nw_oldman", 0);
+
+    AddQuestResolutionSuccess();
+        SetQuestStepRewardMessage("Yay!  You protected the Old Man!");
+        SetQuestStepRewardGold(250);
+        SetQuestStepRewardXP(1500);
+        SetQuestStepRewardAlignment(ALIGNMENT_GOOD, 20);
+
+    AddQuestResolutionFail();
+        SetQuestStepRewardMessage("Boo!  The Old Man is dead!");
+}
+
 void main()
 {
     DefineOrderedDiscoveryQuest();
@@ -295,4 +319,5 @@ void main()
     DefineOrderedGatherQuest();
     DefineRandomGatherQuest();
     DefineDeliveryQuest();
+    DefineProtectOnlyQuest();
 }

@@ -3338,7 +3338,7 @@ string EvalQuestTokens(string sString, object oPC, string sQuestTag, int nAcquir
 string CreateTimeVector(int nYears = 0, int nMonths = 0, int nDays = 0,
                         int nHours = 0, int nMinutes = 0, int nSeconds = 0)
 {
-    string sResult = AddListItem(sResult, IntToString(nYears));
+    string sResult = AddListItem(""     , IntToString(nYears));
            sResult = AddListItem(sResult, IntToString(nMonths));
            sResult = AddListItem(sResult, IntToString(nDays));
            sResult = AddListItem(sResult, IntToString(nHours));
@@ -3930,8 +3930,8 @@ void SetQuestStepPrewardVariableInt(string sVarName, string sOperator, int nValu
 void SetQuestStepPrewardVariableString(string sVarName, string sOperator, string sValue, int bParty = FALSE)
 {
     string sKey = "STRING:" + sVarName;
-    string sValue = sOperator + ":" + sValue;
-    _SetQuestPreward(QUEST_VALUE_VARIABLE, sKey, sValue, bParty);
+    string sKVP = sOperator + ":" + sValue;
+    _SetQuestPreward(QUEST_VALUE_VARIABLE, sKey, sKVP, bParty);
 }
 
 void SetQuestStepRewardAlignment(int nAlignmentAxis, int nValue, int bParty = FALSE)
@@ -3990,8 +3990,8 @@ void SetQuestStepRewardVariableInt(string sVarName, string sOperator, int nValue
 void SetQuestStepRewardVariableString(string sVarName, string sOperator, string sValue, int bParty = FALSE)
 {
     string sKey = "STRING:" + sVarName;
-    string sValue = sOperator + ":" + sValue;
-    _SetQuestReward(QUEST_VALUE_VARIABLE, sKey, sValue, bParty);
+    string sKVP = sOperator + ":" + sValue;
+    _SetQuestReward(QUEST_VALUE_VARIABLE, sKey, sKVP, bParty);
 }
 
 int AddQuestResolutionSuccess(int nStep = -1)

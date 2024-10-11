@@ -61,6 +61,11 @@ void main()
         DisplayPCQuestData(oPC, oPC);
     }
 
+    if (HasChatOption(oPC, "test"))
+    {
+        SignalQuestStepProgress(oPC, "nw_oldman", QUEST_OBJECTIVE_SPEAK);
+    }
+
     if (HasChatOption(oPC, "load"))
         ExecuteScript("quest_define", GetModule());
 

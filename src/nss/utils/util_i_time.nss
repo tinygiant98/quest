@@ -1208,7 +1208,7 @@ string FormatUnixTimestamp(int nSeconds, string sFormat = DEFAULT_FORMAT,
     int nMinutes = (nSeconds/60) % 60;
     int nSecs = nSeconds % 60;
 
-    string sTime = AddListItem(sTime, IntToString(nYear));
+    string sTime = AddListItem("", IntToString(nYear));
     sTime = AddListItem(sTime, IntToString(nMonth + 1));
     sTime = AddListItem(sTime, IntToString(nTempDays));
     sTime = AddListItem(sTime, IntToString(nHours));

@@ -185,6 +185,7 @@ const string KILL_PAGE_ORDER  = "Kill_Page_Order";
 const string KILL_PAGE_RANDOM = "Kill_Page_Random";
 const string KILL_PAGE_PROTECT = "Kill_Page_Protect";
 const string KILL_PAGE_TIMED = "Kill_Page_Timed";
+const string KILL_PAGE_PROTECTONLY = "Kill_Page_ProtectOnly";
 
 void KillDialog()
 {
@@ -193,21 +194,25 @@ void KillDialog()
     string sRandom = "quest_kill_random";
     string sProtect = "quest_kill_protect";
     string sTimed = "quest_kill_timed";
+    string sProtectOnly = "quest_protect_only";
 
     int nOrderedID = GetQuestID(sOrdered);
     int nRandomID = GetQuestID(sRandom);
     int nProtectID = GetQuestID(sProtect);
     int nTimedID = GetQuestID(sTimed);
+    int nProtectOnly = GetQuestID(sProtectOnly);
 
     int bHasOrdered = GetPCHasQuest(oPC, sOrdered);
     int bHasRandom = GetPCHasQuest(oPC, sRandom);
     int bHasProtect = GetPCHasQuest(oPC, sProtect);
     int bHasTimed = GetPCHasQuest(oPC, sTimed);
+    int bHasProtectOnly = GetPCHasQuest(oPC, sProtectOnly);
 
     int bOrderedComplete = bHasOrdered ? GetIsPCQuestComplete(oPC, sOrdered) : FALSE;
     int bRandomComplete = bHasRandom ? GetIsPCQuestComplete(oPC, sRandom) : FALSE;
     int bProtectComplete = bHasProtect ? GetIsPCQuestComplete(oPC, sProtect) : FALSE;
     int bTimedComplete = bHasTimed ? GetIsPCQuestComplete(oPC, sTimed) : FALSE;
+    int bProtectOnlyComplete = bHasProtectOnly ? GetIsPCQuestComplete(oPC, sProtectOnly) : FALSE;
     int bReset;
 
     switch (GetDialogEvent())
@@ -220,11 +225,13 @@ void KillDialog()
             AddDialogToken("random");
             AddDialogToken("protect");
             AddDialogToken("timed");
+            AddDialogToken("protect-only");
 
             CacheDialogToken("sequential", CacheColoredToken("Sequential Order"));
             CacheDialogToken("random", CacheColoredToken("Random Order"));
             CacheDialogToken("protect", CacheColoredToken("NPC Protection"));
             CacheDialogToken("timed", CacheColoredToken("Timed Random Order"));
+            CacheDialogToken("protect-only", CacheColoredToken("Protect Only"));
 
             EnableDialogBack();
             EnableDialogEnd();
@@ -238,6 +245,7 @@ void KillDialog()
             AddDialogNode(KILL_PAGE_MAIN, KILL_PAGE_RANDOM, "<random> Kill Quest");
             AddDialogNode(KILL_PAGE_MAIN, KILL_PAGE_PROTECT, "<protect> Quest");
             AddDialogNode(KILL_PAGE_MAIN, KILL_PAGE_TIMED, "<timed> Kill Quest");
+            AddDialogNode(KILL_PAGE_MAIN, KILL_PAGE_PROTECTONLY, "<protect-only> Quest");
             AddDialogNode(KILL_PAGE_MAIN, KILL_PAGE_MAIN, HexColorString("Reset All Kill Quests Progress", COLOR_RED_LIGHT), "reset");
             DisableDialogNode(DLG_NODE_BACK, KILL_PAGE_MAIN);
 
@@ -250,14 +258,14 @@ void KillDialog()
                 "a goblin.");
             sPage = AddDialogPage(KILL_PAGE_ORDER, "This quest also demonstrates the use of \"Message Prewards\", " +
                 "so look for the cyan-colored messages in your chat window for information the current quest step.");
-            AddDialogNode(sPage, "", "Assign <sequential> Discovery Quest", "ordered");
+            AddDialogNode(sPage, "", "Assign <sequential> Quest", "ordered");
 
             AddDialogPage(KILL_PAGE_RANDOM, "This quest requires that you kill a goblin, a rat and a bat, which will " +
                 "appear at three different locations in the enclosure behind this sign. The purpose of this quest is " +
                 "to demonstrate fulfilling quest requirement for kill creatures in a random order.");
             sPage = AddDialogPage(KILL_PAGE_RANDOM, "If the creatures get out of control, return to this sign and the " +
                 "they will go to the great beyond.  The quest will complete after you kill all three creatures.");
-            AddDialogNode(sPage, "", "Assign <random> Discovery Quest", "random");
+            AddDialogNode(sPage, "", "Assign <random> Quest", "random");
 
             AddDialogPage(KILL_PAGE_PROTECT, "This quest requires that you protect the Old Man that will appear at a " +
                 "waypoint behind this sign.  What's more noble that protecting the elderly?  The purpose of this quest " +
@@ -266,7 +274,7 @@ void KillDialog()
                 "the number of creatures you kill doesn't matter as long as the Old Man remains alive.  Additionally, " +
                 "this quest is designed to demonstrate quest failures and the separate rewards that can be provided, so " +
                 "don't feel too bad if the Old Man dies.");
-            AddDialogNode(sPage, "", "Assign <protect> Discovery Quest", "protect");
+            AddDialogNode(sPage, "", "Assign <protect> Quest", "protect");
 
             AddDialogPage(KILL_PAGE_TIMED, "This quest requires that you kill multiple target creatures, in a random " +
                 "order, but within a specified time.  In this case, you'll have to kill at least three goblins that will " +
@@ -274,7 +282,13 @@ void KillDialog()
                 "this task.");
             sPage = AddDialogPage(KILL_PAGE_TIMED, "In addition to demonstrating timing requirements, this quest also " +
                 "demonstrates differing rewards between successfully completing a quest and failing a quest.");
-            AddDialogNode(sPage, "", "Assign <timed> Discovery Quest", "timed");
+            AddDialogNode(sPage, "", "Assign <timed> Quest", "timed");
+
+            AddDialogPage(KILL_PAGE_PROTECTONLY, "This quest is the test setup for a protect-only quest.");
+            sPage = AddDialogPage(KILL_PAGE_PROTECTONLY, "This quest assigns a single step with no other associated " +
+                "steps to test whether assigning a protection quest with no other associated objectives will mark " +
+                "the quest as complete.");
+            AddDialogNode(sPage, "", "Assign <protect-only> Quest", "protect-only");
         } break;
 
         case DLG_EVENT_PAGE:
@@ -308,8 +322,14 @@ void KillDialog()
                     FilterDialogNodes(3);
                 }
 
+                if (bHasProtectOnly && !bProtectOnlyComplete)
+                {
+                    bReset = TRUE;
+                    FilterDialogNodes(4);
+                }
+
                 if (!bReset)
-                    FilterDialogNodes(4); 
+                    FilterDialogNodes(5); 
             }
         } break;
 
@@ -345,6 +365,8 @@ void KillDialog()
                 AssignQuestToPC(oPC, sProtect);
             else if (sNodeData == "timed")
                 AssignQuestToPC(oPC, sTimed);
+            else if (sNodeData == "protect-only")
+                AssignQuestToPC(oPC, sProtectOnly);
         }
     }
 }
