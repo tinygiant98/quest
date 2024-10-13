@@ -1,13 +1,8 @@
-// -----------------------------------------------------------------------------
-//    File: quest_i_const.nss
-//  System: Quest Persistent World Subsystem (constants)
-// -----------------------------------------------------------------------------
-// Description:
-//  Constants for PW Subsystem
-// -----------------------------------------------------------------------------
-// Builder Use:
-//  None!  Leave me alone.
-// -----------------------------------------------------------------------------
+/// ----------------------------------------------------------------------------
+/// @file   quest_i_const.nss
+/// @author Ed Burke (tinygiant98) <af.hog.pilot@gmail.com>
+/// @brief  Quest System (constants)
+/// ----------------------------------------------------------------------------
 
 // Versioning
 const string QUEST_SYSTEM_VERSION = "1.2.3";
@@ -17,11 +12,18 @@ const string QUEST_CURRENT_QUEST = "QUEST_CURRENT_QUEST";
 const string QUEST_CURRENT_STEP = "QUEST_CURRENT_STEP";
 const string QUEST_CURRENT_EVENT = "QUEST_CURRENT_EVENT";
 
+const string QUEST_VARIABLE = "QUEST_VARIABLE";
+const string QUEST_VARIABLE_PC = "QUEST_VARIABLE_PC";
+const string QUEST_WEBHOOK = "QUEST_WEBHOOK_";
+
+const string QUEST_DATABASE = "quest_database";
+
 // Table column names
 const string QUEST_ACTIVE = "nActive";
 const string QUEST_REPETITIONS = "nRepetitions";
 const string QUEST_TITLE = "sJournalTitle";
 const string QUEST_TIME_LIMIT = "sTimeLimit";
+const string QUEST_SCRIPT_ON_ASSIGN = "sScriptOnAssign";
 const string QUEST_SCRIPT_ON_ACCEPT = "sScriptOnAccept";
 const string QUEST_SCRIPT_ON_ADVANCE = "sScriptOnAdvance";
 const string QUEST_SCRIPT_ON_COMPLETE = "sScriptOnComplete";
@@ -74,6 +76,7 @@ const int QUEST_VALUE_QUEST_STEP = 12;
 const int QUEST_VALUE_SKILL = 13;
 const int QUEST_VALUE_ABILITY = 14;
 const int QUEST_VALUE_VARIABLE = 15;
+const int QUEST_VALUE_FLOATINGTEXT = 16;
 
 // Quest Step Types
 const int QUEST_STEP_TYPE_PROGRESS = 0;
@@ -92,27 +95,23 @@ const int QUEST_OBJECTIVE_SPEAK = 4;
 const int QUEST_OBJECTIVE_DISCOVER = 5;
 
 // Quest Award Bitmasks
-const int AWARD_ALL = 0x00;
-const int AWARD_GOLD = 0x01;
-const int AWARD_XP = 0x02;
-const int AWARD_ITEM = 0x03;
-const int AWARD_ALIGNMENT = 0x04;
-const int AWARD_QUEST = 0x05;
-const int AWARD_MESSAGE = 0x06;
-const int AWARD_VARIABLE = 0x07;
-const int AWARD_REPUTATION = 0x08;
-
-// Quest Script Types
-const int QUEST_SCRIPT_TYPE_ON_ACCEPT = 1;
-const int QUEST_SCRIPT_TYPE_ON_ADVANCE = 2;
-const int QUEST_SCRIPT_TYPE_ON_COMPLETE = 3;
-const int QUEST_SCRIPT_TYPE_ON_FAIL = 4;
+const int AWARD_ALL = 0x000;
+const int AWARD_GOLD = 0x001;
+const int AWARD_XP = 0x002;
+const int AWARD_ITEM = 0x004;
+const int AWARD_ALIGNMENT = 0x008;
+const int AWARD_QUEST = 0x010;
+const int AWARD_MESSAGE = 0x020;
+const int AWARD_VARIABLE = 0x040;
+const int AWARD_REPUTATION = 0x080;
+const int AWARD_FLOATINGTEXT = 0x100;
 
 // Quest Events
-const int QUEST_EVENT_ON_ACCEPT = 1;
-const int QUEST_EVENT_ON_ADVANCE = 2;
-const int QUEST_EVENT_ON_COMPLETE = 3;
-const int QUEST_EVENT_ON_FAIL = 4;
+const int QUEST_EVENT_ON_ASSIGN = 1;
+const int QUEST_EVENT_ON_ACCEPT = 2;
+const int QUEST_EVENT_ON_ADVANCE = 3;
+const int QUEST_EVENT_ON_COMPLETE = 4;
+const int QUEST_EVENT_ON_FAIL = 5;
 
 // Journal Locations
 const int QUEST_JOURNAL_NONE = 0;

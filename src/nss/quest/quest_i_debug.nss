@@ -196,10 +196,11 @@ string ScriptTypeToString(int nScriptType)
 {
     switch (nScriptType)
     {
-        case QUEST_SCRIPT_TYPE_ON_ACCEPT: return "ON_ACCEPT";
-        case QUEST_SCRIPT_TYPE_ON_ADVANCE: return "ON_ADVANCE";
-        case QUEST_SCRIPT_TYPE_ON_COMPLETE: return "ON_COMPLETE";
-        case QUEST_SCRIPT_TYPE_ON_FAIL: return "ON_FAIL";
+        case QUEST_EVENT_ON_ASSIGN: return "ON_ASSIGN";
+        case QUEST_EVENT_ON_ACCEPT: return "ON_ACCEPT";
+        case QUEST_EVENT_ON_ADVANCE: return "ON_ADVANCE";
+        case QUEST_EVENT_ON_COMPLETE: return "ON_COMPLETE";
+        case QUEST_EVENT_ON_FAIL: return "ON_FAIL";
     }
     
     return "[NOT FOUND]";
@@ -565,18 +566,20 @@ string TimeVectorToString(string sTimeVector)
 
 string _GetQuestTag(int nQuestID)
 {
-    string sQuery = "SELECT sTag FROM quest_quests " +
-             "WHERE id = @id;";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    string s = r"
+        SELECT sTag
+        FROM quest_quests
+        WHERE id = @id;
+    ";
+    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
     SqlBindInt(sql, "@id", nQuestID);
 
     return (SqlStep(sql) ? SqlGetString(sql, 0) : "");
 }
 
-string _QuestToString(int nQuestID)
+string _QuestToString(int nQuestID, string sQuestTag = "")
 {
-    string sTag = _GetQuestTag(nQuestID);
-
+    string sTag = (sQuestTag == "" ? _GetQuestTag(nQuestID) : sQuestTag);
     if (sTag == "")
         return "[NOT FOUND]";
 

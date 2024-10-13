@@ -392,38 +392,33 @@ void main()
 
             // Dump variables
             Debug(HexColorString("Dumping Quest Variables", COLOR_CYAN));
-            if (GetTableExists(GetModule(), "quest_variables") == FALSE)
-                Debug(HexColorString("  Variables table does not exist on the module", COLOR_RED_LIGHT));
-            else if (CountQuestVariables(GetModule(), "quest_variables") == 0)
-                Debug(HexColorString("  No quest variables found for the module", COLOR_RED_LIGHT));
+            json jQuestVariables = GetModuleVariablesByPattern(VARIABLE_TYPE_STRING, "", 
+                QUEST_VARIABLE + ":" + sRequestedQuest == "" ? "*" : sRequestedQuest + ":*")
+            if (!JsonGetLength(jQuestVariables))
+            {
+                if (sRequestdQuest != "")
+                    Debug(HexColorString("  No quest variables found for " + sRequestedQuest, COLOR_RED_LIGHT));
+                else
+                    Debug(HexColorString("  No quest variables found for the module", COLOR_RED_LIGHT));
+            }
             else
             {
-                if (sRequestedQuest == "")
-                {
-                    sQuery = "SELECT * FROM quest_variables;";
-                    sql = SqlPrepareQueryObject(GetModule(), sQuery);
-                }
-                else
-                {
-                    sQuery = "SELECT * FROM quest_variables WHERE quests_id = @id;";
-                    sql = SqlPrepareQueryObject(GetModule(), sQuery);
-                    SqlBindInt(sql, "@id", GetQuestID(sRequestedQuest));
-                }
-
                 int bColor = FALSE;
-                while(SqlStep(sql))
+                int i; for (; i < JsonGetLength(jQuestVariables); i++)
                 {
-                    string sPCQuestTag = GetQuestTag(SqlGetInt(sql, 0));
-                    string sPCType = SqlGetString(sql, 1);
-                    string sPCName = SqlGetString(sql, 2);
-                    string sPCValue = SqlGetString(sql, 3);
+                    string sTag = JsonGetString(JsonObjectGet(jQuestVariables, i, "tag"));
+                    string sValue = JsonGetString(JsonObjectGet(jQuestVariables, i, "value"));
+                    string sVarName = JsonGetString(JsonObjectGet(jQuestVariables, i, "varname"));
+
+                    string sQuestTag = _GetSegment(sTag, 1);
+                    string sVarType = _GetSegment(sTag, 2);
 
                     int nColor = bColor ? COLOR_GRAY : COLOR_GRAY_LIGHT;
 
-                    Debug(HexColorString("  Quest Tag -> ", nColor) + ColorValue(sPCQuestTag, FALSE, bColor) + 
-                        HexColorString("\n    Type -> ", nColor) + ColorValue((sPCType == "INT" ? "INTEGER" : "STRING"), FALSE, bColor) +
-                        HexColorString("\n    Var Name -> ", nColor) + ColorValue(sPCName, FALSE, bColor) +
-                        HexColorString("\n    Value -> ", nColor) + ColorValue(sPCValue, FALSE, bColor));
+                    Debug(HexColorString("  Quest Tag -> ", nColor) + ColorValue(sQuestTag, FALSE, bColor) + 
+                        HexColorString("\n    Type -> ", nColor) + ColorValue((sVarType == "INT" ? "INTEGER" : "STRING"), FALSE, bColor) +
+                        HexColorString("\n    Var Name -> ", nColor) + ColorValue(sVarName, FALSE, bColor) +
+                        HexColorString("\n    Value -> ", nColor) + ColorValue(sValue, FALSE, bColor));
 
                     bColor = !bColor;
                 }
