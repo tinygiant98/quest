@@ -194,7 +194,7 @@ void main()
 
             // Dump variables
             Debug(HexColorString("Dumping PC Quest Variables", COLOR_CYAN));
-            if (GetTableExists(oPC, "quest_pc_variables") == FALSE)
+            if (quest_TableExists("quest_pc_variables") == FALSE)
                 Debug(HexColorString("  Variables table does not exist on " + PCToString(oPC), COLOR_RED_LIGHT));
             else if (CountQuestVariables(oPC, "quest_pc_variables") == 0)
                 Debug(HexColorString("  No variables found for " + PCToString(oPC), COLOR_RED_LIGHT));

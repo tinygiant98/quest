@@ -46,8 +46,8 @@ void DiscoveryDialog()
     string sOrdered = "quest_discovery_ordered";
     string sRandom = "quest_discovery_random";
 
-    int nOrderedID = GetQuestID(sOrdered);
-    int nRandomID = GetQuestID(sRandom);
+    int nOrderedID = quest_GetID(sOrdered);
+    int nRandomID = quest_GetID(sRandom);
 
     int bHasOrdered = GetPCHasQuest(oPC, sOrdered);
     int bHasRandom = GetPCHasQuest(oPC, sRandom);
@@ -196,11 +196,11 @@ void KillDialog()
     string sTimed = "quest_kill_timed";
     string sProtectOnly = "quest_protect_only";
 
-    int nOrderedID = GetQuestID(sOrdered);
-    int nRandomID = GetQuestID(sRandom);
-    int nProtectID = GetQuestID(sProtect);
-    int nTimedID = GetQuestID(sTimed);
-    int nProtectOnly = GetQuestID(sProtectOnly);
+    int nOrderedID = quest_GetID(sOrdered);
+    int nRandomID = quest_GetID(sRandom);
+    int nProtectID = quest_GetID(sProtect);
+    int nTimedID = quest_GetID(sTimed);
+    int nProtectOnly = quest_GetID(sProtectOnly);
 
     int bHasOrdered = GetPCHasQuest(oPC, sOrdered);
     int bHasRandom = GetPCHasQuest(oPC, sRandom);
@@ -388,9 +388,9 @@ void GatherDialog()
     string sRandom = "quest_gather_random";
     string sDeliver = "quest_gather_deliver";
 
-    int nOrderedID = GetQuestID(sOrdered);
-    int nRandomID = GetQuestID(sRandom);
-    int nDeliverID = GetQuestID(sDeliver);
+    int nOrderedID = quest_GetID(sOrdered);
+    int nRandomID = quest_GetID(sRandom);
+    int nDeliverID = quest_GetID(sDeliver);
 
     int bHasOrdered = GetPCHasQuest(oPC, sOrdered);
     int bHasRandom = GetPCHasQuest(oPC, sRandom);

@@ -3,6 +3,10 @@
 #include "util_i_math"
 #include "quest_i_const"
 
+// Prototypes from quest_i_database.nss
+// here to prevent duplicated effort and maintenance issues.
+const string quest_GetTag(int nID);
+
 const int DISPLAY_DB_RETRIEVALS = TRUE;
 
 string _GetKey(string sPair)
@@ -277,34 +281,34 @@ string ValueTypeToString(int nValueType, int nCategoryType = QUEST_CATEGORY_PRER
     return "[NOT FOUND]";
 }
 
-string GetPrefix()
+string quest_GetDebugPrefix()
 {
     return HexColorString("[quest] ", COLOR_GOLD);
 }
 
 void QuestDebug(string sMessage)
 {
-    Debug(GetPrefix() + sMessage);
+    Debug(quest_GetDebugPrefix() + sMessage);
 }
 
 void QuestNotice(string sMessage)
 {
-    Notice(GetPrefix() + sMessage);
+    Notice(quest_GetDebugPrefix() + sMessage);
 }
 
 void QuestWarning(string sMessage)
 {
-    Warning(GetPrefix() + sMessage);
+    Warning(quest_GetDebugPrefix() + sMessage);
 }
 
 void QuestError(string sMessage)
 {
-    Error(GetPrefix() + sMessage);
+    Error(quest_GetDebugPrefix() + sMessage);
 }
 
 void QuestCriticalError(string sMessage)
 {
-    CriticalError(GetPrefix() + sMessage);
+    CriticalError(quest_GetDebugPrefix() + sMessage);
 }
 
 string PCToString(object oPC)
@@ -564,22 +568,23 @@ string TimeVectorToString(string sTimeVector)
     return sResult;
 }
 
-string _GetQuestTag(int nQuestID)
-{
-    string s = r"
-        SELECT sTag
-        FROM quest_quests
-        WHERE id = @id;
-    ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@id", nQuestID);
+// sourced from quest_i_database to prevent duplication of effort
+//string _GetQuestTag(int nQuestID)
+//{
+//    string s = r"
+//        SELECT sTag
+//        FROM quest_quests
+//        WHERE id = @id;
+//    ";
+//    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
+//    SqlBindInt(sql, "@id", nQuestID);
+//
+//    return (SqlStep(sql) ? SqlGetString(sql, 0) : "");
+//}
 
-    return (SqlStep(sql) ? SqlGetString(sql, 0) : "");
-}
-
-string _QuestToString(int nQuestID, string sQuestTag = "")
+string quest_QuestToString(int nID, string sTag = "")
 {
-    string sTag = (sQuestTag == "" ? _GetQuestTag(nQuestID) : sQuestTag);
+    string sTag = (sTag == "" ? quest_GetTag(nID) : sTag);
     if (sTag == "")
         return "[NOT FOUND]";
 

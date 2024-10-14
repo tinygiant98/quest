@@ -10,14 +10,86 @@
 #include "quest_i_const"
 #include "quest_i_debug"
 
+sqlquery quest_PrepareQuery(string s)
+{
+    return SqlPrepareQueryCampaign(QUEST_DATABASE, s);
+}
+
+void quest_BeginTransaction()  { SqlStep(quest_PrepareQuery("BEGIN TRANSACTION;")); }
+void quest_CommitTransaction() { SqlStep(quest_PrepareQuery("COMMIT TRANSACTION;")); }
+
 void CreateModuleQuestTables(int bReset = FALSE)
 {
+    /// @brief expriment:
+    ///     Let's take a page from the nui playbook and save everything in json objects
+    ///     - no requirement to modify tables if we want to change the data structure
+    ///     - easily queries and stored as a single field
+    ///     - human-readable
+    ///     - queries are bit more difficult to write and maintain
+    ///     - array insertion order is maintained organically (good for repeated quests)
+    string sModule = r"
+        CREATE TABLE IF NOT EXISTS quest_module (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            quest_tag TEXT NOT NULL default '~' UNIQUE ON CONFLICT IGNORE,
+            quest_data NONE
+        );
+    ";
+    
+    /// Expected Keys:
+    /// properties:
+    ///     active (bool), repetitions (int), time_limit (int), cooldown (int),
+    ///     allowPrecollectedItems (bool), removeOnCompleted (bool),
+    ///     version (string), versionAction (int/string?)
+    /// scripts (strings):
+    ///     onAssign, onAccept, onAdvance, onComplete, onFail
+    /// journal:
+    ///     title (string), handler (int), removeOnCompleted (bool)
+    /// prerequisites:
+    ///     type (int), key (string), value (?)
+    /// steps: [
+    ///     number (int): # 
+    ///     properties:
+    ///         active (bool), time_limit (int), party_completion (bool), proximity (bool), 
+    ///         type (int), objMinCount (int), objRandomCount (int)
+    ///     variables: [
+    ///         type (int), name (string), value (string)
+    ///     ]
+    ///     journal:
+    ///         entry (string)
+    /// ]
+    /// variables: [
+    ///     type (int), name (string), value (string)
+    /// ]
+    /// data: {
+    ///     webhook(string): ~
+    /// }
+    ///     
+
+    /// @note This table will likely be reset on every ModuleLoad event so we can always ensure the
+    ///     data isn't stale, then quest versions will be checked against currently open quests in the
+    ///     pc table.
+    
+ /*
+    
+    
+    
+    /// @brief
+    ///     `quest_quests` holds high-level metadata for every quest.
+    ///     `quest_prerequisites` holds optional prerequisites for quests in `quest_quests`
+    ///     `quest_steps` holds individual quest step data for quests in `quest_quests`
+    ///     `quest_step_properties` holds optional properties for each step in `quest_steps`
+    ///     `quest_variables` holds optional variables for quests in `quest_quests`
+    /// @note These tables are held in the module's volatile database, therefore 
+    ///     all quests must be reloaded on each module load.
+    /// @warning All of these tables are related to `quest_quests` via foreign keys and
+    ///     will cascade delete records if a quest is deleted from `quest_quests`.
+    ///     These tables include `quest_prerequisites`, `quest_steps`,
+    ///     `quest_step_properties`, and `quest_variables`.
     string sQuests = r"
         CREATE TABLE IF NOT EXISTS quest_quests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sTag TEXT NOT NULL default '~' UNIQUE ON CONFLICT IGNORE,
+            quest_tag TEXT NOT NULL default '~' UNIQUE ON CONFLICT IGNORE,
             nActive TEXT NOT NULL default '1',
-            sJournalTitle TEXT default NULL,
             nRepetitions TEXT default '1',
             sScriptOnAssign TEXT default NULL,
             sScriptOnAccept TEXT default NULL,
@@ -26,8 +98,9 @@ void CreateModuleQuestTables(int bReset = FALSE)
             sScriptOnFail TEXT default NULL,
             sTimeLimit TEXT default NULL,
             sCooldown TEXT default NULL,
+            sJournalTitle TEXT default NULL,
             nJournalHandler TEXT default NULL,
-            nRemoveJournalOnComplete TEXT default '0',
+            nRemoveJournalOnCompleted TEXT default '0',
             nAllowPrecollectedItems TEXT default '1',
             nRemoveQuestOnCompleted TEXT default '0',
             nQuestVersion TEXT default '0',
@@ -35,7 +108,7 @@ void CreateModuleQuestTables(int bReset = FALSE)
         );
     ";
 
-    string sQuestPrerequisites = r"
+    string sPrerequisites = r"
         CREATE TABLE IF NOT EXISTS quest_prerequisites (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             quests_id INTEGER NOT NULL default '0',
@@ -47,11 +120,12 @@ void CreateModuleQuestTables(int bReset = FALSE)
         );
     ";
 
-    string sQuestSteps = r"
+    string sSteps = r"
         CREATE TABLE IF NOT EXISTS quest_steps (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             quests_id INTEGER NOT NULL default '0',
             nStep INTEGER NOT NULL default '0',
+            nActive TEXT NOT NULL default '1', 
             sJournalEntry TEXT default NULL,
             sTimeLimit TEXT default NULL,
             nPartyCompletion TEXT default '0',
@@ -65,7 +139,7 @@ void CreateModuleQuestTables(int bReset = FALSE)
         );
     ";
 
-    string sQuestStepProperties = r"
+    string sStepProperties = r"
         CREATE TABLE IF NOT EXISTS quest_step_properties (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             quest_steps_id INTEGER NOT NULL,
@@ -80,34 +154,86 @@ void CreateModuleQuestTables(int bReset = FALSE)
                 ON DELETE CASCADE ON UPDATE CASCADE
         );
     ";
+    string sVariables = r"
+        CREATE TABLE IF NOT EXISTS quest_variables (
+            quests_id INTEGER NOT NULL,
+            sType TEXT NOT NULL,
+            sName TEXT NOT NULL,
+            sValue TEXT NOT NULL,
+            UNIQUE (quests_id, sType, sName) ON CONFLICT REPLACE,
+            FOREIGN KEY (quests_id) REFERENCES quest_quests (id) 
+                ON UPDATE CASCADE ON DELETE CASCADE
+        );
+    ";
+*/
 
+    /// @brief
+    ///     Now for the experimental pc quest data table
+    string sPC = r"
+        CREATE TABLE IF NOT EXISTS quest_pc (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pc_uuid TEXT NOT NULL default '~',
+            quest_tag TEXT NOT NULL default '~' UNIQUE ON CONFLICT IGNORE,
+            quest_data NONE
+        );
+    ";
+
+    /// Expected structure (array of): [{
+    ///     properties:
+    ///         startTime, completeTime, completeType, version
+    ///     variables: [
+    ///         type, name, value
+    ///     ]
+    ///     steps: [
+    ///         number, data, required, acquired, objectiveID, startTime, completeTime
+    ///     ]
+    ///  },]
+    /// @note each object in the array will represent one quest completion.  If the quest
+    ///     can be completed multiple times, there will be multiple objects in the array,
+    ///     inserted in the order they were added, so the most recent is always last.
+    /// @note There simply is no potential sharing of quest data bewteen characters, so
+    ///     we'll use pc object uuids.  However, we will provide a method to move all
+    ///     quest data from one character to another (but never applying to more than
+    ///     on pc at a time) due to potential for character re-creation and other issues
+    ///     the real world creates.
+
+/*
+    /// @brief 
+    ///     `quest_pc_data` holds current and historic pc quest completion data
+    ///     `quest_pc_step` holds current and historic pc quest step completion data
+    ///     `quest_pc_variables` holds current and historic pc quest variable data
+    /// @note These tables are held in a persistent campaign database, therefore 
+    ///     all pc quest data will be persistent across module resets/restarts/
+    /// @warning All of these tables are related to `quest_pc_data` via foreign keys and
+    ///     will cascade delete records if a quest is deleted from `quest_pc_data`.
+    ///     These tables include `quest_pc_step` and `quest_pc_variables`.
+    /// @note Deleteing a quest from `quest_quests` will *NOT* delete any related
+    ///     pc-specific quest data.  All data in pc-specific quest data tables is referenced
+    ///     to `quest_quests` via the quest_tag field, so if the quest_tag field changes,
+    ///     the link to the related pc-specific data may be lost.
     string sPCData = r"
         CREATE TABLE IF NOT EXISTS quest_pc_data (
             quest_uuid TEXT default '',
             pc_uuid TEXT default '',
             quest_tag TEXT default '',
-            nStep INTEGER default '0',
-            nAttempts INTEGER default '0',
-            nCompletions INTEGER default '0',
-            nFailures INTEGER default '0',
-            nQuestStartTime INTEGER default '0',
-            nStepStartTime INTEGER default '0',
-            nLastCompleteTime INTEGER default '0',
-            nLastCompleteType INTEGER default '0',
-            nQuestVersion INTEGER default '0'
+            nStartTime INTEGER default '0',
+            nCompleteTime INTEGER default '0',
+            nCompleteType INTEGER default '0',
+            nVersion INTEGER default '0'
         );
     ";
 
     string sPCStep = r"
         CREATE TABLE IF NOT EXISTS quest_pc_step (
             quest_uuid TEXT default '',
-            quest_tag TEXT,
             nObjectiveType INTEGER,
             sTag TEXT default '' COLLATE NOCASE,
             sData TEXT default '' COLLATE NOCASE,
             nRequired INTEGER,
             nAcquired INTEGER default '0',
             nObjectiveID INTEGER,
+            nStartTime INTEGER default '0',
+            nCompleteTime INTEGER default '0',
             FOREIGN KEY (quest_uuid) REFERENCES quest_pc_data (quest_uuid)
                 ON UPDATE CASCADE ON DELETE CASCADE
         );
@@ -126,12 +252,13 @@ void CreateModuleQuestTables(int bReset = FALSE)
                 ON UPDATE CASCADE ON DELETE CASCADE
         );
     ";
+*/
 
     if (bReset)
     {
-        QuestDebug(HexColorString("Resetting", COLOR_RED_LIGHT) + " quest database tables for the module");
+        QuestDebug(HexColorString("Resetting", COLOR_RED_LIGHT) + " quest database tables");
 
-        string sTable, sTables = "quests,prerequisites,steps,step_properties,pc_data,pc_step,pc_variables";
+        string sTable, sTables = "module,pc";
         int n, nCount = CountList(sTables);  
             for (; n < nCount; n++)
         {
@@ -141,73 +268,146 @@ void CreateModuleQuestTables(int bReset = FALSE)
             ";
             s = SubstituteSubString(s, "$1", sTable);
 
-            sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
+            sqlquery sql = quest_PrepareQuery(s);
             SqlStep(sql);
         }
     }
 
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuests); SqlStep(sql);
-    HandleSqlDebugging(sql, "SQL:table", "quest_quests", "module");
+    sqlquery sql = quest_PrepareQuery(sModule); SqlStep(sql);
+    HandleSqlDebugging(sql, "SQL:table", "quest_quests", "campaign");
 
-    sql = SqlPrepareQueryObject(GetModule(), sQuestPrerequisites); SqlStep(sql);
-    HandleSqlDebugging(sql, "SQL:table", "quest_prerequisites", "module");
-
-    sql = SqlPrepareQueryObject(GetModule(), sQuestSteps); SqlStep(sql);
-    HandleSqlDebugging(sql, "SQL:table", "quest_steps", "module");
-
-    sql = SqlPrepareQueryObject(GetModule(), sQuestStepProperties); SqlStep(sql);
-    HandleSqlDebugging(sql, "SQL:table", "quest_step_properties", "module");
-
-    sql = SqlPrepareQueryCampaign(QUEST_DATABASE, sPCData); SqlStep(sql);
-    HandleSqlDebugging(sql, "SQL:table", "quest_pc_data", "campaign");
-
-    sql = SqlPrepareQueryCampaign(QUEST_DATABASE, sPCStep); SqlStep(sql);
-    HandleSqlDebugging(sql, "SQL:table", "quest_pc_step", "campaign");
-
-    sql = SqlPrepareQueryCampaign(QUEST_DATABASE, sPCVariables); SqlStep(sql);
-    HandleSqlDebugging(sql, "SQL:table", "quest_pc_variables", "campaign");
+    sql = quest_PrepareQuery(sPC); SqlStep(sql);
+    HandleSqlDebugging(sql, "SQL:table", "quest_prerequisites", "campaign");
 }
+
+/// @private Retrieves the specified segment from a segment:=segment:=... series.
+string quest_GetSegment(string sSegments, int nIndex = 0)
+{
+    string sRegex = "(?:.*?[:=]){" + _i(nIndex) + "}(.*?)(?:[:=]|$)";
+    return JsonGetString(JsonArrayGet(RegExpMatch(sRegex, sSegments), 1));
+}
+
+/// @private Retrieves the key from a key[:=]value pair, or the first segment from a
+///     segment series.
+string quest_GetKey(string sSegments)
+{
+    return quest_GetSegment(sSegments);
+}
+
+/// @private Retrieves the value from a key[:=]value pair, or the nNth segment from a
+///     segment series.
+string quest_GetValue(string sSegments, int nNth = 1)
+{
+    return quest_GetSegment(sSegments, nNth);
+}
+
+
+void quest_ClearBuildVariables()
+{
+    object o = GetModule();
+    DeleteLocalInt(o, QUEST_BUILD_QUEST);
+    DeleteLocalInt(o, QUEST_BUILD_STEP);
+    DeleteLocalInt(o, QUEST_BUILD_OBJECTIVE);
+}
+
+/// @private Clears module quest data.
+void quest_OnModuleLoad()
+{
+    SqlStep(quest_PrepareQuery("DELETE FROM quest_module;"));
+}
+
+/// @private Compares quest versions with new data in `quest_module`
+///     and updated/modified/deletes as optioned.
+void quest_OnClientEnter()
+{
+    object o = GetEnteringObject();
+
+    // check pc quest versions against module versions and see what to do...
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 int GetLastInsertedID(string sTable)
 {
     string s = r"
         SELECT seq 
         FROM sqlite_sequence 
-        WHERE name = @name;
+        WHERE name = @sTable;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindString(sql, "@name", sTable);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTable", sTable);
     
     return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
 }
 
-string GetQuestTag(int nQuestID)
+/// @private Retrieve a quest's tag given its ID.
+/// @param nID The record ID of the quest.
+/// @returns The quest tag, if found, otherwise an empty string.
+string quest_GetTag(int nID)
 {
     string s = r"
-        SELECT sTag FROM quest_quests
-        WHERE id = @id;
+        SELECT sTag
+        FROM quest_quests
+        WHERE id = @nID;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@id", nQuestID);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", nID);
 
     return (SqlStep(sql) ? SqlGetString(sql, 0) : "");
 }
 
-int CountRowChanges(object oTarget)
+/// @private Retrieves a quest's ID given its tag.
+/// @param sTag The tag of the quest.
+/// @returns The quest record ID, if found, otherwise -1.
+int quest_GetID(string sTag)
 {
-    sqlquery sql = SqlPrepareQueryObject(oTarget, "SELECT CHANGES();");
+    string s = r"
+        SELECT id 
+        FROM quest_quests 
+        WHERE sTag = @sTag;
+    ";
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTag);
+
     return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
 }
 
 string GetQuestTimeStamp()
 {
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), "SELECT CURRENT_TIMESTAMP;");
+    sqlquery sql = quest_PrepareQuery("SELECT CURRENT_TIMESTAMP;");
     return SqlStep(sql) ? SqlGetString(sql, 0) : "";
 }
 
 int GetQuestUnixTimeStamp()
 {
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), "SELECT strftime('%s', 'now')");
+    sqlquery sql = quest_PrepareQuery("SELECT strftime('%s', 'now')");
     return SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
 }
 
@@ -218,7 +418,7 @@ string GetGreaterTimeStamp(string sTime1, string sTime2)
     ";
     s = SubstituteSubString(s, "$1", sTime1);
     
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
+    sqlquery sql = quest_PrepareQuery(s);
     int nTime1 = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
 
     s = r"
@@ -226,7 +426,7 @@ string GetGreaterTimeStamp(string sTime1, string sTime2)
     ";
     s = SubstituteSubString(s, "$1", sTime2);
 
-    sql = SqlPrepareQueryObject(GetModule(), s);
+    sql = quest_PrepareQuery(s);
     int nTime2 = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
 
     return nTime1 == nTime2 ? sTime1 :
@@ -280,7 +480,7 @@ int GetModifiedUnixTimeStamp(int nTimeStamp, string sTimeVector)
     s = SubstituteSubString(s, "$1", IntToString(nTimeStamp));
     s = SubstituteSubString(s, "$2", sResult);
 
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
+    sqlquery sql = quest_PrepareQuery(s);
     return SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
 }
 
@@ -318,169 +518,388 @@ string GetModifiedTimeStamp(string sTimeStamp, string sTimeVector)
     s = SubstituteSubString(s, "$1", sTimeStamp);
     s = SubstituteSubString(s, "$2", sResult);
 
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
+    sqlquery sql = quest_PrepareQuery(s);
     SqlStep(sql);
 
     return SqlGetString(sql, 0);
 }
 
-string QuestToString(int nQuestID, string sQuestTag = "")
+/// @private Add minimal quest metadata and start quest definition process.
+/// @param sTag Unique quest tag
+/// @param sTitle Jounral title
+/// @returns Unique quest record ID, if created, otherwise -1.
+/// @note If a quest tagged with `sTag` already exists, or `sTag` is an
+///     empty string, this function will fail and -1 will be returned.
+int quest_AddQuest(string sTag, string sTitle)
 {
-    string sTag = (sQuestTag == "" ? _GetQuestTag(nQuestID) : sQuestTag);
+    int nID = quest_GetID(sTag);
+    if (nID > 0)
+    {
+        QuestError(quest_QuestToString(nID) + " already exists and cannot be " +
+            "overwritten; use `DeleteQuest(" + sTag + ")");
+        return -1;
+    }
 
     if (sTag == "")
-        return "[NOT FOUND]";
+    {
+        QuestError("Cannot add quest with empty tag");
+        return -1;
+    }
 
-    return HexColorString(sTag + " (ID " + IntToString(nQuestID) + ")", COLOR_ORANGE_LIGHT);
-}
-
-int GetQuestID(string sTag)
-{
-    string s = "SELECT id FROM quest_quests WHERE sTag = @sTag;";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
+    string s = r"
+        INSERT INTO quest_quests 
+            (sTag, sJournalTitle)
+        VALUES
+            (@sTag, @sTitle)
+        RETURNING id;
+    ";
+    sqlquery sql = quest_PrepareQuery(s);
     SqlBindString(sql, "@sTag", sTag);
+    SqlBindString(sql, "@sTitle", sTitle);
+    
+    nID = SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
+    HandleSqlDebugging(sql);
 
-    return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
+    if (nID != -1)
+    {
+        QuestDebug(quest_QuestToString(nID) + " has been created");
+        SetLocalInt(GetModule(), QUEST_BUILD_QUEST, nID);
+        DeleteLocalInt(GetModule(), QUEST_BUILD_STEP);
+        DeleteLocalInt(GetModule(), QUEST_BUILD_OBJECTIVE);
+    }
+
+    return nID;
 }
 
-void AddQuestPrerequisite(int nValueType, string sKey, string sValue)
+/// @private Add a prerequisite to the quest currently being .
+/// @param nValueType QUEST_VALUE_* constant -> see quest_i_const.nss.
+/// @param sKey Prerequisite key reference.
+/// @param sValue Prerequisite value.
+/// @warning This function is designed for use during the quest definition
+///     process.  Calling this function outside of that process may have
+///     unintended consequences and could cause data modification or loss.
+void quest_AddPrerequisite(int nValueType, string sKey, string sValue)
 {
-    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
-
+    int nID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
     string s = r"
-        INSERT INTO quest_prerequisites (quests_id, nValueType, sKey, sValue)
-        VALUES (@quests_id, @nValueType, @key, @sValue);
+        INSERT INTO quest_prerequisites
+            (quests_id, nValueType, sKey, sValue)
+        VALUES
+            (@nID, @nValueType, @sKey, @sValue);
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@quests_id", nQuestID);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", nID);
     SqlBindInt(sql, "@nValueType", nValueType);
-    SqlBindString(sql, "@key", sKey);
+    SqlBindString(sql, "@sKey", sKey);
     SqlBindString(sql, "@sValue", sValue);
-
     SqlStep(sql);
 
     HandleSqlDebugging(sql);
 }
 
-int _AddQuest(string sQuestTag, string sJournalTitle)
+/// @private Delete all quest primary and supporting data.
+/// @param nID Quest record ID.
+/// @returns Count of records deleted.
+/// @warning Quest data in all related tables will also be deleted.
+///     PC-specific quest data will be retained.
+int quest_DeleteQuest(string sTag)
 {
-    string s = r"
-        INSERT INTO quest_quests (sTag, sJournalTitle)
-        VALUES (@sTag, @sTitle);
-    ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindString(sql, "@sTag", sQuestTag);
-    SqlBindString(sql, "@sTitle", sJournalTitle);
-
-    SqlStep(sql);
-    HandleSqlDebugging(sql);
-
-    return GetLastInsertedID("quest_quests");
-}
-
-void _DeleteQuest(int nQuestID)
-{
+    int nID = quest_GetID(sTag);
     string s = r"
         DELETE FROM quest_quests
-        WHERE id = @id;
+        WHERE id = @nID;
+        RETURNING COUNT(*);
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@id", nQuestID);
-    SqlStep(sql);                
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", nID);
+
+    string s = r"
+        Attempting to delete quest $1
+          Result: $2 $3 deleted
+    ";
+
+    int nCount = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
+
+    json j = JsonArrayInsert(JSON_ARRAY, JsonString(sTag));
+    JsonArrayInsertInplace(j, JsonInt(nCount));
+    JsonArrayInsertInplace(j, JsonString(nCount == 1 ? "quest" : "quests"));
+
+    QuestDebug(SubstituteString(s, j));
+    return nCount;
 }
 
-void _AddQuestStep(int nID, int nStep)
+/// @private Add a quest step to the quest currently being defined.
+/// @param nValueType QUEST_VALUE_* constant -> see quest_i_const.nss.
+/// @param sKey Prerequisite key reference.
+/// @param sValue Prerequisite value.
+/// @warning This function is designed for use during the quest definition
+///     process.  Calling this function outside of that process may have
+///     unintended consequences and could cause data modification or loss.
+int quest_AddStep(int nStep)
 {
-    string s = r"
-        INSERT INTO quest_steps (quests_id, nStep)
-        VALUES (@quests_id, @nStep);
-    ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@quests_id", nID);
-    SqlBindInt(sql, "@nStep", nStep);
-    SqlStep(sql);
+    int nID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
+    if (nID == 0)
+    {
+        QuestError("AddQuestStep():  Could not add quest step, current quest ID is invalid");
+        return FALSE;
+    }
 
+    if (nStep == -1)
+        nStep = quest_CountSteps(nID) + 1;
+
+    string s = r"
+        INSERT INTO quest_steps
+            (quests_id, nStep)
+        VALUES
+            (@nID, @nStep);
+        RETURNING COUNT(*);
+    ";
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", nID);
+    SqlBindInt(sql, "@nStep", nStep);
+    
+    int nResult = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
     HandleSqlDebugging(sql);
 
-    if (CountRowChanges(GetModule()) == 0)
-        QuestError(StepToString(nStep) + " for " + QuestToString(nID) +
+    if (nResult == 0)
+    {
+        QuestError(StepToString(nStep) + " for " + quest_QuestToString(nID) +
             " already exists and cannot be overwritten.  Check quest definitions " +
             "to ensure the same step number is not being assigned to different " +
             "steps.");
+        return -1;
+    }
+
+    SetLocalInt(GetModule(), QUEST_BUILD_STEP, nStep);
+    return nStep;   
 }
 
-sqlquery GetQuestPrerequisites(int nID)
+/// @private Determine if sField exists in sTable.
+int quest_FieldExists(string sTable, string sField)
+{
+    string s = r"
+        SELECT COUNT(*)
+        FROM pragma_table_info('$1')
+        WHERE name = @sField;
+    ";
+    s = SubstituteSubString(s, "$1", sTable);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sField", sField);
+
+    return SqlStep(sql) ? SqlGetInt(sql, 0) : FALSE;
+}
+
+/// @private Sets quest data into the `quest_quests` table.
+/// @param sField Field/column to set.
+/// @param sValue Value to set sField to.
+/// @param nID -1 if used during the quest definition process,
+///     otherwise the unique record ID of the quest.
+/// @param sTable Table to retrieve quest data from.
+void quest_SetData(string sField, string sValue, int nID = -1, string sTable = "quest_quests")
+{
+    if (nID == -1)
+        nID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
+
+    if (nID == 0)
+    {
+        QuestError("quest_SetQuestData():  Attempted to set quest data for invalid quest" +
+            "\n  Quest ID -> " + ColorValue(_i(nID)) +
+            "\n  Table    -> " + Colorvalue(sTable) +
+            "\n  Field    -> " + ColorValue(sField) +
+            "\n  Value    -> " + ColorValue(sValue));
+        return;
+    }
+
+    if (!quest_FieldExists(sTable, sField))
+    {
+        QuestError("quest_SetQuestData();  Attempted to set quest data for invalid field" +
+            "\n  Quest ID -> " + ColorValue(_i(nID)) +
+            "\n  Table    -> " + Colorvalue(sTable) +
+            "\n  Field    -> " + ColorValue(sField) +
+            "\n  Value    -> " + ColorValue(sValue));
+        return;
+    }
+
+    json j = JsonArrayInsert(JSON_ARRAY, JsonString(sTable));
+    JsonArrayInsertInplace(j, JsonString(sField));
+
+    string s = r"
+        UPDATE $1
+        SET $2 = @sValue
+        WHERE id = @nID;
+    ";
+    s = SubstituteString(s, j);
+
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sValue", sValue);
+    SqlBindInt(sql, "@nID", nID);
+    SqlStep(sql);
+
+    if (IsDebugging(DEBUG_LEVEL_DEBUG))
+        HandleSqlDebugging(sql, "SQL:set-field", _i(nQuestID), sField, "module", sValue);
+}
+
+/// @private Retrieve quest-specific data.
+/// @param sTag Unique quest tag.
+/// @param sField Field/column to retrive quest data from.
+/// @param sTable Table to retrieve quest data from.
+/// @returns Requested quest data as a string.
+string quest_GetData(string sTag, string sField, string sTable = "quest_quests")
+{
+    int nID = quest_GetID(sTag);
+    if (nID == -1)
+    {
+        QuestError("quest_GetQuestData():  Attempted to get quest data for invalid quest" +
+            "\n  Quest ID -> " + ColorValue(_i(nID)) +
+            "\n  Field    -> " + ColorValue(sField));
+        return "";
+    }
+
+    if (!quest_FieldExists(sTable, sField))
+    {
+        QuestError("quest_GetQuestData();  Attempted to get quest data for invalid field" +
+            "\n  Quest ID -> " + ColorValue(_i(nID)) +
+            "\n  Field    -> " + ColorValue(sField));
+        return "";
+    }
+
+    json j = JsonArrayInsert(JSON_ARRAY, JsonString(sField));
+    JsonArrayInsertInplace(j, JsonString(sTable));
+
+    string s = r"
+        SELECT $1
+        FROM $2
+        WHERE id = @nID;
+    ";
+    s = SubstituteString(s, j);
+
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", nID);
+
+    string sResult = SqlStep(sql) ? SqlGetString(sql, 0) : "";
+    
+    if (IsDebugging(DEBUG_LEVEL_DEBUG))
+        HandleSqlDebugging(sql, "SQL:retrieve-field", _i(nID), sField, "module", sResult);
+
+    return sResult;
+}
+
+/// @private Set PC-specific quest data into the `quest_pc_data` table.
+/// @param oPC Player character object.
+/// @param nID Unique quest record ID.
+/// @param sField Field/column to set.
+/// @param sValue Value to set sField to.
+/// @returns Number of records updated.
+/// @warning This method was designed to insert data into the most recent
+///     incomplete quest related to nID; however, if there are no associated
+///     incomplete quests and at least one complete quest, the data will be
+///     inserted into that quest record.  To prevent unintended data modifications
+///     ensure all data modification for an open quest is accomplished before the
+///     quest is marked as complete.
+int quest_SetPCData(object oPC, int nID, string sField, string sValue)
+{
+    string s = r"
+        UPDATE quest_pc_data
+        SET $1 = @sValue
+        WHERE quest_uuid = (
+            SELECT quest_uuid
+            FROM quest_pc_data
+            WHERE pc_uuid = @sUUID
+                AND quest_tag = (
+                    SELECT sTag
+                    FROM quest_quests
+                    WHERE id = @nID
+                )
+                AND nCompleteTime = 0
+
+            UNION
+
+            SELECT quest_uuid
+            FROM quest_pc_data
+            WHERE pc_uuid = @sUUID
+                AND quest_tag = (
+                    SELECT sTag
+                    FROM quest_quests
+                    WHERE id = @nID
+                )
+                AND nCompleteTime != 0
+            
+            ORDER BY nCompleteTime DESC
+            LIMIT 1
+        )
+        RETURNING COUNT(*);
+    ";
+    s = SubstituteSubString(s, "$1", sField);
+
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sValue", svalue);
+    SqlBindString(sql, "@sUUID", GetObjectUUID(oPC));
+    SqlBindInt   (sql", @nID", nID);
+
+    int nCount = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
+    if (IsDebugging(DEBUG_LEVEL_DEBUG))
+        HandleSqlDebugging(sql, "SQL:set-field", _i(nID), sField, PCToString(oPC), sValue);
+    
+    return nCount;
+}
+
+// TODO Not Used?
+sqlquery quest_GetQuestPrerequisites(int nID)
 {
     string s = r"
         SELECT nPropertyType, sKey, sValue
         FROM quest_prerequisites
-        WHERE quests_id = @id;
+        WHERE quests_id = @nID;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@id", nID);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", nID);
 
     return sql;
 }
 
-sqlquery GetQuestPrerequisiteTypes(int nID)
+sqlquery quest_GetPrerequisiteTypes(int nID)
 {
     string s = r"
         SELECT nValueType, COUNT(sKey)
         FROM quest_prerequisites
-        WHERE quests_id = @id
+        WHERE quests_id = @nID
         GROUP BY nValueType
         ORDER BY nValueType;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@id", nID);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", nID);
 
     return sql;
 }
 
-sqlquery GetQuestPrerequisitesByType(int nID, int nType)
+sqlquery quest_GetPrerequisitesByType(int nID, int nType)
 {
     string s = r"
         SELECT sKey, sValue
         FROM quest_prerequisites
-        WHERE quests_id = @id
-            AND nValueType = @type;
+        WHERE quests_id = @nID
+            AND nValueType = @nType;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@id", nID);
-    SqlBindInt(sql, "@type", nType);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", nID);
+    SqlBindInt(sql, "@nType", nType);
 
     return sql;
 }
 
-int GetIsQuestActive(int nID)
-{
-    string s = r"
-        SELECT nActive
-        FROM quest_quests
-        WHERE id = @id;
-    ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@id", nID);
-
-    int nActive = SqlStep(sql) ? SqlGetInt(sql, 0) : FALSE;
-    HandleSqlDebugging(sql);
-
-    return nActive;
-}
-
 int CountActiveQuestSteps(string sTag)
 {
-    int nID = GetQuestID(sTag);
+    int nID = quest_GetID(sTag);
 
     string s = r"
         SELECT COUNT(*)
         FROM quest_steps
-        WHERE quests_id = @id
-            AND nStepType = @type;
+        WHERE quests_id = @nID
+            AND nStepType = @nType;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@id", nID);
-    SqlBindInt(sql, "@type", QUEST_STEP_TYPE_PROGRESS);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", nID);
+    SqlBindInt(sql, "@nType", QUEST_STEP_TYPE_PROGRESS);
 
     int nSteps = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
     HandleSqlDebugging(sql);
@@ -488,33 +907,46 @@ int CountActiveQuestSteps(string sTag)
     return nSteps;
 }
 
-int CountAllQuestSteps(int nID)
+/// @private Count number of steps assigned to a given quest.
+int quest_CountSteps(int nID)
 {
     string s = r"
         SELECT COUNT(*)
         FROM quest_steps
-        WHERE quests_id = @id;
+        WHERE quests_id = @nID;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@id", nID);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", nID);
 
     int nSteps = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
     HandleSqlDebugging(sql);
 
     return nSteps;
+}
+
+/// @private Determine if a property type is stackable.
+int quest_IsPropertyStackable(int nPropertyType)
+{
+    if (nPropertyType == QUEST_VALUE_GOLD ||
+        nPropertyType == QUEST_VALUE_LEVEL_MAX ||
+        nPropertyType == QUEST_VALUE_LEVEL_MIN ||
+        nPropertyType == QUEST_VALUE_XP)
+        return FALSE;
+    else
+        return TRUE;
 }
 
 int CountQuestPrerequisites(string sTag)
 {
-    int nID = GetQuestID(sTag);
+    int nID = quest_GetID(sTag);
 
     string s = r"
         SELECT COUNT(id)
         FROM quest_prerequisites
-        WHERE quests_id = @id;
+        WHERE quests_id = @nID;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@id", nID);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", nID);
 
     int nCount = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
     HandleSqlDebugging(sql);
@@ -522,88 +954,87 @@ int CountQuestPrerequisites(string sTag)
     return nCount;
 }
 
-sqlquery GetQuestData(int nID)
+int quest_TableExists(string sTable)
 {
     string s = r"
-        SELECT * 
-        FROM quest_quests 
-        WHERE id = @nID;
-    ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@nID", nID);
-
-    return sql;
-}
-
-sqlquery GetQuestProperties(int nID)
-{
-    string s = r"
-        SELECT * 
-        FROM quest_properties 
-        WHERE quest_id = @nID;
-    ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@nID", nID);
-
-    return sql;
-}
-
-int GetTableExists(object oTarget, string sTable)
-{
-    string s = r"
-        SELECT name FROM sqlite_master
+        SELECT name
+        FROM sqlite_master
         WHERE type = 'table'
-            AND name = @table;
+            AND name = @sTable;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oTarget, s);
-    SqlBindString(sql, "@table", sTable);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTable", sTable);
     return SqlStep(sql);
+}
+
+int quest_CountPCVariables(object oPC, string sTag)
+{
+    string s = r"
+        SELECT COUNT(*)
+        FROM quest_pc_variables
+        WHERE quest_uuid = (
+            SELECT quest_uuid
+            FROM quest_pc_data
+            WHERE pc_uuid = @sUUID
+                AND quest_tag = (
+                    SELECT sTag
+                    FROM quest_quests
+                    WHERE id = @nID
+                )
+            ORDER BY ...
+        );
+    ";
 }
 
 int CountQuestVariables(object oTarget, string sTable)
 {
-    string s = "SELECT COUNT(*) FROM " + sTable + ";";
-    sqlquery sql = SqlPrepareQueryObject(oTarget, s);
+    string s = r"
+        SELECT COUNT(*) 
+        FROM $1;
+    ";
+    s = SubstituteSubString(s, "$1", sTable);
+    
+    sqlquery sql = quest_PrepareQuery(s);
     return SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
 }
 
-int GetQuestExists(string sTag)
+int quest_Exists(string sTag)
 {
     string s = r"
         SELECT COUNT(id)
         FROM quest_quests
-        WHERE sTag = @tag;
+        WHERE quest_tag = @sTag;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindString(sql, "@tag", sTag);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTag);
 
-    return SqlStep(sql) ? SqlGetInt(sql, 0) : FALSE;
+    return SqlStep(sql) ? SqlGetInt(sql, 0) : FALSE;    
 }
 
-int GetQuestHasMinimumNumberOfSteps(int nID)
+int quest_HasMinimumSteps(int nID)
 {
     string s = r"
         SELECT COUNT(id) FROM quest_steps
-        WHERE quests_id = @id
-            AND nStepType != @type;
+        WHERE quests_id = @nID
+            AND nStepType != @nType;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@id", nID);
-    SqlBindInt(sql, "@type", QUEST_STEP_TYPE_PROGRESS);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", nID);
+    SqlBindInt(sql, "@nType", QUEST_STEP_TYPE_PROGRESS);
 
     return SqlStep(sql) ? SqlGetInt(sql, 0) : FALSE;
 }
 
-int GetQuestStepID(int nID, int nStep)
+int quest_GetStepID(int nID, int nStep)
 {
     string s = r"
         SELECT id FROM quest_steps
-        WHERE quests_id = @id
-            AND nStep = @step;
+        WHERE quests_id = @nID
+            AND nStep = @nStep;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@id", nID);
-    SqlBindInt(sql, "@step", nStep);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", nID);
+    SqlBindInt(sql, "@nStep", nStep);
 
     int nID = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
     HandleSqlDebugging(sql);
@@ -617,11 +1048,11 @@ sqlquery GetQuestStepPropertySets(int nID, int nStep, int nCategoryType)
         SELECT nValueType, sKey, sValue, sData, bParty
         FROM quest_step_properties
         WHERE nCategoryType = @nCategoryType
-            AND quest_steps_id = @id;
+            AND quest_steps_id = @nID;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
+    sqlquery sql = quest_PrepareQuery(s);
     SqlBindInt(sql, "@nCategoryType", nCategoryType);
-    SqlBindInt(sql, "@id", GetQuestStepID(nID, nStep));
+    SqlBindInt(sql, "@nID", quest_GetStepID(nID, nStep));
 
     return sql;
 }
@@ -632,14 +1063,15 @@ sqlquery GetQuestStepPropertyPairs(int nID, int nStep, int nCategoryType, int nV
         SELECT quest_step_properties.sKey,
             quest_step_properties.sValue,
             quest_step_properties.sData
-        FROM quest_steps INNER JOIN quest_step_properties
-        ON quest_steps.id = quest_step_properties.quest_steps_id
+        FROM quest_steps 
+            INNER JOIN quest_step_properties
+                ON quest_steps.id = quest_step_properties.quest_steps_id
         WHERE quest_steps.id = @nID
             AND quest_steps.nStep = @nStep
             AND quest_step_properties.nCategoryType = @nCategoryType
             AND quest_step_properties.nValueType = @nValueType;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
+    sqlquery sql = quest_PrepareQuery(s);
     SqlBindInt(sql, "@nID", nID);
     SqlBindInt(sql, "@nStep", nStep);
     SqlBindInt(sql, "@nCategoryType", nCategoryType);
@@ -654,12 +1086,12 @@ void DeleteQuestStepPropertyPair(int nID, int nStep, int nCategoryType, int nVal
         DELETE FROM quest_step_properties
         WHERE nCategoryType = @nCategoryType
             AND nValueType = @nValueType
-            AND quest_steps_id = @id;
+            AND quest_steps_id = @nID;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
+    sqlquery sql = quest_PrepareQuery(s);
     SqlBindInt(sql, "@nCategoryType", nCategoryType);
     SqlBindInt(sql, "@nValueType", nValueType);
-    SqlBindInt(sql, "@id", GetQuestStepID(nID, nStep));
+    SqlBindInt(sql, "@nID", quest_GetStepID(nID, nStep));
 
     SqlStep(sql);
     HandleSqlDebugging(sql);
@@ -670,12 +1102,12 @@ string GetQuestStepPropertyValue(int nID, int nStep, int nCategoryType, int nVal
     string s = r"
         SELECT sValue
         FROM quest_step_properties
-        WHERE quest_steps_id = @id
+        WHERE quest_steps_id = @nID
             AND nCategoryType = @nCategoryType
             AND nValueType = @nValueType;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@id", GetQuestStepID(nID, nStep));
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", quest_GetStepID(nID, nStep));
     SqlBindInt(sql, "@nCategoryType", nCategoryType);
     SqlBindInt(sql, "@nValueType", nValueType);
 
@@ -699,7 +1131,7 @@ sqlquery GetQuestStepObjectiveData(int nID, int nStep)
             AND quest_steps.nStep = @nStep
             AND quest_steps.quests_id = @nID;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
+    sqlquery sql = quest_PrepareQuery(s);
     SqlBindInt(sql, "@nCategoryType", QUEST_CATEGORY_OBJECTIVE);
     SqlBindInt(sql, "@nStep", nStep);
     SqlBindInt(sql, "@nID", nID);
@@ -718,17 +1150,17 @@ sqlquery GetRandomQuestStepObjectiveData(int nID, int nStep, int nRecords)
             quest_step_properties.sData
         FROM quest_steps INNER JOIN quest_step_properties
             ON quest_steps.id = quest_step_properties.quest_steps_id
-        WHERE quest_step_properties.nCategoryType = @category
-            AND quest_steps.nStep = @step
-            AND quest_steps.quests_id = @id
+        WHERE quest_step_properties.nCategoryType = @nCategoryType
+            AND quest_steps.nStep = @nStep
+            AND quest_steps.quests_id = @nID
         ORDER BY RANDOM() LIMIT $1;
     ";
     s = SubstituteSubString(s, "$1", IntToString(nRecords));
 
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@category", QUEST_CATEGORY_OBJECTIVE);
-    SqlBindInt(sql, "@step", nStep);
-    SqlBindInt(sql, "@id", nID);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nCategoryType", QUEST_CATEGORY_OBJECTIVE);
+    SqlBindInt(sql, "@nStep", nStep);
+    SqlBindInt(sql, "@nID", nID);
 
     return sql;
 }
@@ -739,15 +1171,15 @@ int GetQuestStepObjectiveType(int nID, int nStep)
         SELECT quest_step_properties.nValueType
         FROM quest_steps INNER JOIN quest_step_properties
             ON quest_steps.id = quest_step_properties.quest_steps_id
-        WHERE quest_step_properties.nCategoryType = @category
-            AND quest_steps.nStep = @step
-            AND quest_steps.quests_id = @id
+        WHERE quest_step_properties.nCategoryType = @nCategoryType
+            AND quest_steps.nStep = @nStep
+            AND quest_steps.quests_id = @nID
         LIMIT 1;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@category", QUEST_CATEGORY_OBJECTIVE);
-    SqlBindInt(sql, "@step", nStep);
-    SqlBindInt(sql, "@id", nID);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nCategoryType", QUEST_CATEGORY_OBJECTIVE);
+    SqlBindInt(sql, "@stnStepep", nStep);
+    SqlBindInt(sql, "@nID", nID);
 
     int nType = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
     HandleSqlDebugging(sql);
@@ -760,12 +1192,12 @@ int CountQuestStepObjectives(int nID, int nStep)
     string s = r"
         SELECT COUNT(quest_steps_id)
         FROM quest_step_properties
-        WHERE nCategoryType = @category
-            AND quest_steps_id = @id;
+        WHERE nCategoryType = @nCategoryType
+            AND quest_steps_id = @nID;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@category", QUEST_CATEGORY_OBJECTIVE);
-    SqlBindInt(sql, "@id", GetQuestStepID(nID, nStep));
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nCategoryType", QUEST_CATEGORY_OBJECTIVE);
+    SqlBindInt(sql, "@nID", quest_GetStepID(nID, nStep));
     
     int nCount = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
     HandleSqlDebugging(sql);
@@ -773,43 +1205,104 @@ int CountQuestStepObjectives(int nID, int nStep)
     return nCount;
 }
 
-void _AddQuestToPC(object oPC, int nQuestID)
+/// @private Assign the quest associated with nID to oPC.
+string quest_Assign(object oPC, int nID)
 {
-    string sQuestTag = GetQuestTag(nQuestID);
     string s = r"
-        INSERT INTO quest_pc_data (quest_tag)
-        VALUES (@tag);
+        INSERT INTO quest_pc_data 
+            (quest_uuid, pc_uuid, quest_tag)
+        VALUES 
+            (@sQuestUUID, @sPCUUID, 
+                (SELECT sTag
+                FROM quest_quests
+                WHERE id = @nID)
+            );
+        RETURNING quest_uuid;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
-    SqlStep(sql);
-
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sQuestUUID", GetRandomUUID());
+    SqlBindString(sql, "@sPCUUID", GetObjectUUID(oPC));
+    SqlBindInt   (sql, "@nID", nID);
+    
+    string sUUID = SqlStep(sql) ? SqlGetString(sql, 0) : "";
     HandleSqlDebugging(sql);
+
+    return sUUID;
 }
 
-void DeletePCQuest(object oPC, int nQuestID)
+/// @private Set PC-specific quest data by reference to the
+///     quest UUID.
+/// @return Count of rows updated.
+int quest_SetPCDataByUUID(object oPC, string sUUID, string sField, string sValue)
 {
-    string sQuestTag = GetQuestTag(nQuestID);
+    string s = r"
+        UPDATE quest_pc_data
+        SET $1 = @sValue
+        WHERE quest_uuid = @sUUID
+            AND pc_uuid = @sPCUUID
+        RETURNING COUNT(*);
+    ";
+    s = SubstituteSubString(s, "$1", sField);
+    
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sValue", sValue);
+    SqlBindString(sql, "@sUUID", sUUID);
+    SqlBindString(sql, "@sPCUUID", GetObjectUUID(oPC));
+
+    int nCount = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
+    HandleSqlDebugging(sql);
+
+    return nCount;
+}
+
+void DeletePCQuest(object oPC, int nID)
+{
+    string sTag = quest_GetTag(nID);
     string s = r"
         DELETE FROM quest_pc_data 
-        WHERE quest_tag = @tag;
+        WHERE quest_tag = @sTag;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTag);
     SqlStep(sql);
 
     HandleSqlDebugging(sql);
 }
 
-int GetPCHasQuest(object oPC, string sQuestTag)
+int quest_CountQuests(object oPC, string sTag)
 {
     string s = r"
         SELECT COUNT(quest_tag)
         FROM quest_pc_data
-        WHERE quest_tag = @tag;
+        WHERE quest_tag = @sTag
+            AND pc_uuid = @sUUID;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTag);
+    SqlBindString(sql, "@sUUID", GetObjectUUID(oPC));
+    return SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
+}
+
+int quest_HasQuest(object oPC, string sTag)
+{
+    return quest_CountQuests(oPC, sTag) > 0;
+}
+
+int quest_IsAssigned(object oPC, string sTag)
+{
+
+    return TRUE;
+}
+
+int GetPCHasQuest(object oPC, string sTag)
+{
+    string s = r"
+        SELECT COUNT(quest_tag)
+        FROM quest_pc_data
+        WHERE quest_tag = @sTag;
+    ";
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTag);
     
     int nHas = SqlStep(sql) ? SqlGetInt(sql, 0) : FALSE;
     HandleSqlDebugging(sql);
@@ -817,15 +1310,35 @@ int GetPCHasQuest(object oPC, string sQuestTag)
     return nHas;
 }
 
-int GetIsPCQuestComplete(object oPC, string sQuestTag)
+string quest_GetUUID(object oPC, string sTag)
+{
+    string s = r"
+        SELECT quest_uuid
+        FROM quest_pc_data
+        WHERE pc_uuid = @sUUID
+            AND quest_tag = @sTag
+            AND nCompleteTime = 0;
+    ";
+
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sUUID", GetObjectID(oPC));
+    SqlBindString(sql, "@sTag", sTag);
+
+    return SqlStep(sql) ? SqlGetString(sql, 0) : "";
+}
+
+int quest_IsComplete(object oPC, string sTag)
 {
     string s = r"
         SELECT COUNT(*)
         FROM quest_pc_step
-        WHERE quest_tag = @tag;
+        WHERE pc_uuid = @sUUID
+            AND quest_tag = @sTag
+            AND nCompleteTime != 0;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTag);
+    SqlBindString(sql, "@sUUID", GetObjectUUID(oPC));
 
     int nComplete = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
     HandleSqlDebugging(sql);
@@ -833,20 +1346,23 @@ int GetIsPCQuestComplete(object oPC, string sQuestTag)
     return !nComplete;
 }
 
-int GetPCHasQuestAssigned(object oPC, string sQuestTag)
+int GetPCHasQuestAssigned(object oPC, string sTag)
 {
-    return GetPCHasQuest(oPC, sQuestTag) && !GetIsPCQuestComplete(oPC, sQuestTag);
+    return GetPCHasQuest(oPC, sTag) && !quest_IsComplete(oPC, sTag);
 }
 
-int GetPCQuestCompletions(object oPC, string sQuestTag)
+int quest_CountCompletions(object oPC, string sTag)
 {
     string s = r"
-        SELECT nCompletions
+        SELECT COUNT(quest_uuid)
         FROM quest_pc_data
-        WHERE quest_tag = @tag;
+        WHERE pc_uuid = @sUUID
+            AND quest_tag = @sTag
+            AND nCompleteTime != 0;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTag);
+    SqlBindString(sql, "@sUUID", GetObjectUUID(oPC));
 
     int nCount = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
     HandleSqlDebugging(sql);
@@ -854,101 +1370,46 @@ int GetPCQuestCompletions(object oPC, string sQuestTag)
     return nCount;
 }
 
-int GetPCQuestFailures(object oPC, string sQuestTag)
+int quest_CountCompletionsByType(object oPC, string sTag, int nType)
 {
+    string sTag = quest_GetTag(nID);
     string s = r"
-        SELECT nFailures
+        SELECT COUNT(quest_uuid)
         FROM quest_pc_data
-        WHERE quest_tag = @tag;
+        WHERE pc_uuid = @sUUID
+            AND quest_tag = @sTag
+            AND nCompleteTime != 0
+            AND nCompleteType = @nType;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
+    sqlquery sql = query_PrepareQuery(s);
+    SqlBindString(sql, "@sUUID", GetObjectUUID(oPC));
+    SqlBindString(sql, "@sTag", sTag);
+    SqlBindInt(sql, "@nType", nType);
 
-    int nCount = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
+    int nCompletions = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
     HandleSqlDebugging(sql);
 
-    return nCount;
+    return nCompletions;
 }
 
-void ResetPCQuestData(object oPC, int nQuestID)
+void quest_SetComplete(object oPC, int nID, int nType)
 {
-    string sQuestTag = GetQuestTag(nQuestID);
+    string sTag = quest_GetTag(nID);
     string s = r"
         UPDATE quest_pc_data
-        SET nStep = @step,
-            nQuestStartTime = @quest_start,
-            nStepStartTime = @step_start
-        WHERE quest_tag = @tag;
+        SET nCompleteTime = strftime('%s', 'now')
+            nCompleteType = @nType
+        WHERE quest_uuid = @sUUID;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
-    SqlBindInt(sql, "@step", 0);
-    SqlBindInt(sql, "@quest_start", 0);
-    SqlBindInt(sql, "@step_start", 0);
-    SqlStep(sql);
-    HandleSqlDebugging(sql);
-}
-
-void IncrementPCQuestField(object oPC, int nQuestID, string sField)
-{
-    string sQuestTag = GetQuestTag(nQuestID);
-    string s = r"
-        UPDATE quest_pc_data 
-        SET $1 = $1 + 1
-        WHERE quest_tag = @tag;
-    ";
-    s = SubstituteSubStrings(s, "$1", sField);
-
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nType", nType);
+    SqlBindString(sql, "@sUUID", quest_GetUUID(oPC, sTag));
     SqlStep(sql);
 
     HandleSqlDebugging(sql);
 }
 
-void IncrementPCQuestCompletions(object oPC, int nQuestID, int nTimeStamp)
-{
-    ResetPCQuestData(oPC, nQuestID);
-
-    string sQuestTag = GetQuestTag(nQuestID);
-    string s = r"
-        UPDATE quest_pc_data
-        SET nCompletions = nCompletions + 1,
-            nLastCompleteTime = @time,
-            nLastCompleteType = @type
-        WHERE quest_tag = @tag;
-    ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
-    SqlBindInt(sql, "@time", nTimeStamp);
-    SqlBindInt(sql, "@type", QUEST_STEP_TYPE_SUCCESS);
-    SqlStep(sql);
-
-    HandleSqlDebugging(sql);
-}
-
-void IncrementPCQuestFailures(object oPC, int nQuestID, int nTimeStamp)
-{
-    ResetPCQuestData(oPC, nQuestID);
-
-    string sQuestTag = GetQuestTag(nQuestID);
-    string s = r"
-        UPDATE quest_pc_data
-        SET nFailures = nFailures + 1,
-            nLastCompleteTime = @time
-            nLastCompleteType = @type
-        WHERE quest_tag = @tag;
-    ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
-    SqlBindInt(sql, "@time", nTimeStamp);
-    SqlBindInt(sql, "@type", QUEST_STEP_TYPE_FAIL);
-    SqlStep(sql);
-
-    HandleSqlDebugging(sql);
-}
-
-sqlquery GetStepObjectivesByTarget(object oPC, string sTarget)
+sqlquery GetStepObjectivesByTarget(object oPC, string sTargetTag)
 {
     string s = r"
         SELECT quest_pc_step.sTag,
@@ -956,10 +1417,10 @@ sqlquery GetStepObjectivesByTarget(object oPC, string sTarget)
             quest_pc_data.nStep
         FROM quest_pc_data INNER JOIN quest_pc_step
             ON quest_pc_data.quest_tag = quest_pc_step.quest_tag
-        WHERE quest_pc_step.sTag = @target;
+        WHERE quest_pc_step.sTag = @sTag;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@target", sTarget);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTargetTag);
 
     return sql;
 }
@@ -971,16 +1432,16 @@ sqlquery GetTargetQuestData(object oPC, string sTargetTag, int nObjectiveType, s
             quest_pc_data.nStep
         FROM quest_pc_data INNER JOIN quest_pc_step
             ON quest_pc_data.quest_tag = quest_pc_step.quest_tag
-        WHERE quest_pc_step.nObjectiveType = @type
-            AND quest_pc_step.sTag = @tag
+        WHERE quest_pc_step.nObjectiveType = @nObjectiveType
+            AND quest_pc_step.sTag = @sTag
             $1;
     ";
-    s = SubstituteSubString(s, "$1", sData == "" ? "" : "AND quest_pc_step.sData = @data");
+    s = SubstituteSubString(s, "$1", sData == "" ? "" : "AND quest_pc_step.sData = @sData");
 
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindInt(sql, "@type", nObjectiveType);
-    SqlBindString(sql, "@tag", sTargetTag);
-    if (sData != "") SqlBindString(sql, "@data", sData);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nObjectiveType", nObjectiveType);
+    SqlBindString(sql, "@sTag", sTargetTag);
+    if (sData != "") SqlBindString(sql, "@sData", sData);
 
     return sql;
 }
@@ -990,16 +1451,16 @@ sqlquery GetPCIncrementableSteps(object oPC, string sTargetTag, int nObjectiveTy
     string s = r"
         SELECT quest_tag, nObjectiveID, nRequired, nAcquired
         FROM quest_pc_step
-        WHERE sTag = @target_tag
-            AND nObjectiveType = @objective_type
+        WHERE sTag = @sTag
+            AND nObjectiveType = @nObjectiveType
             $1;
     ";
-    s = SubstituteSubString(s, "$1", sData == "" ? "" : "AND sData = @data");
+    s = SubstituteSubString(s, "$1", sData == "" ? "" : "AND sData = @sData");
     
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
+    sqlquery sql = quest_PrepareQuery(s);
     SqlBindString(sql, "@target_tag", sTargetTag);
-    SqlBindInt(sql, "@objective_type", nObjectiveType);
-    if (sData != "") SqlBindString(sql, "@data", sData);
+    SqlBindInt(sql, "@nObjectiveType", nObjectiveType);
+    if (sData != "") SqlBindString(sql, "@sData", sData);
 
     return sql;
 }
@@ -1008,15 +1469,15 @@ int CountPCIncrementableSteps(object oPC, string sTargetTag, int nObjectiveType,
 {
     string s = r"
         SELECT COUNT(quest_tag) FROM quest_pc_step
-        WHERE sTag = @target_tag
-            AND nObjectiveType = @objective_type
+        WHERE sTag = @sTag
+            AND nObjectiveType = @nObjectiveType
             $1;
     ";
-    s = SubstituteSubString(s, "$1", sData == "" ? "" : "AND sData = @data");
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@target_tag", sTargetTag);
-    SqlBindInt(sql, "@objective_type", nObjectiveType);
-    if (sData != "") SqlBindString(sql, "@data", sData);
+    s = SubstituteSubString(s, "$1", sData == "" ? "" : "AND sData = @sData");
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTargetTag);
+    SqlBindInt(sql, "@nObjectiveType", nObjectiveType);
+    if (sData != "") SqlBindString(sql, "@sData", sData);
 
     return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
 }
@@ -1027,21 +1488,24 @@ int IncrementQuestStepQuantity(object oPC, string sTargetTag, int nObjectiveType
     string s = r"
         UPDATE quest_pc_step
             SET nAcquired = nAcquired + 1
-        WHERE nObjectiveType = @type
-            AND sTag = @tag
+        WHERE nObjectiveType = @nObjectiveType
+            AND sTag = @sTag
             AND nAcquired < nRequired
-            $1;
+            AND nCompleteTime == 0
+            $1
+        RETURNING COUNT(*);
     ";
-    s = SubstituteSubString(s, "$1", sData == "" ? "" : "AND sData = @data");
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindInt(sql, "@type", nObjectiveType);
-    SqlBindString(sql, "@tag", sTargetTag);
-    if (sData != "") SqlBindString(sql, "@data", sData);
+    s = SubstituteSubString(s, "$1", sData == "" ? "" : "AND sData = @sData");
+    
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nObjectiveType", nObjectiveType);
+    SqlBindString(sql, "@sTag", sTargetTag);
+    if (sData != "") SqlBindString(sql, "@sData", sData);
 
-    SqlStep(sql);
+    int nCount = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
     HandleSqlDebugging(sql);
 
-    return CountRowChanges(oPC);
+    return nCount;
 }
 
 int IncrementQuestStepQuantityByQuest(object oPC, string sQuestTag, string sTargetTag, int nObjectiveType, string sData = "")
@@ -1049,22 +1513,24 @@ int IncrementQuestStepQuantityByQuest(object oPC, string sQuestTag, string sTarg
     string s = r"
         UPDATE quest_pc_step
             SET nAcquired = nAcquired + 1
-        WHERE nObjectiveType = @type
-            AND quest_tag = @quest_tag
-            AND sTag = @tag
-            $1;
+        WHERE nObjectiveType = @nObjectiveType
+            AND quest_tag = @sQuestTag
+            AND sTag = @sTargetTag
+            $1
+        RETURNING COUNT(*);
     ";
-    s = SubstituteSubString(s, "$1", sData == "" ? "" : "AND sData = @data");
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindInt(sql, "@type", nObjectiveType);
-    SqlBindString(sql, "@tag", sTargetTag);
-    SqlBindString(sql, "@quest_tag", sQuestTag);
-    if (sData != "") SqlBindString(sql, "@data", sData);
+    s = SubstituteSubString(s, "$1", sData == "" ? "" : "AND sData = @sData");
 
-    SqlStep(sql);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nObjectiveType", nObjectiveType);
+    SqlBindString(sql, "@sTargetTag", sTargetTag);
+    SqlBindString(sql, "@sQuestTag", sQuestTag);
+    if (sData != "") SqlBindString(sql, "@sData", sData);
+
+    int nCount = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
     HandleSqlDebugging(sql);
 
-    return CountRowChanges(oPC);
+    return nCount;
 }
 
 int DecrementQuestStepQuantity(object oPC, string sTargetTag, int nObjectiveType, string sData = "")
@@ -1072,20 +1538,21 @@ int DecrementQuestStepQuantity(object oPC, string sTargetTag, int nObjectiveType
     string s = r"
         UPDATE quest_pc_step
             SET nAcquired = max(0, nAcquired - 1)
-        WHERE nObjectiveType = @type
-            AND sTag = @tag
-            $1;
+        WHERE nObjectiveType = @nObjectiveType
+            AND sTag = @sTag
+            $1
+        RETURNING COUNT(*);
     ";
-    s = SubstituteSubString(s, "$1", sData == "" ? "" : "AND sData = @data");
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindInt(sql, "@type", nObjectiveType);
-    SqlBindString(sql, "@tag", sTargetTag);
-    if (sData != "") SqlBindString(sql, "@data", sData);
+    s = SubstituteSubString(s, "$1", sData == "" ? "" : "AND sData = @sData");
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nObjectiveType", nObjectiveType);
+    SqlBindString(sql, "@sTag", sTargetTag);
+    if (sData != "") SqlBindString(sql, "@sData", sData);
 
-    SqlStep(sql);
+    int nCount = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
     HandleSqlDebugging(sql);
 
-    return CountRowChanges(oPC);
+    return nCount;
 }
 
 void DecrementQuestStepQuantityByQuest(object oPC, string sQuestTag, string sTargetTag, int nObjectiveType, string sData = "")
@@ -1093,34 +1560,34 @@ void DecrementQuestStepQuantityByQuest(object oPC, string sQuestTag, string sTar
     string s = r"
         UPDATE quest_pc_step
             SET nAcquired = max(0, nAcquired - 1)
-        WHERE nObjectiveType = @type
-            AND sTag = @tag
-            AND quest_tag = @quest_tag
+        WHERE nObjectiveType = @nObjectiveType
+            AND sTag = @sTargetTag
+            AND quest_tag = @sQuestTag
             $1;
     ";
-    s = SubstituteSubString(s, "$1", sData == "" ? "" : "AND sData = @data");
+    s = SubstituteSubString(s, "$1", sData == "" ? "" : "AND sData = @sData");
     
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindInt(sql, "@type", nObjectiveType);
-    SqlBindString(sql, "@tag", sTargetTag);
-    SqlBindString(sql, "@quest_tag", sQuestTag);
-    if (sData != "") SqlBindString(sql, "@data", sData);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nObjectiveType", nObjectiveType);
+    SqlBindString(sql, "@sTargetTag", sTargetTag);
+    SqlBindString(sql, "@sQuestTag", sQuestTag);
+    if (sData != "") SqlBindString(sql, "@sData", sData);
 
     SqlStep(sql);
     HandleSqlDebugging(sql);
 }
 
-int CountPCStepObjectivesCompleted(object oPC, int nQuestID, int nStep)
+int CountPCStepObjectivesCompleted(object oPC, int nID, int nStep)
 {
-    string sQuestTag = GetQuestTag(nQuestID);
+    string sTag = quest_GetTag(nID);
     string s = r"
         SELECT COUNT(quest_tag)
         FROM quest_pc_step
-        WHERE quest_tag = @quest_tag
+        WHERE quest_tag = @sTag
             AND nAcquired >= nRequired;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@quest_tag", sQuestTag);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTag);
     
     int nCount = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
     HandleSqlDebugging(sql);
@@ -1128,61 +1595,59 @@ int CountPCStepObjectivesCompleted(object oPC, int nQuestID, int nStep)
     return nCount;
 }
 
-sqlquery GetQuestStepSums(object oPC, int nQuestID)
+sqlquery GetQuestStepSums(object oPC, int nID)
 {
-    string sQuestTag = GetQuestTag(nQuestID);
+    string sTag = quest_GetTag(nID);
     string s = r"
         SELECT quest_tag, SUM(nRequired), SUM(nAcquired)
         FROM quest_pc_step
-        WHERE quest_tag = @tag
-            AND nRequired > @zero
+        WHERE quest_tag = @sTag
+            AND nRequired > 0
         GROUP BY quest_tag;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
-    SqlBindInt(sql, "@zero", 0);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTag);
     return sql;
 }
 
-sqlquery GetQuestStepSumsFailure(object oPC, int nQuestID)
+sqlquery GetQuestStepSumsFailure(object oPC, int nID)
 {
-    string sQuestTag = GetQuestTag(nQuestID);
+    string sTag = quest_GetTag(nID);
     string s = r"
         SELECT quest_tag, SUM(nRequired), SUM(nAcquired)
         FROM quest_pc_step
-        WHERE quest_tag = @tag
-            AND nRequired <= @zero
+        WHERE quest_tag = @sTag
+            AND nRequired <= 0
         GROUP BY quest_tag;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
-    SqlBindInt(sql, "@zero", 0);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTag);
     return sql;
 }
 
-void DeletePCQuestProgress(object oPC, int nQuestID)
+void DeletePCQuestProgress(object oPC, int nID)
 {
-    string sQuestTag = GetQuestTag(nQuestID);
+    string sTag = quest_GetTag(nID);
     string s = r"
         DELETE FROM quest_pc_step
-        WHERE quest_tag = @tag;
+        WHERE quest_tag = @sTag;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTag);
     SqlStep(sql);
 
     HandleSqlDebugging(sql);
 }
 
-int GetPCQuestStep(object oPC, string sQuestTag)
+int GetPCQuestStep(object oPC, string sTag)
 {
     string s = r"
         SELECT nStep
         FROM quest_pc_data
-        WHERE quest_tag = @tag;
+        WHERE quest_tag = @sTag;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTag);
 
     int nStep = SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
     HandleSqlDebugging(sql);
@@ -1190,24 +1655,24 @@ int GetPCQuestStep(object oPC, string sQuestTag)
     return nStep;
 }
 
-int GetNextPCQuestStep(object oPC, string sQuestTag)
+int GetNextPCQuestStep(object oPC, string sTag)
 {
-    int nQuestID = GetQuestID(sQuestTag);
-    int nCurrentStep = GetPCQuestStep(oPC, sQuestTag);
+    int nID = quest_GetID(sTag);
+    int nStep = GetPCQuestStep(oPC, sTag);
 
     string s = r"
         SELECT nStep FROM quest_steps
-        WHERE quests_id = @id
-            AND nStep > @step
-            AND nStepType = @step_type
+        WHERE quests_id = @nID
+            AND nStep > @nStep
+            AND nStepType = @nStepType
         ORDER BY nStep ASC LIMIT 1;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@id", nQuestID);
-    SqlBindInt(sql, "@step", nCurrentStep);
-    SqlBindInt(sql, "@step_type", QUEST_STEP_TYPE_PROGRESS);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", nID);
+    SqlBindInt(sql, "@nStep", nStep);
+    SqlBindInt(sql, "@nStepType", QUEST_STEP_TYPE_PROGRESS);
 
-    int nStep = SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
+    nStep = SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
     HandleSqlDebugging(sql);
     return nStep;
 }
@@ -1219,59 +1684,60 @@ sqlquery GetPCQuestData(object oPC, string sTag = "")
         FROM quest_pc_data
         $1;
     ";
-    s = SubstituteSubString(s, "$1", sTag == "" ? "" : "WHERE quest_tag = @sQuestTag");
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    if (sTag != "") SqlBindString(sql, "@sQuestTag", sTag);
+    s = SubstituteSubString(s, "$1", sTag == "" ? "" : "WHERE quest_tag = @sTag");
+    sqlquery sql = quest_PrepareQuery(s);
+    if (sTag != "") SqlBindString(sql, "@sTag", sTag);
 
     return sql;
 }
 
-sqlquery GetPCQuestStepData(object oPC, string sQuestTag)
+sqlquery GetPCQuestStepData(object oPC, string sTag)
 {
     string s = r"
         SELECT quest_tag, nObjectiveType, sTag, sData,
             nRequired, nAcquired, nObjectiveID
         FROM quest_pc_step
-        WHERE quest_tag = @sQuestTag;
+        WHERE quest_tag = @sTag;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@sQuestTag", sQuestTag);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTag);
 
     return sql;
 }
 
-void AddQuestStepObjectiveData(object oPC, int nQuestID, int nObjectiveType, 
+void AddQuestStepObjectiveData(object oPC, int nID, int nObjectiveType, 
                                string sTargetTag, int nQuantity, int nObjectiveID,
                                string sData = "")
 {
-    string sQuestTag = GetQuestTag(nQuestID);
+    string sTag = quest_GetTag(nID);
     string s = r"
-        INSERT INTO quest_pc_step (quest_tag, nObjectiveType,
-            sTag, sData, nRequired, nObjectiveID)
-        VALUES (@quest_tag, @type, @tag, @data, @qty, @id);
+        INSERT INTO quest_pc_step 
+            (quest_tag, nObjectiveType, sTag, sData, nRequired, nObjectiveID)
+        VALUES 
+            (@sQuestTag, @nObjectiveType, @sTargetTag, @sData, @nQuantity, @nObjectiveID);
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@quest_tag", sQuestTag);
-    SqlBindInt(sql, "@type", nObjectiveType);
-    SqlBindString(sql, "@tag", sTargetTag);
-    SqlBindInt(sql, "@qty", nQuantity);
-    SqlBindString(sql, "@data", sData);
-    SqlBindInt(sql, "@id", nObjectiveID);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sQuestTag", sTag);
+    SqlBindInt(sql, "@nObjectiveType", nObjectiveType);
+    SqlBindString(sql, "@sTargetTag", sTargetTag);
+    SqlBindInt(sql, "@nQuantity", nQuantity);
+    SqlBindString(sql, "@sData", sData);
+    SqlBindInt(sql, "@nObjectiveID", nObjectiveID);
     SqlStep(sql);
 
     HandleSqlDebugging(sql);
 }
 
-int GetQuestCompletionStep(int nQuestID, int nRequestType = QUEST_ADVANCE_SUCCESS)
+int GetQuestCompletionStep(int nID, int nRequestType = QUEST_ADVANCE_SUCCESS)
 {
     string s = r"
         SELECT nStep FROM quest_steps
-        WHERE quests_id = @id
-            AND nStepType = @step_type;
+        WHERE quests_id = @nID
+            AND nStepType = @nStepType;
     ";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@id", nQuestID);
-    SqlBindInt(sql, "@step_type", nRequestType == QUEST_ADVANCE_SUCCESS ? 
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindInt(sql, "@nID", nID);
+    SqlBindInt(sql, "@nStepType", nRequestType == QUEST_ADVANCE_SUCCESS ? 
                                                   QUEST_STEP_TYPE_SUCCESS :
                                                   QUEST_STEP_TYPE_FAIL);
 
@@ -1280,16 +1746,16 @@ int GetQuestCompletionStep(int nQuestID, int nRequestType = QUEST_ADVANCE_SUCCES
     return nStep;
 }
 
-int GetPCQuestStepAcquired(object oPC, int nQuestID)
+int GetPCQuestStepAcquired(object oPC, int nID)
 {
-    string sQuestTag = GetQuestTag(nQuestID);
+    string sTag = quest_GetTag(nID);
     string s = r"
         SELECT nAcquired
         FROM quest_pc_step
-        WHERE quest_tag = @tag;
+        WHERE quest_tag = @sTag;
     ";
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
+    sqlquery sql = quest_PrepareQuery(s);
+    SqlBindString(sql, "@sTag", sTag);
     
     int nStep = SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
     HandleSqlDebugging(sql);
@@ -1310,7 +1776,7 @@ void UpdatePCQuestTables(object oPC)
 
     sQuery = "SELECT nLastCompleteType " +
              "FROM quest_pc_data;";
-    sql = SqlPrepareQueryObject(oPC, sQuery);
+    sql = quest_PrepareQuery(sQuery);
     SqlStep(sql);
 
     string sError = SqlGetError(sql);
@@ -1318,7 +1784,7 @@ void UpdatePCQuestTables(object oPC)
     {
         sQuery = "ALTER TABLE quest_pc_data " +
                  "ADD COLUMN nLastCompleteType INTEGER default '0';";
-        sql = SqlPrepareQueryObject(oPC, sQuery);
+        sql = quest_PrepareQuery(sQuery);
         SqlStep(sql);
 
         sError = SqlGetError(sql);
@@ -1336,7 +1802,7 @@ void UpdatePCQuestTables(object oPC)
 
     sQuery = "SELECT nQuestVersion " +
              "FROM quest_pc_data;";
-    sql = SqlPrepareQueryObject(oPC, sQuery);
+    sql = quest_PrepareQuery(sQuery);
     SqlStep(sql);
 
     sError = SqlGetError(sql);
@@ -1344,7 +1810,7 @@ void UpdatePCQuestTables(object oPC)
     {
         sQuery = "ALTER TABLE quest_pc_data " +
                  "ADD COLUMN nQuestVersion INTEGER default '0';";
-        sql = SqlPrepareQueryObject(oPC, sQuery);
+        sql = quest_PrepareQuery(sQuery);
         SqlStep(sql);
 
         sError = SqlGetError(sql);
@@ -1365,7 +1831,7 @@ void UpdatePCQuestTables(object oPC)
 
     sQuery = "SELECT nObjectiveID " +
              "FROM quest_pc_step;";
-    sql = SqlPrepareQueryObject(oPC, sQuery);
+    sql = quest_PrepareQuery(sQuery);
     SqlStep(sql);
 
     sError = SqlGetError(sql);
@@ -1373,7 +1839,7 @@ void UpdatePCQuestTables(object oPC)
     {
         sQuery = "ALTER TABLE quest_pc_step " +
                  "ADD COLUMN nObjectiveID INTEGER default '0';";
-        sql = SqlPrepareQueryObject(oPC, sQuery);
+        sql = quest_PrepareQuery(sQuery);
         SqlStep(sql);
 
         sError = SqlGetError(sql);
@@ -1391,7 +1857,7 @@ void UpdatePCQuestTables(object oPC)
 
     sQuery = "SELECT nFailures " +
              "FROM quest_pc_data;";
-    sql = SqlPrepareQueryObject(oPC, sQuery);
+    sql = quest_PrepareQuery(sQuery);
     SqlStep(sql);
 
     sError = SqlGetError(sql);
@@ -1399,7 +1865,7 @@ void UpdatePCQuestTables(object oPC)
     {
         sQuery = "ALTER TABLE quest_pc_data " +
                  "ADD COLUMN nFailures INTEGER default '0';";
-        sql = SqlPrepareQueryObject(oPC, sQuery);
+        sql = quest_PrepareQuery(sQuery);
         SqlStep(sql);
 
         sError = SqlGetError(sql);
