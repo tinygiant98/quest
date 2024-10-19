@@ -2,7 +2,7 @@
 #include "quest_i_main"
 
 // If required, OBJECT_SELF is GetModule();
-
+/*
 void SetQuestScripts()
 {
     SetQuestScriptOnAdvance("quest_advance");
@@ -321,3 +321,4 @@ void main()
     DefineDeliveryQuest();
     DefineProtectOnlyQuest();
 }
+*/

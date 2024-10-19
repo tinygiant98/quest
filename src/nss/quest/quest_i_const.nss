@@ -5,61 +5,68 @@
 /// ----------------------------------------------------------------------------
 
 // Versioning
-const string QUEST_SYSTEM_VERSION = "1.2.3";
+const string QUEST_SYSTEM_VERSION = "2.0.0";
 
 // Variable names for event scripts
 const string QUEST_CURRENT_QUEST = "QUEST_CURRENT_QUEST";
 const string QUEST_CURRENT_STEP = "QUEST_CURRENT_STEP";
 const string QUEST_CURRENT_EVENT = "QUEST_CURRENT_EVENT";
 
-const string QUEST_VARIABLE = "QUEST_VARIABLE";
-const string QUEST_VARIABLE_PC = "QUEST_VARIABLE_PC";
-const string QUEST_WEBHOOK = "QUEST_WEBHOOK_";
-
 const string QUEST_DATABASE = "quest_database";
 
-// Table column names
-const string QUEST_ACTIVE = "nActive";
-const string QUEST_REPETITIONS = "nRepetitions";
-const string QUEST_SCRIPT_ON_ASSIGN = "sScriptOnAssign";
-const string QUEST_SCRIPT_ON_ACCEPT = "sScriptOnAccept";
-const string QUEST_SCRIPT_ON_ADVANCE = "sScriptOnAdvance";
-const string QUEST_SCRIPT_ON_COMPLETE = "sScriptOnComplete";
-const string QUEST_SCRIPT_ON_FAIL = "sScriptOnFail";
-const string QUEST_TIME_LIMIT = "sTimeLimit";
-const string QUEST_COOLDOWN = "sCooldown";
-const string QUEST_TITLE = "sJournalTitle";
-const string QUEST_JOURNAL_HANDLER = "nJournalHandler";
-const string QUEST_JOURNAL_DELETE = "nRemoveJournalOnCompleted";
-const string QUEST_PRECOLLECTED_ITEMS = "nAllowPrecollectedItems";
-const string QUEST_DELETE = "nRemoveQuestOnCompleted";
-const string QUEST_VERSION = "nQuestVersion";
-const string QUEST_VERSION_ACTION = "nQuestVersionAction";
+// Primary Keys
+const string QUEST_KEY_PREFIX_STEP = "steps:";
 
-const string QUEST_STEP_JOURNAL_ENTRY = "sJournalEntry";
-const string QUEST_STEP_TIME_LIMIT = "sTimeLimit";
-const string QUEST_STEP_PARTY_COMPLETION = "nPartyCompletion";
-const string QUEST_STEP_PROXIMITY = "nProximity";
-const string QUEST_STEP_TYPE = "nStepType";
-const string QUEST_STEP_OBJECTIVE_COUNT = "nObjectiveMinimumCount";
-const string QUEST_STEP_RANDOM_OBJECTIVES = "nRandomObjectiveCount";
+const string QUEST_KEY_PROPERTIES = "properties";
+const string QUEST_KEY_SCRIPTS = "scripts";
+const string QUEST_KEY_JOURNAL = "journal";
+const string QUEST_KEY_PREREQUISITES = "prerequisites";
+const string QUEST_KEY_STEPS = "steps";
+const string QUEST_KEY_VARIABLES = "variables";
+const string QUEST_KEY_OBJECTIVES = "objectives";
+const string QUEST_KEY_AWARDS = "awards";
 
-// Quest PC Variable Names
-const string QUEST_PC_QUEST_TIME = "nQuestStartTime";
-const string QUEST_PC_STEP_TIME = "nStepStartTime";
-const string QUEST_PC_LAST_COMPLETE = "nLastCompleteTime";
-const string QUEST_PC_LAST_COMPLETE_TYPE = "nLastCompleteType";
-const string QUEST_PC_COMPLETIONS = "nCompletions";
-const string QUEST_PC_STEP = "nStep";
-const string QUEST_PC_VERSION = "nQuestVersion";
-const string QUEST_PC_ATTEMPTS = "nAttempts";
+// Secondary Keys
+const string QUEST_KEY_ACTIVE = "active";
+const string QUEST_KEY_REPETITIONS = "repetitions";
+const string QUEST_KEY_TIME_LIMIT = "timeLimit";
+const string QUEST_KEY_TIME_COOLDOWN = "timeCooldown";
+const string QUEST_KEY_VERSION = "version";
+const string QUEST_KEY_VERSION_ACTION = "versionAction";
+const string QUEST_KEY_ALLOW_PRECOLLECTED = "allowPrecollectedItems";
+const string QUEST_KEY_REMOVE_COMPLETED = "removeOnCompleted";
+const string QUEST_KEY_JOURNAL_ENTRY = "journalEntry";
+const string QUEST_KEY_JOURNAL_TITLE = "journalTitle";
+const string QUEST_KEY_JOURNAL_HANDLER = "journalHandler";
+const string QUEST_KEY_KEY = "key";
+const string QUEST_KEY_VALUE = "value";
+const string QUEST_KEY_PARTY_COMPLETION = "partyCompletion";
+const string QUEST_KEY_PARTY_PROXIMITY = "partyProximity";
+const string QUEST_KEY_TYPE = "type";
+const string QUEST_KEY_NAME = "name";
+const string QUEST_KEY_ORDINAL = "ordinal";
+const string QUEST_KEY_OBJ_MIN_COUNT = "objCountMinimum";
+const string QUEST_KEY_OBJ_RANDOM_COUNT = "objCountRandom";
+const string QUEST_KEY_ON_ASSIGN = "onAssign";
+const string QUEST_KEY_ON_ACCEPT = "onAccept";
+const string QUEST_KEY_ON_ADVANCE = "onAdvance";
+const string QUEST_KEY_ON_COMPLETE = "onComplete";
+const string QUEST_KEY_ON_FAIL = "onFail";
+const string QUEST_KEY_ON_ALL = "onAll";
+const string QUEST_KEY_TAG = "tag";
+const string QUEST_KEY_MAX = "max";
+const string QUEST_KEY_DATA = "data";
+const string QUEST_KEY_PARTY = "party";
+const string QUEST_KEY_CATEGORY = "category";
 
 // Quest Categories and Values
+// Should these be bitwise?
 const int QUEST_CATEGORY_PREREQUISITE = 1;
 const int QUEST_CATEGORY_OBJECTIVE = 2;
 const int QUEST_CATEGORY_PREWARD = 3;
 const int QUEST_CATEGORY_REWARD = 4;
 
+// Should these be bitwise?
 const int QUEST_VALUE_NONE = 0;
 const int QUEST_VALUE_ALIGNMENT = 1;
 const int QUEST_VALUE_CLASS = 2;
@@ -140,10 +147,32 @@ const string QUEST_DESCRIPTION = "DESCRIPTION_";
 const string QUEST_CUSTOM_MESSAGE = "CUSTOM_MESSAGE";
 const string QUEST_FEEDBACK = "FEEDBACK_";
 
-// Interal Data Control
+// Build state variables.
 const string QUEST_BUILD_QUEST = "QUEST_BUILD_QUEST";
 const string QUEST_BUILD_STEP = "QUEST_BUILD_STEP";
 const string QUEST_BUILD_OBJECTIVE = "QUEST_BUILD_OBJECTIVE";
+
+/// @private Clear state-machine build variables.
+void quest_ClearBuildVariables()
+{
+    object o = GetModule();
+    DeleteLocalInt(o, QUEST_BUILD_QUEST);
+    DeleteLocalInt(o, QUEST_BUILD_STEP);
+    DeleteLocalInt(o, QUEST_BUILD_OBJECTIVE);
+}
+
+/// @private Build state setters/getters.
+void quest_SetBuildQuest(string s)  { SetLocalString(GetModule(), QUEST_BUILD_QUEST, s); }
+void quest_SetBuildStep(int n)      { SetLocalInt   (GetModule(), QUEST_BUILD_STEP, n); }
+void quest_SetBuildObjective(int n) { SetLocalInt   (GetModule(), QUEST_BUILD_OBJECTIVE, n); }
+
+string quest_GetBuildQuest()     { return GetLocalString(GetModule(), QUEST_BUILD_QUEST); }
+int    quest_GetBuildStep()      { return GetLocalInt   (GetModule(), QUEST_BUILD_STEP); }
+int    quest_GetBuildObjective() { return GetLocalInt   (GetModule(), QUEST_BUILD_OBJECTIVE); }
+
+void quest_DeleteBuildQuest()     { DeleteLocalString(GetModule(), QUEST_BUILD_QUEST); }
+void quest_DeleteBuildStep()      { DeleteLocalInt   (GetModule(), QUEST_BUILD_STEP); }
+void quest_DeleteBuildObjective() { DeleteLocalInt(GetModule(), QUEST_BUILD_OBJECTIVE); }
 
 // Quest Version Actions
 const int QUEST_VERSION_ACTION_NONE = 0;
@@ -160,6 +189,145 @@ const string NOT_EQUAL_TO = "!=";
 
 // Other Variables
 const string QUEST_VARIABLE_TABLES_INITIALIZED = "QUEST_VARIABLE_TABLES_INITIALIZED";
+
+const string QUEST_MODULE_SCHEMA = r"
+{
+    ""type"": ""object"",
+    ""fields"": {
+        ""properties"": {
+            ""type"": ""object"",
+            ""fields"": {
+                ""active"": {""type"": ""boolean""},
+                ""allowPrecollectedItems"": {""type"":""boolean""},
+                ""removeOnCompleted"": {""type"":""boolean"", ""default"": true},
+                ""repetitions"": {""type"": ""integer""},
+                ""timeCooldown"": {""type"": ""string""},
+                ""timeLimit"": {""type"": ""string""},
+                ""version"": {""type"": ""integer""},
+                ""versionAction"": {""type"": ""integer""}
+            }
+        },
+        ""scripts"": {
+            ""type"": ""object"",
+            ""fields"": {
+                ""onAccept"": {""type"": ""string""},
+                ""onAdvance"": {""type"": ""string""},
+                ""onAll"": {""type"": ""string""},
+                ""onAssign"": {""type"": ""string""},
+                ""onComplete"": {""type"": ""string""},
+                ""onFail"": {""type"": ""string""}
+            }
+        },
+        ""journal"": {
+            ""type"": ""object"",
+            ""fields"": {
+                ""journalHandler"": {""type"": ""integer""},
+                ""journalTitle"": {""type"": ""string""},
+                ""removeOnCompleted"": {""type"": ""boolean""}
+            }
+        },
+        ""prerequisites"": {
+            ""type"": ""array"",
+            ""items"": {
+                ""$ref"": ""#/$defs/prerequisitesItem"",
+                ""defaultCount"": 2
+            }
+        },
+        ""steps"": {
+            ""type"": ""array"",
+            ""items"": {
+                ""$ref"": ""#/$defs/stepItem""
+            }
+        },
+        ""variables"": {
+            ""type"": ""object"",
+            ""additionalFields"": true
+        }
+    },
+    ""$defs"": {
+        ""stepItem"": {
+            ""type"": ""object"",
+            ""fields"": {
+                ""awards"": {
+                    ""type"": ""array"",
+                    ""items"": {
+                        ""$ref"": ""#/$defs/awardItem""
+                    }
+                },
+                ""journal"": {
+                    ""type"": ""object"",
+                    ""fields"": {
+                        ""entry"": {""type"": ""string"", ""default"": ""This one""}
+                    }
+                },
+                ""objectives"": {
+                    ""type"": ""array"",
+                    ""items"": {
+                        ""$ref"": ""#/$defs/objectiveItem""
+                    }
+                },
+                ""properties"": {
+                    ""type"": ""object"",
+                    ""fields"": {
+                        ""active"": {""type"": ""boolean""},
+                        ""objectiveMinimum"": {""type"": ""integer""},
+                        ""objectiveRandom"": {""type"": ""integer""},
+                        ""ordinal"": {""type"": ""integer""},
+                        ""partyCompletion"": {""type"": ""boolean""},
+                        ""partyProximity"": {""type"": ""boolean""},
+                        ""timeLimit"": {""type"": ""string""},
+                        ""type"": {""type"": ""integer""}
+                    }
+                },
+                ""variables"": {
+                    ""type"": ""object"",
+                    ""additionalFields"": true
+                }
+            }
+        },
+        ""awardItem"": {
+            ""type"": ""object"",
+            ""fields"": {
+                ""category"": {""type"": ""integer""},
+                ""type"": {""type"": ""integer""},
+                ""key"": {""type"": ""string""},
+                ""value"": {""type"": ""string""},
+                ""party"": {""type"": ""boolean""}
+            }
+        },
+        ""objectiveItem"": {
+            ""type"": ""object"",
+            ""fields"": {
+                ""type"": {""type"": ""integer""},
+                ""tag"": {""type"": ""string""},
+                ""value"": {""type"": ""integer""},
+                ""max"": {""type"": ""integer""},
+                ""data"": {""type"": ""string""}
+            }
+        },
+        ""prerequisitesItem"": {
+            ""type"": ""object"",
+            ""fields"": {
+                ""type"": {""type"": ""integer""},
+                ""key"": {""type"": ""string""},
+                ""value"": {""value"": ""string""}
+            }
+        }
+    }
+}
+";
+
+json quest_GetModuleSchema(int bForce = FALSE)
+{
+    json jSchema = GetLocalJson(GetModule(), "QUEST_MODULE_SCHEMA");
+    if (jSchema == JSON_NULL || bForce)
+    {
+        jSchema = JsonParse(RegExpReplace("\\s+", SubstituteSubStrings(QUEST_MODULE_SCHEMA, "\n", ""), ""));
+        SetLocalJson(GetModule(), "QUEST_MODULE_SCHEMA", jSchema);
+    }
+
+    return jSchema;
+}
 
 // -----------------------------------------------------------------------------
 //                             Quest System Configuration

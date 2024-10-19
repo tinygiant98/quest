@@ -11,7 +11,7 @@
 /*
     The following prototype are listed separately from the primary quest system
     prototypes because they are database-related direct-access functions.  These
-    functions are available for general use by including quest_i_database.
+    functions are available for general use by including quest_i_core.
 */
 
 // ---< CreateModuleQuestTables >---
@@ -71,7 +71,7 @@ int GetNextPCQuestStep(object oPC, string sQuestTag);
 
 #include "quest_i_const"
 #include "quest_i_debug"
-#include "quest_i_database"
+#include "quest_i_core"
 
 #include "nwnx_player"
 
@@ -818,6 +818,7 @@ void DeleteQuestString(string sQuestTag, string sVarName);
 //                          Private Function Definitions
 // -----------------------------------------------------------------------------
 
+/*
 string _GetPCQuestData(object oPC, int nQuestID, string sField)
 {
     string sQuestTag = quest_GetTag(nQuestID);
@@ -859,6 +860,7 @@ void _SetPCQuestData(object oPC, int nQuestID, string sField, string sValue)
         HandleSqlDebugging(sql, "SQL:set-field", _i(nQuestID),
             sField, PCToString(oPC), sValue);
 }
+
 
 string _BuildVariableTag(string sQuestTag, string sType, object oPC, int nStep)
 {
@@ -903,7 +905,7 @@ void _DeleteQuestVariable(string sQuestTag, string sType, string sVarName, objec
 
 void SetQuestInt(string sQuestTag, string sVarName, int nValue)
 {
-    _SetQuestVariable(sQuestTag, "INT", sVarName, _i(nValue));
+    quest_SetProperty(QUEST_KEY_VARIABLES, sVarName, JsonInt(nValue));
 }
 
 int GetQuestInt(string sQuestTag, string sVarName, int bDelete = FALSE)
@@ -918,7 +920,7 @@ void DeleteQuestInt(string sQuestTag, string sVarName)
 
 void SetQuestString(string sQuestTag, string sVarName, string sValue)
 {
-    _SetQuestVariable(sQuestTag, "STRING", sVarName, sValue);
+    quest_SetProperty(QUEST_KEY_VARIABLES, sVarName, JsonString(sValue), sQuestTag);
 }
 
 string GetQuestString(string sQuestTag, string sVarName, int bDelete = FALSE)
@@ -1007,7 +1009,9 @@ string _GetQuestStepData(int nQuestID, int nStep, string sField)
 
     return sResult;
 }
+*/
 
+/*
 void DisplayPCQuestData(object oPC, object oDestination, string sQuestTag = "", int bVerbose = FALSE)
 {
     if (GetIsPC(oPC) == FALSE)
@@ -1122,71 +1126,11 @@ void CleanPCQuestTables(object oPC)
         HexColorString(_i(nStale) + " stale quest" + (nStale == 1 ? "" : "s") + " found.", COLOR_RED_LIGHT) +
         "  Check the log for actions taken."));
 }
-
-void _SetQuestStepProperty(int nCategoryType, int nValueType, string sKey, string sValue,
-                           string sValueMax = "", string sData = "", int bParty = FALSE)
-{
-    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
-    int nStep = GetLocalInt(GetModule(), QUEST_BUILD_STEP);
-
-    if (nCategoryType != QUEST_CATEGORY_OBJECTIVE)
-    {
-        if (quest_IsPropertyStackable(nValueType) == FALSE)
-            DeleteQuestStepPropertyPair(nQuestID, nStep, nCategoryType, nValueType);
-    }
-
-    string s = r"
-        INSERT INTO quest_step_properties
-            (quest_steps_id, nCategoryType, nValueType, sKey, sValue, 
-             sValueMax, sData, bParty)
-        VALUES (@step_id, @category, @type, @key, @value, 
-            @max, @data, @party);
-    ";
-
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-    SqlBindInt(sql, "@step_id", quest_GetStepID(nQuestID, nStep));
-    SqlBindInt(sql, "@type", nValueType);
-    SqlBindInt(sql, "@category", nCategoryType);
-    SqlBindString(sql, "@key", sKey);
-    SqlBindString(sql, "@value", sValue);
-    SqlBindString(sql, "@max", sValueMax);
-    SqlBindString(sql, "@data", sData);
-    SqlBindInt(sql, "@party", bParty);
-
-    SqlStep(sql);
-
-    if (IsDebugging(DEBUG_LEVEL_DEBUG))
-        HandleSqlDebugging(sql, "SQL:set-step-property", _i(nQuestID),
-            _i(nStep), _i(nCategoryType), _i(nValueType),
-            sKey, sValue, sData);
-
-    if (nCategoryType == QUEST_CATEGORY_OBJECTIVE)
-    {
-        int nObjectiveID = GetLastInsertedID("quest_step_properties");
-        SetLocalInt(GetModule(), QUEST_BUILD_OBJECTIVE, nObjectiveID);
-    }
-}
-
-// Private accessor for setting quest step objectives
-void _SetQuestObjective(int nValueType, string sKey, string sValue, string sValueMax, string sData = "")
-{
-    _SetQuestStepProperty(QUEST_CATEGORY_OBJECTIVE, nValueType, sKey, sValue, sValueMax, sData);
-}
-
-// Private accessor for setting quest step prewards
-void _SetQuestPreward(int nValueType, string sKey, string sValue, int bParty = FALSE)
-{
-    _SetQuestStepProperty(QUEST_CATEGORY_PREWARD, nValueType, sKey, sValue, "0", "", bParty);
-}
-
-// Private accessor for setting quest step rewards
-void _SetQuestReward(int nValueType, string sKey, string sValue, int bParty = FALSE)
-{
-    _SetQuestStepProperty(QUEST_CATEGORY_REWARD, nValueType, sKey, sValue, "0", "", bParty);
-}
+*/
 
 void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUCCESS);
 
+/*
 void _AssignQuest(object oPC, int nQuestID)
 {
     string sQuestTag = quest_GetTag(nQuestID);
@@ -1711,6 +1655,7 @@ void _AwardQuestStepAllotments(object oPC, int nQuestID, int nStep, int nCategor
             QuestDebug("No allotments to award, no action taken");
     }
 }
+*/
 
 // -----------------------------------------------------------------------------
 //                          Public Function Definitions
@@ -1724,7 +1669,8 @@ void _AwardQuestStepAllotments(object oPC, int nQuestID, int nStep, int nCategor
 /// @returns New quest's unique record ID.
 int AddQuest(string sQuestTag, string sJournalTitle = "")
 {
-    return quest_AddQuest(sQuestTag, sJournalTitle);
+    quest_AddQuest(sQuestTag, sJournalTitle);
+    return TRUE;
 }
 
 /// @brief Delete a previously defined quest.
@@ -1732,7 +1678,7 @@ int AddQuest(string sQuestTag, string sJournalTitle = "")
 /// @returns TRUE if a record was deleted, FALSE otherwise.
 int DeleteQuest(string sQuestTag)
 {
-    return quest_DeleteQuest(sQuesTag);
+    return 0; //quest_DeleteQuest(sQuesTag);
 }
 
 /// @brief Add a quest step to the quest currently being defined.
@@ -1769,14 +1715,14 @@ int EvaluateSimpleCondition(int nBase, int nCompare, string sOperator)
 
 int GetIsQuestAssignable(object oPC, string sQuestTag)
 {
-    int nQuestID = GetQuestID(sQuestTag);
+    int nQuestID = 0; //GetQuestID(sQuestTag);
     int bAssignable = FALSE;
     string sError, sErrors;
 
-    QuestDebug("Checking for assignability of " + quest_QuestToString(nQuestID) + " to " + PCToString(oPC));
+    QuestDebug("Checking for assignability of " + quest_QuestToString(sQuestTag) + " to " + PCToString(oPC));
 
     // Check if the quest exists
-    if (nQuestID == -1 || quest_Exists(sQuestTag) == FALSE)
+    if (!quest_Exists(sQuestTag))
     {
         QuestWarning("Quest " + sQuestTag + " does not exist and " +
             "cannot be assigned" +
@@ -1785,8 +1731,9 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
         return FALSE;
     }
     else
-        QuestDebug(quest_QuestToString(nQuestID) + " EXISTS");
+        QuestDebug(quest_QuestToString(sQuestTag) + " EXISTS");
 
+    /*
     // Check if the quest is active
     if (quest_IsActive(nQuestID) == FALSE)
     {
@@ -1796,7 +1743,9 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
     }
     else
         QuestDebug(quest_QuestToString(nQuestID) + " is ACTIVE");
+    */
 
+    /*
     // Check that the creator added that minimum number of steps
     // At least one resolution step is required, the rest are optional
     if (quest_HasMinimumSteps(nQuestID))
@@ -1808,13 +1757,14 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
             "this quest");
         return FALSE;
     }
+    */
 
     if (GetPCHasQuest(oPC, sQuestTag) == TRUE)
     {
         if (quest_IsComplete(oPC, sQuestTag) == TRUE)
         {
             // Check for cooldown
-            string sCooldownTime = quest_GetData(sQuestTag, QUEST_COOLDOWN);
+            string sCooldownTime = JsonGetString(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_COOLDOWN, sQuestTag));
             if (sCooldownTime == "")
             {
                 QuestDebug("There is no cooldown time set for this quest");
@@ -1822,6 +1772,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
             }
             else
             {
+                /*
                 int nCompleteTime = StringToInt(_GetPCQuestData(oPC, nQuestID, QUEST_PC_LAST_COMPLETE));
                 int nAvailableTime = GetModifiedUnixTimeStamp(nCompleteTime, sCooldownTime);
                 if (GetGreaterUnixTimeStamp(nAvailableTime) != nAvailableTime)
@@ -1838,6 +1789,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                         "\n  Attemped Assignment Time -> " + ColorValue(FormatUnixTimestamp(GetQuestUnixTimeStamp(), QUEST_TIME_FORMAT) + " UTC"));
                     return FALSE;
                 }
+                */
             }
 
             // Check for repetitions
@@ -1851,7 +1803,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                     bAssignable = TRUE;
                 else
                 {
-                    QuestDebug(PCToString(oPC) + " has completed " + quest_QuestToString(nQuestID) + 
+                    QuestDebug(PCToString(oPC) + " has completed " + quest_QuestToString(sQuestTag) + 
                         " successfully the maximum number of times; quest cannot be re-assigned" +
                         "\n  PC Quest Completion Count -> " + ColorValue(_i(nCompletions)) +
                         "\n  Quest Repetitions Setting -> " + ColorValue(_i(nReps)));
@@ -1860,7 +1812,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
             }
             else
             {
-                QuestError(quest_QuestToString(nQuestID) + " has been assigned an invalid " +
+                QuestError(quest_QuestToString(sQuestTag) + " has been assigned an invalid " +
                     "number of repetitions; must be >= 0" +
                     "\n  Repetitions -> " + ColorValue(_i(nReps)));
                 return FALSE;
@@ -1868,50 +1820,55 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
         }
         else
         {
-            QuestDebug(PCToString(oPC) + " is still completing " + quest_QuestToString(nQuestID) + "; quest cannot be " +
+            QuestDebug(PCToString(oPC) + " is still completing " + quest_QuestToString(sQuestTag) + "; quest cannot be " +
                 "reassigned until the current attempt is complete");
             return FALSE;
         }
     }
     else
     {
-        QuestDebug(PCToString(oPC) + " does not have " + quest_QuestToString(nQuestID) + " assigned");
+        QuestDebug(PCToString(oPC) + " does not have " + quest_QuestToString(sQuestTag) + " assigned");
         bAssignable = TRUE;
     }
 
     QuestDebug("System pre-assignment check successfully completed; starting quest prerequisite checks");
 
-    int nPrerequisites = CountQuestPrerequisites(sQuestTag);
+    json jPrerequisites = quest_GetProperty(sQuestTag, QUEST_KEY_PREREQUISITES);
+    int nPrerequisites = JsonGetLength(jPrerequisites);
     if (nPrerequisites == 0)
     {
-        QuestDebug(quest_QuestToString(nQuestID) + " has no prerequisites for " +
+        QuestDebug(quest_QuestToString(sQuestTag) + " has no prerequisites for " +
             PCToString(oPC) + " to meet");
         return TRUE;
     }
     else
-        QuestDebug(quest_QuestToString(nQuestID) + " has " + _i(nPrerequisites) + " prerequisites");
+        QuestDebug(quest_QuestToString(sQuestTag) + " has " + _i(nPrerequisites) + " prerequisites");
 
-    sqlquery sqlPrerequisites = quest_GetPrerequisiteTypes(nQuestID);
-    while (SqlStep(sqlPrerequisites))
+
+    //QuestDebug(HexColorString("Checking quest prerequisite " + ValueTypeToString(nValue), COLOR_CYAN));
+
+    // TODO move stackable check to build process.
+    //if (quest_IsPropertyStackable(nValueType) == FALSE && nTypeCount > 1)
+    //{
+    //    QuestError("GetIsQuestAssignable found multiple entries for a " +
+    //        "non-stackable property" +
+    //        "\n  Quest    -> " + quest_QuestToString(nQuestID) + 
+    //        "\n  Category -> " + ColorValue(CategoryTypeToString(QUEST_CATEGORY_PREREQUISITE)) +
+    //        "\n  Value    -> " + ColorValue(ValueTypeToString(nValueType)) +
+    //        "\n  Entries  -> " + ColorValue(_i(nTypeCount)));
+    //    return FALSE;
+    //}
+
+    //sqlquery sqlPrerequisitesByType = quest_GetPrerequisitesByType(nQuestID, nValueType);
+    //switch (nValueType)
+    int n; for (; n < nPrerequisites; n++)
     {
-        int nValueType = SqlGetInt(sqlPrerequisites, 0);
-        int nTypeCount = SqlGetInt(sqlPrerequisites, 1);
+        json jPrerequisite = JsonArrayGet(jPrerequisites, n);
+        int nType = JsonGetInt(JsonObjectGet(jPrerequisite, QUEST_KEY_TYPE));
+        string sKey = JsonGetString(JsonObjectGet(jPrerequisite, QUEST_KEY_KEY));
+        string sValue = JsonGetString(JsonObjectGet(jPrerequisite, QUEST_KEY_VALUE));
 
-        QuestDebug(HexColorString("Checking quest prerequisite " + ValueTypeToString(nValueType), COLOR_CYAN));
-
-        if (quest_IsPropertyStackable(nValueType) == FALSE && nTypeCount > 1)
-        {
-            QuestError("GetIsQuestAssignable found multiple entries for a " +
-                "non-stackable property" +
-                "\n  Quest    -> " + quest_QuestToString(nQuestID) + 
-                "\n  Category -> " + ColorValue(CategoryTypeToString(QUEST_CATEGORY_PREREQUISITE)) +
-                "\n  Value    -> " + ColorValue(ValueTypeToString(nValueType)) +
-                "\n  Entries  -> " + ColorValue(_i(nTypeCount)));
-            return FALSE;
-        }
-
-        sqlquery sqlPrerequisitesByType = quest_GetPrerequisitesByType(nQuestID, nValueType);
-        switch (nValueType)
+        switch (nType)
         {
             case QUEST_VALUE_ALIGNMENT:
             {
@@ -1920,26 +1877,23 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 int nLC = GetAlignmentLawChaos(oPC);
                 
                 QuestDebug("  PC Good/Evil Alignment -> " + ColorValue(AlignmentAxisToString(nGE)) +
-                     "\n  PC Law/Chaos Alignment -> " + ColorValue(AlignmentAxisToString(nLC)));                
+                    "\n  PC Law/Chaos Alignment -> " + ColorValue(AlignmentAxisToString(nLC)));                
 
-                while (SqlStep(sqlPrerequisitesByType))
+                nAxis = StringToInt(sKey);
+                bNeutral = StringToInt(sValue);
+
+                QuestDebug("  ALIGNMENT | " + AlignmentAxisToString(nAxis) + " | " + (bNeutral ? "TRUE":"FALSE"));
+
+                if (bNeutral == TRUE)
                 {
-                    nAxis = SqlGetInt(sqlPrerequisitesByType, 0);
-                    bNeutral = SqlGetInt(sqlPrerequisitesByType, 1);
-
-                    QuestDebug("  ALIGNMENT | " + AlignmentAxisToString(nAxis) + " | " + (bNeutral ? "TRUE":"FALSE"));
-
-                    if (bNeutral == TRUE)
-                    {
-                        if (nGE == ALIGNMENT_NEUTRAL ||
-                            nLC == ALIGNMENT_NEUTRAL)
-                            bQualifies = TRUE;
-                    }
-                    else
-                    {
-                        if (nGE == nAxis || nLC == nAxis)
-                            bQualifies = TRUE;
-                    }
+                    if (nGE == ALIGNMENT_NEUTRAL ||
+                        nLC == ALIGNMENT_NEUTRAL)
+                        bQualifies = TRUE;
+                }
+                else
+                {
+                    if (nGE == nAxis || nLC == nAxis)
+                        bQualifies = TRUE;
                 }
 
                 QuestDebug("  ALIGNMENT resolution -> " + ResolutionToString(bQualifies));
@@ -1947,13 +1901,13 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 if (bQualifies == TRUE)
                     bAssignable = TRUE;
                 else
-                    sErrors = AddListItem(sErrors, _i(nValueType));
+                    sErrors = AddListItem(sErrors, _i(nType));
 
                 break;
             }
             case QUEST_VALUE_CLASS:
             {
-                int nClass, nLevels, bQualifies;
+                int nClass, bQualifies;
                 int nClass1 = GetClassByPosition(1, oPC);
                 int nClass2 = GetClassByPosition(2, oPC);
                 int nClass3 = GetClassByPosition(3, oPC);
@@ -1965,74 +1919,68 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                     (nClass2 == CLASS_TYPE_INVALID ? "" : " | " + ClassToString(nClass2) + " (" + _i(nLevels2) + ")") +
                     (nClass3 == CLASS_TYPE_INVALID ? "" : " | " + ClassToString(nClass3) + " (" + _i(nLevels3) + ")")));
 
-                while (SqlStep(sqlPrerequisitesByType))
+                nClass = StringToInt(sKey);
+                string sOperator = quest_GetKey(sValue);
+                int nLevels = StringToInt(quest_GetValue(sValue));
+
+                QuestDebug("  CLASS | " + ColorValue(ClassToString(nClass)) + " | Levels " + ColorValue(sOperator + " " + _i(nLevels)));
+
+                switch (nLevels)
                 {
-                    nClass = SqlGetInt(sqlPrerequisitesByType, 0);
-                    string sValue = SqlGetString(sqlPrerequisitesByType, 1);
-                    string sOperator = quest_GetKey(sValue);
-                    int nLevels = StringToInt(quest_GetValue(sValue));
+                    case 0:
+                        if (nClass1 == nClass || nClass2 == nClass || nClass3 == nClass)
+                        {
+                            bQualifies = FALSE;
+                            break;
+                        }
 
-                    QuestDebug("  CLASS | " + ColorValue(ClassToString(nClass)) + " | Levels " + ColorValue(sOperator + " " + _i(nLevels)));
-
-                    switch (nLevels)
-                    {
-                        case 0:
-                            if (nClass1 == nClass || nClass2 == nClass || nClass3 == nClass)
-                            {
-                                bQualifies = FALSE;
-                                break;
-                            }
-
+                        bQualifies = TRUE;
+                        break;
+                    default:
+                        if (nClass1 == nClass && EvaluateSimpleCondition(nLevels1, nLevels, sOperator))
                             bQualifies = TRUE;
-                            break;
-                        default:
-                            if (nClass1 == nClass && EvaluateSimpleCondition(nLevels1, nLevels, sOperator))
-                                bQualifies = TRUE;
-                            else if (nClass2 == nClass && EvaluateSimpleCondition(nLevels2, nLevels, sOperator))
-                                bQualifies = TRUE;
-                            else if (nClass3 == nClass && EvaluateSimpleCondition(nLevels3, nLevels, sOperator))
-                                bQualifies = TRUE;
-                            
-                            break;
-                    }
-
-                    if (!bQualifies)
+                        else if (nClass2 == nClass && EvaluateSimpleCondition(nLevels2, nLevels, sOperator))
+                            bQualifies = TRUE;
+                        else if (nClass3 == nClass && EvaluateSimpleCondition(nLevels3, nLevels, sOperator))
+                            bQualifies = TRUE;
+                        
                         break;
                 }
+
+                if (!bQualifies)
+                    break;
 
                 QuestDebug("  CLASS resolution -> " + ResolutionToString(bQualifies));
 
                 if (bQualifies == TRUE)
                     bAssignable = TRUE;
                 else
-                    sErrors = AddListItem(sErrors, _i(nValueType));
+                    sErrors = AddListItem(sErrors, _i(nType));
 
                 break;
             }
             case QUEST_VALUE_REPUTATION:
             {
                 int bQualifies;
-                while (SqlStep(sqlPrerequisitesByType))
+
+                string sFaction = sKey;
+                string sValue = sValue;
+                string sOperator = quest_GetKey(sValue);
+                int nRequiredStanding = StringToInt(quest_GetValue(sValue));
+
+                object oFactionMember = GetObjectByTag(sFaction);
+                int nCurrentStanding = GetFactionAverageReputation(oFactionMember, oPC);
+
+                QuestDebug("  PC REPUTATION | " + sFaction + " | " + _i(nCurrentStanding));
+                QuestDebug("  REPUTATION | " + sFaction + " | Standing " + 
+                    sOperator + " " + _i(abs(nRequiredStanding)));
+
+                if (EvaluateSimpleCondition(nCurrentStanding, nRequiredStanding, sOperator))
+                    bQualifies = TRUE;
+                else
                 {
-                    string sFaction = SqlGetString(sqlPrerequisitesByType, 0);
-                    string sValue = SqlGetString(sqlPrerequisitesByType, 1);
-                    string sOperator = quest_GetKey(sValue);
-                    int nRequiredStanding = StringToInt(quest_GetValue(sValue));
-
-                    object oFactionMember = GetObjectByTag(sFaction);
-                    int nCurrentStanding = GetFactionAverageReputation(oFactionMember, oPC);
-
-                    QuestDebug("  PC REPUTATION | " + sFaction + " | " + _i(nCurrentStanding));
-                    QuestDebug("  REPUTATION | " + sFaction + " | Standing " + 
-                        sOperator + " " + _i(abs(nRequiredStanding)));
-
-                    if (EvaluateSimpleCondition(nCurrentStanding, nRequiredStanding, sOperator))
-                        bQualifies = TRUE;
-                    else
-                    {
-                        bQualifies = FALSE;
-                        break;
-                    }
+                    bQualifies = FALSE;
+                    break;
                 }
 
                 QuestDebug("  REPUTATION resolution -> " + ResolutionToString(bQualifies));
@@ -2040,17 +1988,13 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 if (bQualifies == TRUE)
                     bAssignable = TRUE;
                 else
-                    sErrors = AddListItem(sErrors, _i(nValueType));
+                    sErrors = AddListItem(sErrors, _i(nType));
 
                 break;
             }    
-
             case QUEST_VALUE_GOLD:
             {
-                SqlStep(sqlPrerequisitesByType);
-                int bQualifies; //, nGoldRequired = SqlGetInt(sqlPrerequisitesByType, 1);
-                string sValue = SqlGetString(sqlPrerequisitesByType, 1);
-
+                int bQualifies;
                 string sOperator = quest_GetKey(sValue);
                 int nGold = StringToInt(quest_GetValue(sValue));
 
@@ -2059,58 +2003,48 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 
                 bQualifies = EvaluateSimpleCondition(GetGold(oPC), nGold, sOperator);
 
-                //if (GetGold(oPC) >= nGold)
-                //    bQualifies = TRUE;
-
                 QuestDebug("  GOLD resolution -> " + ResolutionToString(bQualifies));
 
                 if (bQualifies == TRUE)
                     bAssignable = TRUE;
                 else
-                    sErrors = AddListItem(sErrors, _i(nValueType));
+                    sErrors = AddListItem(sErrors, _i(nType));
 
                 break;
             }
             case QUEST_VALUE_ITEM:
             {
-                string sItemTag;
                 int nItemQuantity, bQualifies;
 
-                while (SqlStep(sqlPrerequisitesByType))
+                string sItemTag = sKey;
+                string sOperator = quest_GetKey(sValue);
+                nItemQuantity = StringToInt(quest_GetValue(sValue));
+
+                QuestDebug("  ITEM | " + sItemTag + " | " + _i(nItemQuantity));
+
+                int nItemCount = 0; //GetPCItemCount(oPC, sItemTag);
+                QuestDebug("  PC has " + _i(nItemCount) + " " + sItemTag);
+                
+                if (nItemQuantity == 0 && nItemCount > 0)
                 {
-                    sItemTag = SqlGetString(sqlPrerequisitesByType, 0);
-                    string sValue = SqlGetString(sqlPrerequisitesByType, 1);
-                    string sOperator = quest_GetKey(sValue);
-                    nItemQuantity = StringToInt(quest_GetValue(sValue));
-
-                    QuestDebug("  ITEM | " + sItemTag + " | " + _i(nItemQuantity));
-
-                    int nItemCount = GetPCItemCount(oPC, sItemTag);
-                    QuestDebug("  PC has " + _i(nItemCount) + " " + sItemTag);
-                    
-                    if (nItemQuantity == 0 && nItemCount > 0)
-                    {
-                        bQualifies = FALSE;
-                        break;
-                    }
-                    else if (nItemQuantity > 0 && EvaluateSimpleCondition(nItemCount, nItemQuantity, sOperator))
-                    //else if (nItemQuantity > 0 && nItemCount >= nItemQuantity)
-                        bQualifies = TRUE;
+                    bQualifies = FALSE;
+                    break;
                 }
+                else if (nItemQuantity > 0 && EvaluateSimpleCondition(nItemCount, nItemQuantity, sOperator))
+                    bQualifies = TRUE;
 
                 QuestDebug("  ITEM resolution -> " + ResolutionToString(bQualifies));
 
                 if (bQualifies == TRUE)
                     bAssignable = TRUE;
                 else
-                    sErrors = AddListItem(sErrors, _i(nValueType));
+                    sErrors = AddListItem(sErrors, _i(nType));
 
                 break;
             }
             case QUEST_VALUE_LEVEL_MAX:
             {
-                SqlStep(sqlPrerequisitesByType);
-                int bQualifies, nMaximumLevel = SqlGetInt(sqlPrerequisitesByType, 1);
+                int bQualifies, nMaximumLevel = StringToInt(sValue);
 
                 QuestDebug("  PC Total Levels -> " + ColorValue(_i(GetHitDice(oPC))));
                 QuestDebug("  LEVEL_MAX | " + ColorValue(_i(nMaximumLevel)));
@@ -2123,14 +2057,13 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 if (bQualifies == TRUE)
                     bAssignable = TRUE;
                 else
-                    sErrors = AddListItem(sErrors, _i(nValueType));
+                    sErrors = AddListItem(sErrors, _i(nType));
 
                 break;
             }
             case QUEST_VALUE_LEVEL_MIN:
             {
-                SqlStep(sqlPrerequisitesByType);
-                int bQualifies, nMinimumLevel = SqlGetInt(sqlPrerequisitesByType, 1);
+                int bQualifies, nMinimumLevel = StringToInt(sValue);
                 
                 QuestDebug("  PC Total Levels -> " + ColorValue(_i(GetHitDice(oPC))));
                 QuestDebug("  LEVEL_MIN | " + ColorValue(_i(nMinimumLevel)));
@@ -2143,59 +2076,50 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 if (bQualifies == TRUE)
                     bAssignable = TRUE;
                 else
-                    sErrors = AddListItem(sErrors, _i(nValueType));
+                    sErrors = AddListItem(sErrors, _i(nType));
 
                 break;
             }
             case QUEST_VALUE_QUEST:
             {
-                string sQuestTag;
-                int nRequiredCompletions;
                 int bQualifies, bPCHasQuest, nPCCompletions, nPCFailures;
 
-                while (SqlStep(sqlPrerequisitesByType))
+                string sQuestTag = sKey;
+                string sOperator = quest_GetKey(sValue);
+                int nRequiredCompletions = StringToInt(quest_GetValue(sValue));
+                
+                bPCHasQuest = GetPCHasQuest(oPC, sQuestTag);
+                nPCCompletions = quest_CountCompletions(oPC, sQuestTag);
+                nPCFailures = 0; //quest_CountCompletionsByType(oPC, sQuestTag, QUEST_TYPE_TYPE_FAIL);
+                QuestDebug("  PC | Has Quest -> " + ColorValue((bPCHasQuest ? "TRUE":"FALSE")) + 
+                    "\n  Completions -> " + ColorValue(_i(nPCCompletions)) +
+                    "\n  Failures -> " + ColorValue(_i(nPCFailures)));
+                QuestDebug("  QUEST | " + sQuestTag + " | Required -> " + ColorValue(sOperator + " " + _i(nRequiredCompletions)));
+
+                if (nRequiredCompletions > 0)
                 {
-                    sQuestTag = SqlGetString(sqlPrerequisitesByType, 0);
-                    string sValue = SqlGetString(sqlPrerequisitesByType, 1);
-                    string sOperator = quest_GetKey(sValue);
-                    nRequiredCompletions = StringToInt(quest_GetValue(sValue));
-                    
-                    bPCHasQuest = GetPCHasQuest(oPC, sQuestTag);
-                    nPCCompletions = quest_CountCompletions(oPC, sQuestTag);
-                    nPCFailures = quest_CountCompletionsByType(oPC, sQuestTag, QUEST_TYPE_TYPE_FAIL);
-                    QuestDebug("  PC | Has Quest -> " + ColorValue((bPCHasQuest ? "TRUE":"FALSE")) + 
-                        "\n  Completions -> " + ColorValue(_i(nPCCompletions)) +
-                        "\n  Failures -> " + ColorValue(_i(nPCFailures)));
-                    QuestDebug("  QUEST | " + sQuestTag + " | Required -> " + ColorValue(sOperator + " " + _i(nRequiredCompletions)));
-
-                    if (nRequiredCompletions > 0)
-                    {
-                        if (bPCHasQuest == TRUE && EvaluateSimpleCondition(nPCCompletions, nRequiredCompletions, sOperator))
-                            bQualifies = TRUE;
-                        else
-                        {   
-                            bQualifies = FALSE;
-                            break;
-                        }
-                    }
-                    else if (nRequiredCompletions == 0)
-                    {
-                        if (bPCHasQuest == TRUE && nPCCompletions == 0)
-                            bQualifies = TRUE;
-                    }
-                    else if (nRequiredCompletions < 0)
-                    {
-                        if (bPCHasQuest == TRUE)
-                        {
-                            bQualifies = FALSE;
-                            break;
-                        }
-                        else
-                            bQualifies = TRUE;
-                    }
-
-                    if (!bQualifies)
+                    if (bPCHasQuest == TRUE && EvaluateSimpleCondition(nPCCompletions, nRequiredCompletions, sOperator))
+                        bQualifies = TRUE;
+                    else
+                    {   
+                        bQualifies = FALSE;
                         break;
+                    }
+                }
+                else if (nRequiredCompletions == 0)
+                {
+                    if (bPCHasQuest == TRUE && nPCCompletions == 0)
+                        bQualifies = TRUE;
+                }
+                else if (nRequiredCompletions < 0)
+                {
+                    if (bPCHasQuest == TRUE)
+                    {
+                        bQualifies = FALSE;
+                        break;
+                    }
+                    else
+                        bQualifies = TRUE;
                 }
 
                 QuestDebug("  QUEST resolution -> " + ResolutionToString(bQualifies));
@@ -2203,7 +2127,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 if (bQualifies == TRUE)
                     bAssignable = TRUE;
                 else
-                    sErrors = AddListItem(sErrors, _i(nValueType));
+                    sErrors = AddListItem(sErrors, _i(nType));
 
                 break;
             }
@@ -2213,28 +2137,25 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 int nRequiredStep;
                 int bQualifies, bPCHasQuest, nPCStep;
 
-                while (SqlStep(sqlPrerequisitesByType))
+                sQuestTag = sKey;
+                nRequiredStep = StringToInt(sValue);
+
+                QuestDebug("  QUEST_STEP | " + sQuestTag + " | " + StepToString(nRequiredStep));
+
+                bPCHasQuest = GetPCHasQuest(oPC, sQuestTag);
+                nPCStep = GetPCQuestStep(oPC, sQuestTag);
+
+                QuestDebug("  PC | Has Quest -> " + (bPCHasQuest ? "TRUE":"FALSE") + " | " + StepToString(nRequiredStep));
+
+                if (bPCHasQuest)
                 {
-                    sQuestTag = SqlGetString(sqlPrerequisitesByType, 0);
-                    nRequiredStep = SqlGetInt(sqlPrerequisitesByType, 1);
-
-                    QuestDebug("  QUEST_STEP | " + sQuestTag + " | " + StepToString(nRequiredStep));
-
-                    bPCHasQuest = GetPCHasQuest(oPC, sQuestTag);
-                    nPCStep = GetPCQuestStep(oPC, sQuestTag);
-
-                    QuestDebug("  PC | Has Quest -> " + (bPCHasQuest ? "TRUE":"FALSE") + " | " + StepToString(nRequiredStep));
-
-                    if (bPCHasQuest)
-                    {
-                        if (nPCStep >= nRequiredStep)
-                            bQualifies = TRUE;
-                    }
-                    else
-                    {
-                        bQualifies = FALSE;
-                        break;
-                    }
+                    if (nPCStep >= nRequiredStep)
+                        bQualifies = TRUE;
+                }
+                else
+                {
+                    bQualifies = FALSE;
+                    break;
                 }
 
                 QuestDebug("  QUEST_STEP resolution -> " + ResolutionToString(bQualifies));
@@ -2242,7 +2163,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 if (bQualifies == TRUE)
                     bAssignable = TRUE;
                 else
-                    sErrors = AddListItem(sErrors, _i(nValueType));
+                    sErrors = AddListItem(sErrors, _i(nType));
 
                 break;
             }
@@ -2253,28 +2174,25 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
 
                 QuestDebug("  PC Race -> " + ColorValue(RaceToString(nPCRace)));
                 
-                while (SqlStep(sqlPrerequisitesByType))
+                nRace = StringToInt(sKey);
+                bAllowed = StringToInt(sValue);
+
+                QuestDebug("  RACE | " + RaceToString(nRace) + " | Allowed -> " + (bAllowed ? "TRUE":"FALSE"));
+
+                if (bAllowed == TRUE)
                 {
-                    nRace = SqlGetInt(sqlPrerequisitesByType, 0);
-                    bAllowed = SqlGetInt(sqlPrerequisitesByType, 1);
-
-                    QuestDebug("  RACE | " + RaceToString(nRace) + " | Allowed -> " + (bAllowed ? "TRUE":"FALSE"));
-
-                    if (bAllowed == TRUE)
+                    if (nPCRace == nRace)
+                        bQualifies = TRUE;
+                }
+                else if (bAllowed == FALSE)
+                {
+                    if (nPCRace == nRace)
                     {
-                        if (nPCRace == nRace)
-                            bQualifies = TRUE;
+                        bQualifies = FALSE;
+                        break;
                     }
-                    else if (bAllowed == FALSE)
-                    {
-                        if (nPCRace == nRace)
-                        {
-                            bQualifies = FALSE;
-                            break;
-                        }
-                        else
-                            bQualifies = TRUE;
-                    }
+                    else
+                        bQualifies = TRUE;
                 }
                     
                 QuestDebug("  RACE resolution -> " + ResolutionToString(bQualifies));
@@ -2282,83 +2200,56 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 if (bQualifies == TRUE)
                     bAssignable = TRUE;
                 else
-                    sErrors = AddListItem(sErrors, _i(nValueType));
+                    sErrors = AddListItem(sErrors, _i(nType));
 
                 break;
             }
             case QUEST_VALUE_XP:
             {
-                SqlStep(sqlPrerequisitesByType);
                 int bQualifies;
-                string sValue = SqlGetString(sqlPrerequisitesByType, 1);
                 string sOperator = quest_GetKey(sValue);
                 int nXP = StringToInt(quest_GetValue(sValue));
                 int nPC = GetXP(oPC);
                 
                 QuestDebug("  PC XP -> " + ColorValue(_i(nPC) + "xp"));
                 QuestDebug("  XP | " + ColorValue(sOperator + " " + _i(abs(nXP)) + "xp"));
-                //QuestDebug("  XP | " + (nXP >= 0 ? ">= " : "< ") + _i(abs(nXP)) + "xp");
 
                 if (EvaluateSimpleCondition(nPC, nXP, sOperator))
                     bQualifies = TRUE;
                 else
                     bQualifies = FALSE;
 
-                /*
-                if (nXP >= 0 && nPC >= nXP)
-                    bQualifies = TRUE;
-                else if (nXP < 0 && nXP < nXP)
-                    bQualifies = TRUE;
-                else
-                    bQualifies = FALSE;
-                */
-
                 QuestDebug("  XP resolution -> " + ResolutionToString(bQualifies));
 
                 if (bQualifies == TRUE)
                     bAssignable = TRUE;
                 else
-                    sErrors = AddListItem(sErrors, _i(nValueType));
+                    sErrors = AddListItem(sErrors, _i(nType));
 
                 break;
             }
             case QUEST_VALUE_ABILITY:
             {
                 int bQualifies;
-                while (SqlStep(sqlPrerequisitesByType))
+
+                int nAbility = StringToInt(sKey);
+                string sOperator = quest_GetKey(sValue);
+                int nScore = StringToInt(quest_GetValue(sValue));
+                int nPC = GetAbilityScore(oPC, nAbility, FALSE);
+
+                QuestDebug("  PC " + AbilityToString(nAbility) + " Score -> " + _i(nPC));
+                QuestDebug("  ABILITY | " + AbilityToString(nAbility) + " | Score " + 
+                    sOperator + " " + _i(abs(nScore)));
+
+                if (nScore <= 0)
+                    QuestDebug(HexColorString("  ABILITY prerequisite has an invalide valid; must be >= 0", COLOR_RED_LIGHT));
+
+                if (EvaluateSimpleCondition(nPC, nScore, sOperator))
+                    bQualifies = TRUE;
+                else
                 {
-
-                    int nAbility = SqlGetInt(sqlPrerequisitesByType, 0);
-                    string sValue = SqlGetString(sqlPrerequisitesByType, 1);
-                    string sOperator = quest_GetKey(sValue);
-                    int nScore = StringToInt(quest_GetValue(sValue));
-                    int nPC = GetAbilityScore(oPC, nAbility, FALSE);
-
-                    QuestDebug("  PC " + AbilityToString(nAbility) + " Score -> " + _i(nPC));
-                    QuestDebug("  ABILITY | " + AbilityToString(nAbility) + " | Score " + 
-                        sOperator + " " + _i(abs(nScore)));
-
-                    if (nScore <= 0)
-                        QuestDebug(HexColorString("  ABILITY prerequisite has an invalide valid; must be >= 0", COLOR_RED_LIGHT));
-
-                    if (EvaluateSimpleCondition(nPC, nScore, sOperator))
-                        bQualifies = TRUE;
-                    else
-                    {
-                        bQualifies = FALSE;
-                        break;
-                    }
-                    /*
-                    if (nScore >= 0 && nPC >= nScore)
-                        bQualifies = TRUE;
-                    else if (nScore < 0 && nPC <= nScore)
-                        bQualifies = TRUE;
-                    else
-                    {
-                        bQualifies = FALSE;
-                        break;
-                    }
-                    */
+                    bQualifies = FALSE;
+                    break;
                 }
 
                 QuestDebug("  ABILITY resolution -> " + ResolutionToString(bQualifies));
@@ -2366,43 +2257,29 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 if (bQualifies == TRUE)
                     bAssignable = TRUE;
                 else
-                    sErrors = AddListItem(sErrors, _i(nValueType));
+                    sErrors = AddListItem(sErrors, _i(nType));
 
                 break;
             }
             case QUEST_VALUE_SKILL:
             {
                 int bQualifies;
-                while (SqlStep(sqlPrerequisitesByType))
+
+                int nSkill = StringToInt(sKey);
+                string sOperator = quest_GetKey(sValue);
+                int nRank = StringToInt(quest_GetValue(sValue));
+                int nPC = GetSkillRank(nSkill, oPC, TRUE);
+
+                QuestDebug("  PC " + SkillToString(nSkill) + " Rank -> " + _i(nPC));
+                QuestDebug("  SKILL | " + SkillToString(nSkill) + " | Score " + 
+                    sOperator + " " + _i(nRank));
+
+                if (nRank > 0 && EvaluateSimpleCondition(nPC, nRank, sOperator))
+                    bQualifies = TRUE;
+                else if (nRank == 0 && nRank > 0)
                 {
-                    int nSkill = SqlGetInt(sqlPrerequisitesByType, 0);
-                    string sValue = SqlGetString(sqlPrerequisitesByType, 1);
-                    string sOperator = quest_GetKey(sValue);
-                    int nRank = StringToInt(quest_GetValue(sValue));
-                    int nPC = GetSkillRank(nSkill, oPC, TRUE);
-
-                    QuestDebug("  PC " + SkillToString(nSkill) + " Rank -> " + _i(nPC));
-                    QuestDebug("  SKILL | " + SkillToString(nSkill) + " | Score " + 
-                        sOperator + " " + _i(nRank));
-
-                    if (nRank > 0 && EvaluateSimpleCondition(nPC, nRank, sOperator))
-                        bQualifies = TRUE;
-                    else if (nRank == 0 && nRank > 0)
-                    {
-                        bQualifies = FALSE;
-                        break;
-                    }
-                    /*
-                    if (nRank >= 0 && nPC >= nRank)
-                        bQualifies = TRUE;
-                    else if (nRank < 0 && nPC <= nRank)
-                        bQualifies = TRUE;
-                    else
-                    {
-                        bQualifies = FALSE;
-                        break;
-                    }
-                    */
+                    bQualifies = FALSE;
+                    break;
                 }
 
                 QuestDebug("  SKILL resolution -> " + ResolutionToString(bQualifies));
@@ -2410,69 +2287,63 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 if (bQualifies == TRUE)
                     bAssignable = TRUE;
                 else
-                    sErrors = AddListItem(sErrors, _i(nValueType));
+                    sErrors = AddListItem(sErrors, _i(nType));
 
                 break;
             }
             case QUEST_VALUE_VARIABLE:
             {
                 int bQualifies;
-                while (SqlStep(sqlPrerequisitesByType))
+                string sType = quest_GetKey(sKey);
+                string sVarName = quest_GetValue(sKey);
+                string sOperator = quest_GetKey(sValue);
+                sValue = quest_GetValue(sValue);
+
+                if (sType == "STRING")
                 {
-                    string sKey = SqlGetString(sqlPrerequisitesByType, 0);
-                    string sValue = SqlGetString(sqlPrerequisitesByType, 1);
-                    
-                    string sType = quest_GetKey(sKey);
-                    string sVarName = quest_GetValue(sKey);
-                    string sOperator = quest_GetKey(sValue);
-                    sValue = quest_GetValue(sValue);
+                    string sPC = GetLocalString(oPC, sVarName);
 
-                    if (sType == "STRING")
+                    QuestDebug("  PC | STRING " + sVarName + " | " + sPC);
+                    QuestDebug("  VARIABLE | STRING | " + sOperator + "\"" + sValue + "\"");
+
+                    if ((sOperator == "=" || sOperator == "==") && sPC == sValue)
+                        bQualifies = TRUE;
+                    else if (sOperator == "!=" && sPC != sValue)
+                        bQualifies = TRUE;
+                    else
                     {
-                        string sPC = GetLocalString(oPC, sVarName);
-
-                        QuestDebug("  PC | STRING " + sVarName + " | " + sPC);
-                        QuestDebug("  VARIABLE | STRING | " + sOperator + "\"" + sValue + "\"");
-
-                        if ((sOperator == "=" || sOperator == "==") && sPC == sValue)
-                            bQualifies = TRUE;
-                        else if (sOperator == "!=" && sPC != sValue)
-                            bQualifies = TRUE;
-                        else
-                        {
-                            bQualifies = FALSE;
-                            break;
-                        }
+                        bQualifies = FALSE;
+                        break;
                     }
-                    else if (sType == "INT")
+                }
+                else if (sType == "INT")
+                {
+                    int nValue = StringToInt(sValue);
+                    int nPC = GetLocalInt(oPC, sVarName);
+
+                    QuestDebug("  PC | INT " + sVarName + " | " + _i(nPC));
+                    QuestDebug("  VARIABLE | INT | " + sOperator + sValue);
+
+                    if ((sOperator == "=" || sOperator == "==") && nPC == nValue)
+                        bQualifies = TRUE;
+                    else if (sOperator == ">" && nPC > nValue)
+                        bQualifies = TRUE;
+                    else if (sOperator == ">=" && nPC >= nValue)
+                        bQualifies = TRUE;
+                    else if (sOperator == "<" && nPC < nValue)
+                        bQualifies = TRUE;
+                    else if (sOperator == "<=" && nPC <= nValue)
+                        bQualifies = TRUE;
+                    else if (sOperator == "!=" && nPC != nValue)
+                        bQualifies = TRUE;
+                    else if (sOperator == "|" && nPC | nValue)
+                        bQualifies = TRUE;
+                    else if (sOperator == "&" && nPC & nValue)
+                        bQualifies = TRUE;
+                    else
                     {
-                        int nValue = StringToInt(sValue);
-                        int nPC = GetLocalInt(oPC, sVarName);
-
-                        QuestDebug("  PC | INT " + sVarName + " | " + _i(nPC));
-                        QuestDebug("  VARIABLE | INT | " + sOperator + sValue);
-
-                        if ((sOperator == "=" || sOperator == "==") && nPC == nValue)
-                            bQualifies = TRUE;
-                        else if (sOperator == ">" && nPC > nValue)
-                            bQualifies = TRUE;
-                        else if (sOperator == ">=" && nPC >= nValue)
-                            bQualifies = TRUE;
-                        else if (sOperator == "<" && nPC < nValue)
-                            bQualifies = TRUE;
-                        else if (sOperator == "<=" && nPC <= nValue)
-                            bQualifies = TRUE;
-                        else if (sOperator == "!=" && nPC != nValue)
-                            bQualifies = TRUE;
-                        else if (sOperator == "|" && nPC | nValue)
-                            bQualifies = TRUE;
-                        else if (sOperator == "&" && nPC & nValue)
-                            bQualifies = TRUE;
-                        else
-                        {
-                            bQualifies = FALSE;
-                            break;
-                        }
+                        bQualifies = FALSE;
+                        break;
                     }
                 }
 
@@ -2481,7 +2352,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                 if (bQualifies == TRUE)
                     bAssignable = TRUE;
                 else
-                    sErrors = AddListItem(sErrors, _i(nValueType));
+                    sErrors = AddListItem(sErrors, _i(nType));
 
                 break;
             }
@@ -2493,24 +2364,25 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
         int n, nCount = CountList(sErrors);
         string sResult;
 
-        for (n = 0; n < nCount; n++)
+        for (; n < nCount; n++)
         {
             string sError = GetListItem(sErrors, n);
             sResult = AddListItem(sResult, ValueTypeToString(StringToInt(sError)));
         }
 
-        QuestNotice(quest_QuestToString(nQuestID) + " could not be assigned to " + PCToString(oPC) +
+        QuestNotice(quest_QuestToString(sQuestTag) + " could not be assigned to " + PCToString(oPC) +
             "; PC did not meet the following prerequisites: " + sResult);
 
         return FALSE;
     }
     else
     {
-        QuestDebug(PCToString(oPC) + " has met all prerequisites for " + quest_QuestToString(nQuestID));
+        QuestDebug(PCToString(oPC) + " has met all prerequisites for " + quest_QuestToString(sQuestTag));
         return TRUE;
     }
 }
 
+/*
 void AssignQuest(object oPC, string sQuestTag)
 {
     int nQuestID = GetQuestID(sQuestTag);
@@ -3198,6 +3070,7 @@ string CreateTimeVector(int nYears = 0, int nMonths = 0, int nDays = 0,
 
     return sResult;
 }
+*/
 
 string GetCurrentQuest()
 {
@@ -3214,6 +3087,7 @@ int GetCurrentQuestEvent()
     return GetLocalInt(GetModule(), QUEST_CURRENT_EVENT);
 }
 
+/*
 void AwardQuestStepPrewards(object oPC, int nQuestID, int nStep, int nAwardType = AWARD_ALL)
 {
     _AwardQuestStepAllotments(oPC, nQuestID, nStep, QUEST_CATEGORY_PREWARD, nAwardType);
@@ -3223,272 +3097,264 @@ void AwardQuestStepRewards(object oPC, int nQuestID, int nStep, int nAwardType =
 {
     _AwardQuestStepAllotments(oPC, nQuestID, nStep, QUEST_CATEGORY_REWARD, nAwardType);
 }
+*/
 
 string GetQuestTitle(string sQuestTag)
 {
-    return quest_GetData(sQuestTag, QUEST_TITLE);
+    return JsonGetString(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_JOURNAL_TITLE, sQuestTag));
 }
 
 void SetQuestTitle(string sTitle)
 {
-    quest_SetData(QUEST_TITLE, sTitle);
+    quest_SetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_JOURNAL_TITLE, JsonString(sTitle));
 }
 
 int GetQuestActive(string sQuestTag)
 {
-    return !!StringToInt(quest_GetData(sTag, QUEST_ACTIVE));
+    return JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_ACTIVE, sQuestTag));
 }
 
 void SetQuestActive(string sQuestTag = "")
 {
-    int nQuestID = -1;
-
-    if (sQuestTag != "")
-        nQuestID = GetQuestID(sQuestTag);
-
-    quest_SetData(QUEST_ACTIVE, _i(TRUE), nQuestID);
+    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_ACTIVE, JSON_TRUE, sQuestTag);
 }
 
 void SetQuestInactive(string sQuestTag = "")
 {
-    int nQuestID = -1;
-    if (sQuestTag != "")
-        nQuestID = GetQuestID(sQuestTag);
-
-    quest_SetData(QUEST_ACTIVE, _i(FALSE), nQuestID);
+    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_ACTIVE, JSON_FALSE, sQuestTag);
 }
+
+// TODO add SetQuestStep[In]Active?
 
 int GetQuestRepetitions(string sQuestTag)
 {
-    return StringToInt(quest_GetData(sTag, QUEST_REPETITIONS));
+    return JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_REPETITIONS, sQuestTag));
 }
 
 void SetQuestRepetitions(int nRepetitions = 1)
-{
-    quest_SetData(QUEST_REPETITIONS, _i(nRepetitions));
+{   
+    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_REPETITIONS, JsonInt(nRepetitions));
 }
 
 string GetQuestTimeLimit(string sQuestTag)
 {
-    return quest_GetData(sQuestTag, QUEST_TIME_LIMIT);
+    return JsonGetString(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_LIMIT, sQuestTag));
 }
 
 void SetQuestTimeLimit(string sTimeVector)
 {
-    quest_SetData(QUEST_TIME_LIMIT, sTimeVector);
+    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_LIMIT, JsonString(sTimeVector));
 }
 
 string GetQuestCooldown(string sQuestTag)
 {
-    return quest_GetData(sQuestTag, QUEST_COOLDOWN);
+    return JsonGetString(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_COOLDOWN, sQuestTag));
 }
 
 void SetQuestCooldown(string sTimeVector)
 {
-    quest_SetData(QUEST_COOLDOWN, sTimeVector);
+    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_COOLDOWN, JsonString(sTimeVector));
 }
 
 string GetQuestScriptOnAssign(string sQuestTag)
 {
-    return quest_GetData(sQuestTag, QUEST_SCRIPT_ON_ASSIGN);
+    return JsonGetString(quest_GetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ASSIGN, sQuestTag));
 }
 
 void SetQuestScriptOnAssign(string sScript)
 {
-    quest_SetData(QUEST_SCRIPT_ON_ASSIGN, sScript);
+    quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ASSIGN, JsonString(sScript));
 }
 
 string GetQuestScriptOnAccept(string sQuestTag)
 {
-    return quest_GetData(sQuestTag, QUEST_SCRIPT_ON_ACCEPT);
+    return JsonGetString(quest_GetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ACCEPT, sQuestTag));
 }
 
 void SetQuestScriptOnAccept(string sScript)
 {
-    quest_SetData(QUEST_SCRIPT_ON_ACCEPT, sScript);
+    quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ACCEPT, JsonString(sScript));
 }
 
 string GetQuestScriptOnAdvance(string sQuestTag)
 {
-    return quest_GetData(sQuestTag, QUEST_SCRIPT_ON_ADVANCE);
+    return JsonGetString(quest_GetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ADVANCE, sQuestTag));
 }
 
 void SetQuestScriptOnAdvance(string sScript)
 {
-    quest_SetData(QUEST_SCRIPT_ON_ADVANCE, sScript);
+    quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ADVANCE, JsonString(sScript));
 }
 
 string GetQuestScriptOnComplete(string sQuestTag)
 {
-    return quest_GetData(sQuestTag, QUEST_SCRIPT_ON_COMPLETE);
+    return JsonGetString(quest_GetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_COMPLETE, sQuestTag));
 }
 
 void SetQuestScriptOnComplete(string sScript)
 {
-    quest_SetData(QUEST_SCRIPT_ON_COMPLETE, sScript);
+    quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_COMPLETE, JsonString(sScript));
 }
 
 string GetQuestScriptOnFail(string sQuestTag)
 {
-
-    return quest_GetData(sQuestTag, QUEST_SCRIPT_ON_FAIL);
+    return JsonGetString(quest_GetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_FAIL, sQuestTag));
 }
 
 void SetQuestScriptOnFail(string sScript)
 {
-    quest_SetData(QUEST_SCRIPT_ON_FAIL, sScript);
+    quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_FAIL, JsonString(sScript));
 }
 
 void SetQuestScriptOnAll(string sScript)
 {
-    SetQuestScriptOnAssign(sScript);
-    SetQuestScriptOnAccept(sScript);
-    SetQuestScriptOnAdvance(sScript);
-    SetQuestScriptOnComplete(sScript);
-    SetQuestScriptOnFail(sScript);
+    quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ALL, JsonString(sScript));
 }
 
 int GetQuestJournalHandler(string sQuestTag)
 {
-    return StringToInt(quest_GetData(sQuestTag, QUEST_JOURNAL_HANDLER));
+    return JsonGetInt(quest_GetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_JOURNAL_HANDLER, sQuestTag));
 }
 
 void SetQuestJournalHandler(int nJournalHandler = QUEST_JOURNAL_NWN)
 {
-    quest_SetData(QUEST_JOURNAL_HANDLER, _i(nJournalHandler));
+    quest_SetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_JOURNAL_HANDLER, JsonInt(nJournalHandler));
 }
 
 int GetQuestJournalDeleteOnComplete(string sQuestTag)
 {
-    return StringToInt(quest_GetData(sQuestTag, QUEST_JOURNAL_DELETE));
+    return JsonGetInt(quest_GetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_REMOVE_COMPLETED, sQuestTag));
 }
 
 void DeleteQuestJournalEntriesOnCompletion()
 {
-    quest_SetData(QUEST_JOURNAL_DELETE, _i(TRUE));
+    quest_SetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_REMOVE_COMPLETED, JSON_TRUE);
 }
 
 void RetainQuestJournalEntriesOnCompletion()
 {
-    quest_SetData(QUEST_JOURNAL_DELETE, _i(FALSE));
+    quest_SetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_REMOVE_COMPLETED, JSON_FALSE);
 }
 
 int GetQuestAllowPrecollectedItems(string sQuestTag)
 {
-    return StringToInt(quest_GetData(sQuestTag, QUEST_PRECOLLECTED_ITEMS));
+    return JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_ALLOW_PRECOLLECTED, sQuestTag));
 }
 
 void SetQuestAllowPrecollectedItems(int nAllow = TRUE)
 {
-    quest_SetData(QUEST_PRECOLLECTED_ITEMS, _i(nAllow));
+    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_ALLOW_PRECOLLECTED, JsonBool(nAllow));
 }
 
 int GetQuestDeleteOnComplete(string sQuestTag)
 {
-    return StringToInt(quest_GetData(sQuestTag, QUEST_DELETE));
+    return JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_REMOVE_COMPLETED));
 }
 
 void SetQuestDeleteOnComplete(int bDelete = TRUE)
 {
-    quest_SetData(QUEST_DELETE, _i(bDelete));
+    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_REMOVE_COMPLETED, JsonBool(bDelete));
 }
 
 int GetQuestVersion(string sQuestTag)
 {
-    return StringToInt(quest_GetData(sQuestTag, QUEST_VERSION));
+    return JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION, sQuestTag));
 }
 
 void SetQuestVersion(int nVersion)
 {
-    quest_SetData(QUEST_VERSION, _i(nVersion));
+    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION, JsonInt(nVersion));
 }
 
 int GetQuestVersionAction(string sQuestTag)
 {
-    return StringToInt(quest_GetData(sQuestTag, QUEST_VERSION_ACTION));
+    return JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION_ACTION, sQuestTag));
 }
 
 void SetQuestVersionActionReset()
 {
-    quest_SetData(QUEST_VERSION_ACTION, _i(QUEST_VERSION_ACTION_RESET));
+    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION_ACTION, JsonInt(QUEST_VERSION_ACTION_RESET));
 }
 
 void SetQuestVersionActionDelete()
 {
-    quest_SetData(QUEST_VERSION_ACTION, _i(QUEST_VERSION_ACTION_DELETE));
+    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION_ACTION, JsonInt(QUEST_VERSION_ACTION_DELETE));
 }
 
 void SetQuestVersionActionNone()
 {
-    quest_SetData(QUEST_VERSION_ACTION, _i(QUEST_VERSION_ACTION_NONE));
+    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION_ACTION, JsonInt(QUEST_VERSION_ACTION_NONE));
+}
+
+string _GetQuestStepData(int q, int n, string t)
+{
+    return "";
 }
 
 string GetQuestStepJournalEntry(string sQuestTag, int nStep)
 {
-    return _GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_STEP_JOURNAL_ENTRY);
+    return ""; //_GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_JOURNAL_ENTRY);
 }
 
 void SetQuestStepJournalEntry(string sJournalEntry)
 {
-    _SetQuestStepData(QUEST_STEP_JOURNAL_ENTRY, sJournalEntry);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_JOURNAL, QUEST_KEY_JOURNAL_ENTRY, JsonString(sJournalEntry));
 }
 
 string GetQuestStepTimeLimit(string sQuestTag, int nStep)
 {
-    return _GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_STEP_TIME_LIMIT);
+    return ""; //_GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_TIME_LIMIT);
 }
 
 void SetQuestStepTimeLimit(string sTimeVector)
 {
-    if (sTimeVector == "")
-        return;
-
-    _SetQuestStepData(QUEST_STEP_TIME_LIMIT, sTimeVector);
+    if (sTimeVector != "")
+        quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_LIMIT, JsonString(sTimeVector));
 }
 
 int GetQuestStepPartyCompletion(string sQuestTag, int nStep)
 {   
-    string sData = _GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_STEP_PARTY_COMPLETION);
+    string sData = ""; //= _GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_PARTY_COMPLETION);
     return StringToInt(sData);
 }
 
 void SetQuestStepPartyCompletion(int nPartyCompletion = TRUE)
 {
-    _SetQuestStepData(QUEST_STEP_PARTY_COMPLETION, _i(nPartyCompletion));
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_PROPERTIES, QUEST_KEY_PARTY_COMPLETION, JsonBool(nPartyCompletion));
 }
 
 int GetQuestStepProximity(string sQuestTag, int nStep)
 {
-    string sData = _GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_STEP_PROXIMITY);
+    string sData = _GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_PARTY_PROXIMITY);
     return StringToInt(sData);
 }
 
 void SetQuestStepProximity(int bProximity = TRUE)
 {
-    _SetQuestStepData(QUEST_STEP_PROXIMITY, _i(bProximity));
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_PROPERTIES, QUEST_KEY_PARTY_PROXIMITY, JsonBool(bProximity));
 }
 
 int GetQuestStepObjectiveMinimum(string sQuestTag, int nStep)
 {
-    string sData = _GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_STEP_OBJECTIVE_COUNT);
+    string sData = _GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_OBJ_MIN_COUNT);
     return StringToInt(sData);
 }
 
 void SetQuestStepObjectiveMinimum(int nMinimum)
 {
-    _SetQuestStepData(QUEST_STEP_OBJECTIVE_COUNT, _i(nMinimum));
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_PROPERTIES, QUEST_KEY_OBJ_MIN_COUNT, JsonInt(nMinimum));
 }
 
 int GetQuestStepObjectiveRandom(string sQuestTag, int nStep)
 {
-    string sData = _GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_STEP_RANDOM_OBJECTIVES);
+    string sData = _GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_OBJ_RANDOM_COUNT);
     return StringToInt(sData);
 }
 
 void SetQuestStepObjectiveRandom(int nObjectiveCount)
 {
-    _SetQuestStepData(QUEST_STEP_RANDOM_OBJECTIVES, _i(nObjectiveCount));
-}   
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_PROPERTIES, QUEST_KEY_OBJ_RANDOM_COUNT, JsonInt(nObjectiveCount));
+}
 
 string GetRandomQuestCustomMessage(object oPC, string sQuestTag)
 {
@@ -3496,7 +3362,7 @@ string GetRandomQuestCustomMessage(object oPC, string sQuestTag)
     if (nStep == -1)
         return "";
 
-    return GetPCQuestString(oPC, sQuestTag, QUEST_CUSTOM_MESSAGE, nStep);
+    return ""; //GetPCQuestString(oPC, sQuestTag, QUEST_CUSTOM_MESSAGE, nStep);
 }
 
 string GetQuestStepObjectiveDescription(int nQuestID, int nObjectiveID)
@@ -3526,24 +3392,6 @@ void SetQuestStepObjectiveDescriptor(string sDescriptor)
     SetQuestString(quest_GetTag(nQuestID), QUEST_DESCRIPTOR + _i(nObjectiveID), sDescriptor);
 }
 
-string GetQuestWebhookMessage(string sQuestTag, int nStep = 0)
-{
-    return GetQuestString(sQuestTag, QUEST_WEBHOOK + _i(nStep));
-}
-
-void SetQuestWebhookMessage(string sMessage)
-{
-    if (sMessage == "")
-        return;
-
-    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
-    int nStep = GetLocalInt(GetModule(), QUEST_BUILD_STEP);
-    string sQuestTag = quest_GetTag(nQuestID);
-    string sVarName = QUEST_WEBHOOK + _i(nStep);
-
-    SetQuestString(sQuestTag, sVarName, sMessage);
-}
-
 string GetQuestStepObjectiveFeedback(int nQuestID, int nObjectiveID)
 {
     return GetQuestString(quest_GetTag(nQuestID), QUEST_FEEDBACK + _i(nObjectiveID));
@@ -3560,210 +3408,242 @@ void SetQuestStepObjectiveFeedback(string sFeedback)
 
 void SetQuestPrerequisiteAlignment(int nAlignmentAxis, int bNeutral = FALSE)
 {
-    quest_AddPrerequisite(QUEST_VALUE_ALIGNMENT, _i(nAlignmentAxis), _i(bNeutral));
+    json j = quest_BuildPrerequisite(QUEST_VALUE_ALIGNMENT, _i(nAlignmentAxis), _i(bNeutral));
+    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteClass(int nClass, int nLevels = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_CLASS, _i(nClass), sOperator + ":" + _i(nLevels));
+    json j = quest_BuildPrerequisite(QUEST_VALUE_CLASS, _i(nClass), sOperator + ":" + _i(nLevels));
+    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteGold(int nGold = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_GOLD, "", sOperator + ":" + _i(max(0, nGold)));
+    json j = quest_BuildPrerequisite(QUEST_VALUE_GOLD, "", sOperator + ":" + _i(max(0, nGold)));
+    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteItem(string sItemTag, int nQuantity = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_ITEM, sItemTag, sOperator + ":" + _i(nQuantity));
+    json j = quest_BuildPrerequisite(QUEST_VALUE_ITEM, sItemTag, sOperator + ":" + _i(nQuantity));
+    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
-void SetQuestPrerequisiteLevelMax(int nLevelMin)
+void SetQuestPrerequisiteLevelMax(int nLevel)
 {
-    quest_AddPrerequisite(QUEST_VALUE_LEVEL_MAX, "", _i(nLevelMin));
+    json j = quest_BuildPrerequisite(QUEST_VALUE_LEVEL_MAX, "", _i(nLevel));
+    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
-void SetQuestPrerequisiteLevelMin(int nLevelMax)
+void SetQuestPrerequisiteLevelMin(int nLevel)
 {
-    quest_AddPrerequisite(QUEST_VALUE_LEVEL_MIN, "", _i(nLevelMax));
+    json j = quest_BuildPrerequisite(QUEST_VALUE_LEVEL_MIN, "", _i(nLevel));
+    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteQuest(string sQuestTag, int nCompletionCount = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_QUEST, sQuestTag, sOperator + ":" + _i(nCompletionCount));
+    json j = quest_BuildPrerequisite(QUEST_VALUE_QUEST, sQuestTag, sOperator + ":" + _i(nCompletionCount));
+    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteQuestStep(string sQuestTag, int nStep)
 {
-    quest_AddPrerequisite(QUEST_VALUE_QUEST_STEP, sQuestTag, _i(nStep));
+    json j = quest_BuildPrerequisite(QUEST_VALUE_QUEST_STEP, sQuestTag, _i(nStep));
+    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteRace(int nRace, int bAllowed = TRUE)
 {
-    quest_AddPrerequisite(QUEST_VALUE_RACE, _i(nRace), _i(bAllowed));
+    json j = quest_BuildPrerequisite(QUEST_VALUE_RACE, _i(nRace), _i(bAllowed));
+    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteXP(int nXP, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_XP, "", sOperator + ":" + _i(nXP));
+    json j = quest_BuildPrerequisite(QUEST_VALUE_XP, "", sOperator + ":" + _i(nXP));
+    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteSkill(int nSkill, int nRank, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_SKILL, _i(nSkill), sOperator + ":" + _i(nRank));
+    json j = quest_BuildPrerequisite(QUEST_VALUE_SKILL, _i(nSkill), sOperator + ":" + _i(nRank));
+    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteAbility(int nAbility, int nScore, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_ABILITY, _i(nAbility), sOperator + ":" + _i(nScore));
+    json j = quest_BuildPrerequisite(QUEST_VALUE_ABILITY, _i(nAbility), sOperator + ":" + _i(nScore));
+    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteReputation(string sFaction, int nStanding, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_REPUTATION, sFaction, sOperator + ":" + _i(nStanding));
+    json j = quest_BuildPrerequisite(QUEST_VALUE_REPUTATION, sFaction, sOperator + ":" + _i(nStanding));
+    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteVariableInt(string sVarName, string sOperator, int nValue)
 {
-    quest_AddPrerequisite(QUEST_VALUE_VARIABLE, "INT:" + sVarName, sOperator + ":" + _i(nValue));
+    json j = quest_BuildPrerequisite(QUEST_VALUE_VARIABLE, "INT:" + sVarName, sOperator + ":" + _i(nValue));
+    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteVariableString(string sVarName, string sOperator, string sValue)
 {
-    quest_AddPrerequisite(QUEST_VALUE_VARIABLE, "STRING:" + sVarName, sOperator + ":" + sValue);
-}
-
-// TODO WTFO?
-void SetQuestStepFeedback(string sFeedback)
-{
-    string s;
+    json j = quest_BuildPrerequisite(QUEST_VALUE_VARIABLE, "STRING:" + sVarName, sOperator + ":" + sValue);
+    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestStepObjectiveKill(string sTargetTag, int nValue = 1, int nMax = 0)
 {
-    _SetQuestObjective(QUEST_OBJECTIVE_KILL, sTargetTag, _i(nValue), _i(nMax));
+    json j = quest_BuildObjective(QUEST_OBJECTIVE_KILL, sTargetTag, nValue, nMax);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_OBJECTIVES, "", j);
 }
 
 void SetQuestStepObjectiveGather(string sTargetTag, int nValue = 1, int nMax = 0)
 {
-    _SetQuestObjective(QUEST_OBJECTIVE_GATHER, sTargetTag, _i(nValue), _i(nMax));
+    json j = quest_BuildObjective(QUEST_OBJECTIVE_GATHER, sTargetTag, nValue, nMax);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_OBJECTIVES, "", j);
 }
 
 void SetQuestStepObjectiveDeliver(string sTargetTag, string sData, int nValue, int nMax = 0)
 {
-    _SetQuestObjective(QUEST_OBJECTIVE_DELIVER, sTargetTag, _i(nValue), _i(nMax));
+    json j = quest_BuildObjective(QUEST_OBJECTIVE_DELIVER, sTargetTag, nValue, nMax, sData);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_OBJECTIVES, "", j);
 }
 
 void SetQuestStepObjectiveDiscover(string sTargetTag, int nValue = 1, int nMax = 0)
 {
-    _SetQuestObjective(QUEST_OBJECTIVE_DISCOVER, sTargetTag, _i(nValue), _i(nMax));
+    json j = quest_BuildObjective(QUEST_OBJECTIVE_DISCOVER, sTargetTag, nValue, nMax);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_OBJECTIVES, "", j);
 }
 
 void SetQuestStepObjectiveSpeak(string sTargetTag, int nValue = 1, int nMax = 0)
 {
-    _SetQuestObjective(QUEST_OBJECTIVE_SPEAK, sTargetTag, _i(nValue), _i(nMax));
+    json j = quest_BuildObjective(QUEST_OBJECTIVE_SPEAK, sTargetTag, nValue, nMax);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_OBJECTIVES, "", j);
 }
 
 void SetQuestStepPrewardAlignment(int nAlignmentAxis, int nValue, int bParty = FALSE)
 {
-    _SetQuestPreward(QUEST_VALUE_ALIGNMENT, _i(nAlignmentAxis), _i(nValue), bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_ALIGNMENT, _i(nAlignmentAxis), _i(nValue), bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardGold(int nGold, int bParty = FALSE)
 {
-    _SetQuestPreward(QUEST_VALUE_GOLD, "", _i(nGold), bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_GOLD, "", _i(nGold), bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardItem(string sResref, int nQuantity, int bParty = FALSE)
 {
-    _SetQuestPreward(QUEST_VALUE_ITEM, sResref, _i(nQuantity), bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_ITEM, sResref, _i(nQuantity), bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardXP(int nXP, int bParty = FALSE)
 {
-    _SetQuestPreward(QUEST_VALUE_XP, "", _i(nXP), bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_XP, "", _i(nXP), bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardMessage(string sMessage, int bParty = FALSE)
 {
-    _SetQuestPreward(QUEST_VALUE_MESSAGE, "", sMessage, bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_MESSAGE, "", sMessage, bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardFloatingText(string sText, int bPartyOnly = FALSE, int bChatDisplay = FALSE, int bParty = FALSE)
 {
-    _SetQuestPreward(QUEST_VALUE_FLOATINGTEXT, _i(bPartyOnly) + ":" + _i(bChatDisplay), sText, bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_FLOATINGTEXT, _i(bPartyOnly) + ":" + _i(bChatDisplay), sText, bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardReputation(string sFaction, int nChange, int bParty = FALSE)
 {
-    _SetQuestPreward(QUEST_VALUE_REPUTATION, sFaction, _i(nChange), bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_REPUTATION, sFaction, _i(nChange), bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardVariableInt(string sVarName, string sOperator, int nValue, int bParty = FALSE)
 {
-    _SetQuestPreward(QUEST_VALUE_VARIABLE, "INT:" + sVarName, sOperator + ":" + _i(nValue), bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_VARIABLE, "INT:" + sVarName, sOperator + ":" + _i(nValue), bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardVariableString(string sVarName, string sOperator, string sValue, int bParty = FALSE)
 {
-    _SetQuestPreward(QUEST_VALUE_VARIABLE, "STRING:" + sVarName, sOperator + ":" + sValue, bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_VARIABLE, "STRING:" + sVarName, sOperator + ":" + sValue, bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardAlignment(int nAlignmentAxis, int nValue, int bParty = FALSE)
 {
-    _SetQuestReward(QUEST_VALUE_ALIGNMENT, _i(nAlignmentAxis), _i(nValue), bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_ALIGNMENT, _i(nAlignmentAxis), _i(nValue), bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardGold(int nGold, int bParty = FALSE)
 {
-    _SetQuestReward(QUEST_VALUE_GOLD, "", _i(nGold), bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_GOLD, "", _i(nGold), bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardItem(string sResref, int nQuantity = 1, int bParty = FALSE)
 {
-    _SetQuestReward(QUEST_VALUE_ITEM, sResref, _i(nQuantity), bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_ITEM, sResref, _i(nQuantity), bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardQuest(string sQuestTag, int bAssign = TRUE, int bParty = FALSE)
 {
-    _SetQuestReward(QUEST_VALUE_QUEST, sQuestTag, _i(bAssign), bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_QUEST, sQuestTag, _i(bAssign), bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardXP(int nXP, int bParty = FALSE)
 {
-    _SetQuestReward(QUEST_VALUE_XP, "", _i(nXP), bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_XP, "", _i(nXP), bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardMessage(string sMessage, int bParty = FALSE)
 {
-    _SetQuestReward(QUEST_VALUE_MESSAGE, "", sMessage, bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_MESSAGE, "", sMessage, bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardReputation(string sFaction, int nChange, int bParty = FALSE)
 {
-    _SetQuestReward(QUEST_VALUE_REPUTATION, sFaction, _i(nChange), bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_REPUTATION, sFaction, _i(nChange), bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardVariableInt(string sVarName, string sOperator, int nValue, int bParty = FALSE)
 {
-    _SetQuestReward(QUEST_VALUE_VARIABLE, "INT:" + sVarName, sOperator + ":" + _i(nValue), bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_VARIABLE, "INT:" + sVarName, sOperator + ":" + _i(nValue), bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardVariableString(string sVarName, string sOperator, string sValue, int bParty = FALSE)
 {
-    _SetQuestReward(QUEST_VALUE_VARIABLE, "STRING:" + sVarName, sOperator + ":" + sValue, bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_VARIABLE,"STRING:" + sVarName, sOperator + ":" + sValue, bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
-void SetQuestStepRewardFloatingText(string sMessage, int bPartyOnly = FALSE, int bChatDisplay = FALSE, int bParty = FALSE)
+void SetQuestStepRewardFloatingText(string sText, int bPartyOnly = FALSE, int bChatDisplay = FALSE, int bParty = FALSE)
 {
-    string sKey = _i(bPartyOnly) + ":" + _i(bChatDisplay);
-    _SetQuestPreward(QUEST_VALUE_FLOATINGTEXT, sKey, sMessage, bParty);
+    json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_FLOATINGTEXT, _i(bPartyOnly) + ":" + _i(bChatDisplay), sText, bParty);
+    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 int AddQuestResolutionSuccess(int nStep = -1)
 {
     nStep = AddQuestStep(nStep);
-    _SetQuestStepData(QUEST_STEP_TYPE, _i(QUEST_STEP_TYPE_SUCCESS));
+    //_SetQuestStepData(QUEST_STEP_TYPE, _i(QUEST_STEP_TYPE_SUCCESS));
 
     return nStep;
 }
@@ -3771,7 +3651,7 @@ int AddQuestResolutionSuccess(int nStep = -1)
 int AddQuestResolutionFail(int nStep = -1)
 {
     nStep = AddQuestStep(nStep);
-    _SetQuestStepData(QUEST_STEP_TYPE, _i(QUEST_STEP_TYPE_FAIL));
+    //_SetQuestStepData(QUEST_STEP_TYPE, _i(QUEST_STEP_TYPE_FAIL));
 
     return nStep;
 }

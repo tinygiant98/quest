@@ -1,123 +1,187 @@
-// -----------------------------------------------------------------------------
-//    File: util_i_csvlists.nss
-//  System: Utilities (include script)
-//     URL: https://github.com/squattingmonk/nwn-core-framework
-// Authors: Michael A. Sinclair (Squatting Monk) <squattingmonk@gmail.com>
-// -----------------------------------------------------------------------------
-// This file holds utility functions for manipulating CSV lists. These are
-// comma-separated string lists that are altered in-place. CSV lists are zero-
-// indexed.
-// -----------------------------------------------------------------------------
-// Example usage:
-//
-// string sKnight, sKnights = "Lancelot, Galahad, Robin";
-// int i, nCount = CountList(sKnights);
-// for (i = 0; i < nCount; i++)
-// {
-//     sKnight = GetListItem(sKnights, i);
-//     SpeakString("Sir " + sKnight);
-// }
-//
-// int bBedivere = HasListItem(sKnights, "Bedivere");
-// SpeakString("Bedivere " + (bBedivere ? "is" : "is not") + " in the party.");
-//
-// sKnights = AddListItem(sKnights, "Bedivere");
-// bBedivere = HasListItem(sKnights, "Bedivere");
-// SpeakString("Bedivere " + (bBedivere ? "is" : "is not") + " in the party.");
-//
-// int nRobin = FindListItem(sKnights, "Robin");
-// SpeakString("Robin is knight " + IntToString(nRobin) + " in the party.");
-// -----------------------------------------------------------------------------
+/// ----------------------------------------------------------------------------
+/// @file   util_i_csvlists.nss
+/// @author Michael A. Sinclair (Squatting Monk) <squattingmonk@gmail.com>
+/// @author Ed Burke (tinygiant98) <af.hog.pilot@gmail.com>
+/// @brief  Functions for manipulating comma-separated value (CSV) lists.
+/// @details
+///
+/// ## Usage:
+///
+/// ```nwscript
+/// string sKnight, sKnights = "Lancelot, Galahad, Robin";
+/// int i, nCount = CountList(sKnights);
+/// for (i = 0; i < nCount; i++)
+/// {
+///     sKnight = GetListItem(sKnights, i);
+///     SpeakString("Sir " + sKnight);
+/// }
+///
+/// int bBedivere = HasListItem(sKnights, "Bedivere");
+/// SpeakString("Bedivere " + (bBedivere ? "is" : "is not") + " in the party.");
+///
+/// sKnights = AddListItem(sKnights, "Bedivere");
+/// bBedivere = HasListItem(sKnights, "Bedivere");
+/// SpeakString("Bedivere " + (bBedivere ? "is" : "is not") + " in the party.");
+///
+/// int nRobin = FindListItem(sKnights, "Robin");
+/// SpeakString("Robin is knight " + IntToString(nRobin) + " in the party.");
+/// ```
+/// ----------------------------------------------------------------------------
 
-#include "util_i_strings"
-
-// 1.69 string manipulation functions
 #include "x3_inc_string"
 #include "util_i_math"
+#include "util_i_strings"
 
 // -----------------------------------------------------------------------------
 //                              Function Prototypes
 // -----------------------------------------------------------------------------
 
-// ---< CountList >---
-// ---< util_i_csvlists >---
-// Returns the number of items in the CSV list sList.
+/// @brief Trim excess space around commas and, optionally, remove excess commas/
+///     empty list items.
+/// @param sList The CSV list to normalize.
+/// @param bRemoveEmpty TRUE to remove empty items.
+string NormalizeList(string sList, int bRemoveEmpty = TRUE);
+
+/// @brief Return the number of items in a CSV list.
+/// @param sList The CSV list to count.
 int CountList(string sList);
 
-// ---< AddListItem >---
-// ---< util_i_csvlists >---
-// Returns the CSV list sList with sListItem added. If bAddUnique is TRUE, will
-// only add items to the list if they are not already there.
+/// @brief Add an item to a CSV list.
+/// @param sList The CSV list to add the item to.
+/// @param sListItem The item to add to sList.
+/// @param bAddUnique If TRUE, will only add the item to the list if it is not
+///     already there.
+/// @returns A modified copy of sList with sListItem added.
 string AddListItem(string sList, string sListItem, int bAddUnique = FALSE);
 
-// ---< GetListItem >---
-// ---< util_i_csvlists >---
-// Returns the item at nNdex in the CSV list sList.
+/// @brief Insert an item into a CSV list.
+/// @param sList The CSV list to insert the item into.
+/// @param sListItem The item to insert into sList.
+/// @param nIndex The index of the item to insert (0-based).
+/// @param bAddUnique If TRUE, will only insert the item to the list if it is not
+///     already there.
+/// @returns A modified copy of sList with sListItem inserted.
+string InsertListItem(string sList, string sListItem, int nIndex = -1, int bAddUnique = FALSE);
+
+/// @brief Modify an existing item in a CSV list.
+/// @param sList The CSV list to modify.
+/// @param sListItem The item to insert at nIndex.
+/// @param nIndex The index of the item to modify (0-based).
+/// @param bAddUnique If TRUE, will only modify the item to the list if it is not
+///     already there.
+/// @returns A modified copy of sList with item at nIndex modified.
+/// @note If nIndex is out of bounds for sList, no values will be modified.
+/// @warning If bAddUnique is TRUE and a non-unique value is set, the value with a lower
+///     list index will be kept and values with higher list indices removed.
+string SetListItem(string sList, string sListItem, int nIndex = -1, int bAddUnique = FALSE);
+
+/// @brief Return the item at an index in a CSV list.
+/// @param sList The CSV list to get the item from.
+/// @param nIndex The index of the item to get (0-based).
 string GetListItem(string sList, int nIndex = 0);
 
-// ---< FindListItem >---
-// ---< util_i_csvlists >---
-// Returns the item number of sListItem in the CSV list sList. Returns -1 if
-// sListItem is not in the list.
-int FindListItem(string sList, string sListItem);
+/// @brief Return the index of a value in a CSV list.
+/// @param sList The CSV list to search.
+/// @param sListItem The value to search for.
+/// @param nNth The nth repetition of sListItem.
+/// @returns -1 if the item was not found in the list.
+int FindListItem(string sList, string sListItem, int nNth = 0);
 
-// ---< HasListItem >---
-// ---< util_i_csvlists >---
-// Returns whether sListItem is in the CSV list sList.
+/// @brief Return whether a CSV list contains a value.
+/// @param sList The CSV list to search.
+/// @param sListItem The value to search for.
+/// @returns TRUE if the item is in the list, otherwise FALSE.
 int HasListItem(string sList, string sListItem);
 
-// ---< DeleteListItem >---
-// ---< util_i_csvlists >---
-// Returns the CSV list sList with the item at nIndex removed.
+/// @brief Delete the item at an index in a CSV list.
+/// @param sList The CSV list to delete the item from.
+/// @param nIndex The index of the item to delete (0-based).
+/// @returns A modified copy of sList with the item deleted.
 string DeleteListItem(string sList, int nIndex = 0);
 
-// ---< RemoveListItem >---
-// ---< util_i_csvlists >---
-// Returns the CSV list sList with the first occurrence of sListItem removed.
-string RemoveListItem(string sList, string sListItem);
+/// @brief Delete the first occurrence of an item in a CSV list.
+/// @param sList The CSV list to remove the item from.
+/// @param sListItem The value to remove from the list.
+/// @param nNth The nth repetition of sListItem.
+/// @returns A modified copy of sList with the item removed.
+string RemoveListItem(string sList, string sListItem, int nNth = 0);
 
-// ---< CopyListItem >---
-// ---< util_i_csvlists >---
-// Starting at nIndex, copies nRange list items from sSource to sTarget.  Returns
-// number of list items copied to target list.
+/// @brief Copy items from one CSV list to another.
+/// @param sSource The CSV list to copy items from.
+/// @param sTarget The CSV list to copy items to.
+/// @param nIndex The index to begin copying from.
+/// @param nRange The number of items to copy.
+/// @param bAddUnique If TRUE, will only copy items to sTarget if they are not
+///     already there.
+/// @returns A modified copy of sTarget with the items added to the end.
 string CopyListItem(string sSource, string sTarget, int nIndex, int nRange = 1, int bAddUnique = FALSE);
 
-// ---< MergeLists >---
-// ---< util_i_csvlists >---
-// Returns the CSV list sList1 with every item in sList2 added. If bAddUnique is
-// TRUE, will only add items to the list if they are not already there.
+/// @brief Merge the contents of two CSV lists.
+/// @param sList1 The first CSV list.
+/// @param sList2 The second CSV list.
+/// @param bAddUnique If TRUE, will only put items in the returned list if they
+///     are not already there.
+/// @returns A CSV list containing the items from each list.
 string MergeLists(string sList1, string sList2, int bAddUnique = FALSE);
 
-// ---< AddLocalListItem >---
-// ---< util_i_csvlists >---
-// Adds sListItem to the CSV list saved as a local string with varname sListName
-// on oObject and returns the updated list. If bAddUnique is TRUE, will only add
-// items to the list if they are not already there.
+/// @brief Add an item to a CSV list saved as a local variable on an object.
+/// @param oObject The object on which the local variable is saved.
+/// @param sListName The varname for the local variable.
+/// @param sListItem The item to add to the list.
+/// @param bAddUnique If TRUE, will only add the item to the list if it is not
+///     already there.
+/// @returns The updated copy of the list with sListItem added.
 string AddLocalListItem(object oObject, string sListName, string sListItem, int bAddUnique = FALSE);
 
-// ---< DeleteLocalListItem >---
-// ---< util_i_csvlists >---
-// Deletes the nNth item in the CSV list saved as a localstring with varname
-// sListName on oObject and returns the updated list.
-string DeleteLocalListItem(object oObject, string sListName, int nNth = 0);
+/// @brief Delete an item in a CSV list saved as a local variable on an object.
+/// @param oObject The object on which the local variable is saved.
+/// @param sListName The varname for the local variable.
+/// @param nIndex The index of the item to delete (0-based).
+/// @returns The updated copy of the list with the item at nIndex deleted.
+string DeleteLocalListItem(object oObject, string sListName, int nIndex = 0);
 
-// ---< RemoveLocalListItem >---
-// ---< util_i_csvlists >---
-// Removes the first occurrence of sListItem from the CSV list saved as a local
-// string with the varname sListName on oObject and returns the updated list.
-string RemoveLocalListItem(object oObject, string sListName, string sListItem);
+/// @brief Remove an item in a CSV list saved as a local variable on an object.
+/// @param oObject The object on which the local variable is saved.
+/// @param sListName The varname for the local variable.
+/// @param sListItem The value to remove from the list.
+/// @param nNth The nth repetition of sListItem.
+/// @returns The updated copy of the list with the first instance of sListItem
+///     removed.
+string RemoveLocalListItem(object oObject, string sListName, string sListItem, int nNth = 0);
 
-// ---< MergeLocalList >---
-// ---< util_i_csvlists >---
-// Merges all items from the CSV list sListToMerge into the CSV list saved as a
-// local string with varname sListName on oObject and returns the updated list.
-// If bAddUnique is TRUE, will only add items to the list if they are not
-// already there.
+/// @brief Merge the contents of a CSV list with those of a CSV list stored as a
+///     local variable on an object.
+/// @param oObject The object on which the local variable is saved.
+/// @param sListName The varname for the local variable.
+/// @param sListToMerge The CSV list to merge into the saved list.
+/// @param bAddUnique If TRUE, will only put items in the returned list if they
+///     are not already there.
+/// @returns The updated copy of the list with all items from sListToMerge
+///     added.
 string MergeLocalList(object oObject, string sListName, string sListToMerge, int bAddUnique = FALSE);
+
+/// @brief Convert a comma-separated value list to a JSON array.
+/// @param sList Source CSV list.
+/// @param bNormalize TRUE to remove excess spaces and values.  See NormalizeList().
+/// @returns JSON array representation of CSV list.
+json ListToJson(string sList, int bNormalize = TRUE);
+
+/// @brief Convert a JSON array to a comma-separate value list.
+/// @param jList JSON array list.
+/// @param bNormalize TRUE to remove excess spaces and values.  See NormalizeList().
+/// @returns CSV list of JSON array values.
+string JsonToList(json jList, int bNormalize = TRUE);
 
 // -----------------------------------------------------------------------------
 //                           Function Implementations
 // -----------------------------------------------------------------------------
+
+string NormalizeList(string sList, int bRemoveEmpty = TRUE)
+{
+    string sRegex = "(?:[\\s]*,[\\s]*)" + (bRemoveEmpty ? "+" : "");
+    sList = RegExpReplace(sRegex, sList, ",");
+    return TrimString(bRemoveEmpty ? RegExpReplace("^[\\s]*,|,[\\s]*$", sList, "") : sList);
+}
 
 int CountList(string sList)
 {
@@ -129,63 +193,57 @@ int CountList(string sList)
 
 string AddListItem(string sList, string sListItem, int bAddUnique = FALSE)
 {
+    sList = NormalizeList(sList);
+    sListItem = TrimString(sListItem);
+
     if (bAddUnique && HasListItem(sList, sListItem))
         return sList;
 
     if (sList != "")
-        return sList + ", " + sListItem;
+        return sList + "," + sListItem;
 
     return sListItem;
 }
 
+string InsertListItem(string sList, string sListItem, int nIndex = -1, int bAddUnique = FALSE)
+{
+    if (nIndex == -1 || sList == "" || nIndex > CountList(sList) - 1)
+        return AddListItem(sList, sListItem, bAddUnique);
+
+    if (nIndex < 0) nIndex = 0;
+    json jList = JsonArrayInsert(ListToJson(sList), JsonString(sListItem), nIndex);
+
+    if (bAddUnique == TRUE)
+        jList = JsonArrayTransform(jList, JSON_ARRAY_UNIQUE);
+    
+    return JsonToList(jList);
+}
+
+string SetListItem(string sList, string sListItem, int nIndex = -1, int bAddUnique = FALSE)
+{
+    if (nIndex < 0 || nIndex > (CountList(sList) - 1))
+        return sList;
+
+    json jList = JsonArraySet(ListToJson(sList), nIndex, JsonString(sListItem));
+
+    if (bAddUnique == TRUE)
+        jList = JsonArrayTransform(jList, JSON_ARRAY_UNIQUE);
+    
+    return JsonToList(jList);
+}
+
 string GetListItem(string sList, int nIndex = 0)
 {
-    if (nIndex < 0 || sList == "")
+    if (nIndex < 0 || sList == "" || nIndex > (CountList(sList) - 1))
         return "";
 
-    // Loop through the elements until we find the one we want.
-    int nCount, nLeft, nRight = FindSubString(sList, ",");
-    while (nRight != -1 && nCount < nIndex)
-    {
-        nCount++;
-        nLeft = nRight + 1;
-        nRight = FindSubString(sList, ",", nLeft);
-    }
-
-    // If there were not enough elements, return a null string.
-    if (nCount < nIndex)
-        return "";
-
-    // Get the element
-    return TrimString(GetStringSlice(sList, nLeft, nRight));
+    return JsonGetString(JsonArrayGet(ListToJson(sList), nIndex));
 }
 
-// Private implementation of FindListItem. nParsed is used to preserve the index
-// on recursion.
-int _FindListItem(string sList, string sListItem, int nParsed = 0)
+int FindListItem(string sList, string sListItem, int nNth = 0)
 {
-    // Sanity check.
-    if (sList == "" || sListItem == "") return -1;
-
-    // Is the item even in the list?
-    int nOffset = FindSubString(sList, sListItem);
-    if (nOffset == -1) return -1;
-
-    // Quickest way to find it: count the commas that occur before the item.
-    int i = GetSubStringCount(GetStringLeft(sList, nOffset), ",");
-
-    // Make sure it's not a partial match.
-    if (GetListItem(sList, i) == sListItem)
-        return i + nParsed;
-
-    // Okay, so let's slim down the list and re-execute.
-    string sParsed = StringParse(sList, GetListItem(sList, ++i));
-    return _FindListItem(StringRemoveParsed(sList, sParsed), sListItem, i + nParsed);
-}
-
-int FindListItem(string sList, string sListItem)
-{
-    return _FindListItem(sList, sListItem);
+    json jIndex = JsonFind(ListToJson(sList), JsonString(TrimString(sListItem)), nNth);
+    return jIndex == JSON_NULL ? -1 : JsonGetInt(jIndex);
 }
 
 int HasListItem(string sList, string sListItem)
@@ -195,35 +253,19 @@ int HasListItem(string sList, string sListItem)
 
 string DeleteListItem(string sList, int nIndex = 0)
 {
-    if (nIndex < 0 || sList == "")
+    if (nIndex < 0 || sList == "" || nIndex > (CountList(sList) - 1))
         return sList;
 
-    int nPos = FindSubStringN(sList, ",", nIndex);
-    if (nPos < 0)
-    {
-        if (nIndex)
-        {
-            nPos = FindSubStringN(sList, ",", nIndex - 1);
-            return TrimStringRight(GetStringSlice(sList, 0, nPos));
-        }
-
-        return "";
-    }
-
-    string sRight = GetStringSlice(sList, nPos + 1);
-    nPos = FindSubStringN(sList, ",", nIndex - 1);
-    sRight = nPos < 0 ? TrimStringLeft(sRight) : sRight;
-    return GetStringSlice(sList, 0, nPos + 1) + sRight;
+    return JsonToList(JsonArrayDel(ListToJson(sList), nIndex));
 }
 
-string RemoveListItem(string sList, string sListItem)
+string RemoveListItem(string sList, string sListItem, int nNth = 0)
 {
-    return DeleteListItem(sList, FindListItem(sList, sListItem));
+    return DeleteListItem(sList, FindListItem(sList, sListItem, nNth));
 }
 
 string CopyListItem(string sSource, string sTarget, int nIndex, int nRange = 1, int bAddUnique = FALSE)
 {
-    string sValue;
     int i, nCount = CountList(sSource);
 
     if (nIndex < 0 || nIndex >= nCount || !nCount)
@@ -232,21 +274,26 @@ string CopyListItem(string sSource, string sTarget, int nIndex, int nRange = 1, 
     nRange = clamp(nRange, 1, nCount - nIndex);
 
     for (i = 0; i < nRange; i++)
-    {
-        sValue = GetListItem(sSource, nIndex + i);
-        sTarget = AddListItem(sTarget, sValue, bAddUnique);
-    }
+        sTarget = AddListItem(sTarget, GetListItem(sSource, nIndex + i), bAddUnique);
 
     return sTarget;
 }
 
 string MergeLists(string sList1, string sList2, int bAddUnique = FALSE)
 {
-    int i, nCount = CountList(sList2);
-    for (i = 0; i < nCount; i++)
-        sList1 = AddListItem(sList1, GetListItem(sList2, i), bAddUnique);
+    if (sList1 != "" && sList2 == "")
+        return sList1;
+    else if (sList1 == "" && sList2 != "")
+        return sList2;
+    else if (sList1 == "" && sList2 == "")
+        return "";
 
-    return sList1;
+    string sList = sList1 + "," + sList2;
+
+    if (bAddUnique)
+        sList = JsonToList(JsonArrayTransform(ListToJson(sList), JSON_ARRAY_UNIQUE));
+
+    return bAddUnique ? sList : NormalizeList(sList);
 }
 
 string AddLocalListItem(object oObject, string sListName, string sListItem, int bAddUnique = FALSE)
@@ -257,18 +304,18 @@ string AddLocalListItem(object oObject, string sListName, string sListItem, int 
     return sList;
 }
 
-string DeleteLocalListItem(object oObject, string sListName, int nNth = 0)
+string DeleteLocalListItem(object oObject, string sListName, int nIndex = 0)
 {
     string sList = GetLocalString(oObject, sListName);
-    sList = DeleteListItem(sList, nNth);
+    sList = DeleteListItem(sList, nIndex);
     SetLocalString(oObject, sListName, sList);
     return sList;
 }
 
-string RemoveLocalListItem(object oObject, string sListName, string sListItem)
+string RemoveLocalListItem(object oObject, string sListName, string sListItem, int nNth = 0)
 {
     string sList = GetLocalString(oObject, sListName);
-    sList = RemoveListItem(sList, sListItem);
+    sList = RemoveListItem(sList, sListItem, nNth);
     SetLocalString(oObject, sListName, sList);
     return sList;
 }
@@ -279,4 +326,28 @@ string MergeLocalList(object oObject, string sListName, string sListToMerge, int
     sList = MergeLists(sList, sListToMerge, bAddUnique);
     SetLocalString(oObject, sListName, sList);
     return sList;
+}
+
+json ListToJson(string sList, int bNormalize = TRUE)
+{
+    if (sList == "")
+        return JSON_ARRAY;
+
+    if (bNormalize)
+        sList = NormalizeList(sList);
+    
+    sList = RegExpReplace("\"", sList, "\\\"");
+    return JsonParse("[\"" + RegExpReplace(",", sList, "\",\"") + "\"]");
+}
+
+string JsonToList(json jList, int bNormalize = TRUE)
+{
+    if (JsonGetType(jList) != JSON_TYPE_ARRAY)
+        return "";
+
+    string sList;
+    int n; for (n; n < JsonGetLength(jList); n++)
+        sList += (sList == "" ? "" : ",") + JsonGetString(JsonArrayGet(jList, n));
+
+    return bNormalize ? NormalizeList(sList) : sList;
 }

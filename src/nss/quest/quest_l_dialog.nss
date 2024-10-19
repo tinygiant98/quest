@@ -13,13 +13,13 @@
 
 #include "quest_support"
 #include "quest_i_main"
-#include "quest_i_database"
+#include "quest_i_core"
 
 void _ResetPCQuestData(object oPC, int nQuestID)
 {
     QuestNotice("Resetting data: " +
         "\n  PC -> " + PCToString(oPC) +
-        "\n  Quest -> " + QuestToString(nQuestID));
+        "\n  Quest -> " + quest_QuestToString(nQuestID));
 
     DeletePCQuestProgress(oPC, nQuestID);
     ResetPCQuestData(oPC, nQuestID);

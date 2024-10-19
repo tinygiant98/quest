@@ -3,10 +3,8 @@
 #include "util_i_math"
 #include "quest_i_const"
 
-// Prototypes from quest_i_database.nss
+// Prototypes from quest_i_core.nss
 // here to prevent duplicated effort and maintenance issues.
-const string quest_GetTag(int nID);
-
 const int DISPLAY_DB_RETRIEVALS = TRUE;
 
 string _GetKey(string sPair)
@@ -408,13 +406,11 @@ string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, st
         {
             case QUEST_VALUE_ALIGNMENT:
                 sKey = AlignmentAxisToString(StringToInt(sKey));
-                //nValue = StringToInt(sValue);
                 if (nValue == 0)
                     sValue = "Any";
                 break;
             case QUEST_VALUE_CLASS:
                 sKey = ClassToString(StringToInt(sKey));
-                //nValue = StringToInt(sValue);
                 if (nValue == -1)
                     sValue = "Any";
                 else if (nValue == 0)
@@ -424,7 +420,6 @@ string TranslateCategoryValue(int nCategoryType, int nValueType, string sKey, st
                 break;
             case QUEST_VALUE_RACE:
                 sKey = RaceToString(StringToInt(sKey));
-                //nValue = StringToInt(sValue);
                 if (nValue == 1)
                     sValue = "Included";
                 else
@@ -511,7 +506,6 @@ string TranslateValue(int nValueType, string sKey, string sValue)
             sValue = sOperator + " " + _GetValue(sValue) + "gp";
 
             sKey = " ";
-            //sValue += "gp";
             break;
         }
         case QUEST_VALUE_LEVEL_MAX:
@@ -568,27 +562,13 @@ string TimeVectorToString(string sTimeVector)
     return sResult;
 }
 
-// sourced from quest_i_database to prevent duplication of effort
-//string _GetQuestTag(int nQuestID)
-//{
-//    string s = r"
-//        SELECT sTag
-//        FROM quest_quests
-//        WHERE id = @id;
-//    ";
-//    sqlquery sql = SqlPrepareQueryObject(GetModule(), s);
-//    SqlBindInt(sql, "@id", nQuestID);
-//
-//    return (SqlStep(sql) ? SqlGetString(sql, 0) : "");
-//}
-
-string quest_QuestToString(int nID, string sTag = "")
+string quest_QuestToString(string sTag = "")
 {
-    string sTag = (sTag == "" ? quest_GetTag(nID) : sTag);
+    sTag = (sTag == "" ? quest_GetBuildQuest() : sTag);
     if (sTag == "")
         return "[NOT FOUND]";
 
-    return HexColorString(sTag + " (ID " + IntToString(nQuestID) + ")", COLOR_ORANGE_LIGHT);
+    return HexColorString(sTag, COLOR_ORANGE_LIGHT);
 }
 
 void HandleDebugging(string sType, string s1 = "", string s2 = "", string s3 = "", string s4 = "", 
@@ -601,7 +581,7 @@ void HandleDebugging(string sType, string s1 = "", string s2 = "", string s3 = "
     if (sKey == "SQL") // SQL:type || s1 = result
     {
         int bSuccess = StringToInt(s1);
-        string sQuest = _QuestToString(StringToInt(s2));
+        string sQuest = quest_QuestToString(s2);
 
         if (sValue == "table")  // s2 = table name || s3 = target
         {
@@ -666,7 +646,7 @@ void HandleDebugging(string sType, string s1 = "", string s2 = "", string s3 = "
             else
                 sValue = ValueTypeToString(StringToInt(s5));
                           
-            sResult = "Attempting to set property for " + _QuestToString(StringToInt(s2)) + "  " + StepToString(StringToInt(s3)) +
+            sResult = "Attempting to set property for " + quest_QuestToString(s2) + "  " + StepToString(StringToInt(s3)) +
                 "\n  Category -> " + CategoryTypeToString(StringToInt(s4)) +
                 "\n  Value Type -> " + sValue +
                 "\n  Key -> " + s6 +

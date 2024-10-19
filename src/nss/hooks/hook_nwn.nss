@@ -59,16 +59,16 @@ void main()
 
         SetObjectEvents();
 
-        CreateModuleQuestTables(TRUE);
+        //CreateModuleQuestTables(TRUE);
         ExecuteScript("quest_define", GetModule());
     }
     else if (sEvent == "OnClientEnter")
     {
-        object oPC = GetEnteringObject();
-        CreatePCQuestTables(oPC);
-        UpdatePCQuestTables(oPC);
-        CleanPCQuestTables(oPC);
-        UpdateJournalQuestEntries(oPC);
+        //object oPC = GetEnteringObject();
+        //CreatePCQuestTables(oPC);
+        //UpdatePCQuestTables(oPC);
+        //CleanPCQuestTables(oPC);
+        //UpdateJournalQuestEntries(oPC);
     }
     else if (sEvent == "OnPlayerChat")
     {
@@ -105,16 +105,16 @@ void main()
         object oItem = GetModuleItemAcquired();
         object oPC = GetModuleItemAcquiredBy();
 
-        if (GetIsPC(oPC))
-            SignalQuestStepProgress(oPC, GetTag(oItem), QUEST_OBJECTIVE_GATHER);
+        //if (GetIsPC(oPC))
+        //    SignalQuestStepProgress(oPC, GetTag(oItem), QUEST_OBJECTIVE_GATHER);
     }
     else if (sEvent == "OnUnAcquireItem")
     {
         object oItem = GetModuleItemLost();
         object oPC = GetModuleItemLostBy();
 
-        if (GetIsPC(oPC))
-            SignalQuestStepRegress(oPC, GetTag(oItem), QUEST_OBJECTIVE_GATHER);
+        //if (GetIsPC(oPC))
+        //    SignalQuestStepRegress(oPC, GetTag(oItem), QUEST_OBJECTIVE_GATHER);
     }
     else if (sEvent == "OnCreatureConversation")
     {
@@ -129,8 +129,8 @@ void main()
             oPC = GetLocalObject(oVictim, "QUEST_PROTECTOR");
 
 
-        if (GetIsObjectValid(oPC) && GetIsPC(oPC))
-            SignalQuestStepProgress(oPC, GetTag(oVictim), QUEST_OBJECTIVE_KILL);
+        //if (GetIsObjectValid(oPC) && GetIsPC(oPC))
+        //    SignalQuestStepProgress(oPC, GetTag(oVictim), QUEST_OBJECTIVE_KILL);
     }
     else if (sEvent == "OnCreatureSpawn")
     {
@@ -149,7 +149,7 @@ void main()
             return;
         }
 
-        SignalQuestStepProgress(oPC, GetTag(oTrigger), QUEST_OBJECTIVE_DISCOVER);
+        //SignalQuestStepProgress(oPC, GetTag(oTrigger), QUEST_OBJECTIVE_DISCOVER);
     }
     else if (sEvent == "OnPlaceableUsed")
     {
@@ -170,7 +170,7 @@ void main()
             object oItem = GetFirstItemInInventory(oPlaceable);
             while (GetIsObjectValid(oItem))
             {
-                SignalQuestStepProgress(oPC, GetTag(oPlaceable), QUEST_OBJECTIVE_DELIVER, GetTag(oItem));
+                //SignalQuestStepProgress(oPC, GetTag(oPlaceable), QUEST_OBJECTIVE_DELIVER, GetTag(oItem));
                 DestroyObject(oItem);
 
                 oItem = GetNextItemInInventory(oPlaceable);
