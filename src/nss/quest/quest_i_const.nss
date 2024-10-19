@@ -190,8 +190,7 @@ const string NOT_EQUAL_TO = "!=";
 // Other Variables
 const string QUEST_VARIABLE_TABLES_INITIALIZED = "QUEST_VARIABLE_TABLES_INITIALIZED";
 
-const string QUEST_MODULE_SCHEMA = r"
-{
+const string QUEST_MODULE_SCHEMA = r"{
     ""type"": ""object"",
     ""fields"": {
         ""properties"": {
@@ -257,7 +256,10 @@ const string QUEST_MODULE_SCHEMA = r"
                 ""journal"": {
                     ""type"": ""object"",
                     ""fields"": {
-                        ""entry"": {""type"": ""string"", ""default"": ""This one""}
+                        ""entry"": {
+                            ""type"": ""string"", 
+                            ""default"": ""This one""
+                        }
                     }
                 },
                 ""objectives"": {
@@ -322,7 +324,10 @@ json quest_GetModuleSchema(int bForce = FALSE)
     json jSchema = GetLocalJson(GetModule(), "QUEST_MODULE_SCHEMA");
     if (jSchema == JSON_NULL || bForce)
     {
-        jSchema = JsonParse(RegExpReplace("\\s+", SubstituteSubStrings(QUEST_MODULE_SCHEMA, "\n", ""), ""));
+        string s = SubstituteSubStrings(QUEST_MODULE_SCHEMA, "\n", "");
+        s = RegExpReplace("\\s*([{}\\[\\]:,])\\s*", s, "$1");
+        
+        jSchema = JsonParse(s);
         SetLocalJson(GetModule(), "QUEST_MODULE_SCHEMA", jSchema);
     }
 
