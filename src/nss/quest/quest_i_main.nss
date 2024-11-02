@@ -905,7 +905,7 @@ void _DeleteQuestVariable(string sQuestTag, string sType, string sVarName, objec
 
 void SetQuestInt(string sQuestTag, string sVarName, int nValue)
 {
-    quest_SetProperty(QUEST_KEY_VARIABLES, sVarName, JsonInt(nValue));
+    //quest_SetProperty(QUEST_KEY_VARIABLES, sVarName, JsonInt(nValue));
 }
 
 int GetQuestInt(string sQuestTag, string sVarName, int bDelete = FALSE)
@@ -920,7 +920,7 @@ void DeleteQuestInt(string sQuestTag, string sVarName)
 
 void SetQuestString(string sQuestTag, string sVarName, string sValue)
 {
-    quest_SetProperty(QUEST_KEY_VARIABLES, sVarName, JsonString(sValue), sQuestTag);
+    //quest_SetProperty(QUEST_KEY_VARIABLES, sVarName, JsonString(sValue), sQuestTag);
 }
 
 string GetQuestString(string sQuestTag, string sVarName, int bDelete = FALSE)
@@ -988,7 +988,7 @@ void _SetQuestStepData(string sField, string sValue)
             _i(nStep), sField, sValue);
 }
 
-string _GetQuestStepData(int nQuestID, int nStep, string sField)
+string "";//_GetQuestStepData(int nQuestID, int nStep, string sField)
 {
     string s = r"
         SELECT $1
@@ -1469,7 +1469,7 @@ void _AwardQuestStepAllotments(object oPC, int nQuestID, int nStep, int nCategor
 
                     // If this is a random quest, we need to override the
                     // preward message
-                    if (StringToInt(_GetQuestStepData(nQuestID, nStep, QUEST_STEP_RANDOM_OBJECTIVES)) != -1 &&
+                    if (StringToInt("";//_GetQuestStepData(nQuestID, nStep, QUEST_STEP_RANDOM_OBJECTIVES)) != -1 &&
                         nCategoryType == QUEST_CATEGORY_PREWARD)
                     {
                         string sQuestTag = quest_GetTag(nQuestID);
@@ -1764,7 +1764,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
         if (quest_IsComplete(oPC, sQuestTag) == TRUE)
         {
             // Check for cooldown
-            string sCooldownTime = JsonGetString(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_COOLDOWN, sQuestTag));
+            string sCooldownTime = ""; //JsonGetString(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_COOLDOWN, sQuestTag));
             if (sCooldownTime == "")
             {
                 QuestDebug("There is no cooldown time set for this quest");
@@ -1833,7 +1833,7 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
 
     QuestDebug("System pre-assignment check successfully completed; starting quest prerequisite checks");
 
-    json jPrerequisites = quest_GetProperty(sQuestTag, QUEST_KEY_PREREQUISITES);
+    json jPrerequisites = JSON_NULL; //quest_GetProperty(sQuestTag, QUEST_KEY_PREREQUISITES);
     int nPrerequisites = JsonGetLength(jPrerequisites);
     if (nPrerequisites == 0)
     {
@@ -1864,9 +1864,9 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
     int n; for (; n < nPrerequisites; n++)
     {
         json jPrerequisite = JsonArrayGet(jPrerequisites, n);
-        int nType = JsonGetInt(JsonObjectGet(jPrerequisite, QUEST_KEY_TYPE));
-        string sKey = JsonGetString(JsonObjectGet(jPrerequisite, QUEST_KEY_KEY));
-        string sValue = JsonGetString(JsonObjectGet(jPrerequisite, QUEST_KEY_VALUE));
+        int nType = 0;//JsonGetInt(JsonObjectGet(jPrerequisite, QUEST_KEY_TYPE));
+        string sKey = "";//JsonGetString(JsonObjectGet(jPrerequisite, QUEST_KEY_KEY));
+        string sValue = "";//JsonGetString(JsonObjectGet(jPrerequisite, QUEST_KEY_VALUE));
 
         switch (nType)
         {
@@ -2554,11 +2554,11 @@ void SendJournalQuestEntry(object oPC, int nQuestID, int nStep, int bComplete = 
             else
             {
                 string sText;
-                if (StringToInt(_GetQuestStepData(nQuestID, nStep, QUEST_STEP_RANDOM_OBJECTIVES)) != -1 &&
+                if (StringToInt("";//_GetQuestStepData(nQuestID, nStep, QUEST_STEP_RANDOM_OBJECTIVES)) != -1 &&
                     QUEST_CONFIG_USE_CUSTOM_MESSAGE == TRUE)
                     sText = GetPCQuestString(oPC, sQuestTag, QUEST_CUSTOM_MESSAGE, nStep);
                 else
-                    sText = _GetQuestStepData(nQuestID, nStep, QUEST_STEP_JOURNAL_ENTRY);
+                    sText = "";//_GetQuestStepData(nQuestID, nStep, QUEST_STEP_JOURNAL_ENTRY);
                     
                 struct NWNX_Player_JournalEntry je;
                 je.sName = quest_GetData(sQuestTag, QUEST_TITLE);
@@ -3101,189 +3101,189 @@ void AwardQuestStepRewards(object oPC, int nQuestID, int nStep, int nAwardType =
 
 string GetQuestTitle(string sQuestTag)
 {
-    return JsonGetString(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_JOURNAL_TITLE, sQuestTag));
+    return "";//JsonGetString(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_JOURNAL_TITLE, sQuestTag));
 }
 
 void SetQuestTitle(string sTitle)
 {
-    quest_SetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_JOURNAL_TITLE, JsonString(sTitle));
+    //quest_SetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_JOURNAL_TITLE, JsonString(sTitle));
 }
 
 int GetQuestActive(string sQuestTag)
 {
-    return JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_ACTIVE, sQuestTag));
+    return 0;//JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_ACTIVE, sQuestTag));
 }
 
 void SetQuestActive(string sQuestTag = "")
 {
-    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_ACTIVE, JSON_TRUE, sQuestTag);
+    //quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_ACTIVE, JSON_TRUE, sQuestTag);
 }
 
 void SetQuestInactive(string sQuestTag = "")
 {
-    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_ACTIVE, JSON_FALSE, sQuestTag);
+    //quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_ACTIVE, JSON_FALSE, sQuestTag);
 }
 
 // TODO add SetQuestStep[In]Active?
 
 int GetQuestRepetitions(string sQuestTag)
 {
-    return JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_REPETITIONS, sQuestTag));
+    return 0;//JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_REPETITIONS, sQuestTag));
 }
 
 void SetQuestRepetitions(int nRepetitions = 1)
 {   
-    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_REPETITIONS, JsonInt(nRepetitions));
+    //quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_REPETITIONS, JsonInt(nRepetitions));
 }
 
 string GetQuestTimeLimit(string sQuestTag)
 {
-    return JsonGetString(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_LIMIT, sQuestTag));
+    return "";//JsonGetString(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_LIMIT, sQuestTag));
 }
 
 void SetQuestTimeLimit(string sTimeVector)
 {
-    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_LIMIT, JsonString(sTimeVector));
+    //quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_LIMIT, JsonString(sTimeVector));
 }
 
 string GetQuestCooldown(string sQuestTag)
 {
-    return JsonGetString(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_COOLDOWN, sQuestTag));
+    return "";//JsonGetString(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_COOLDOWN, sQuestTag));
 }
 
 void SetQuestCooldown(string sTimeVector)
 {
-    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_COOLDOWN, JsonString(sTimeVector));
+    //quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_COOLDOWN, JsonString(sTimeVector));
 }
 
 string GetQuestScriptOnAssign(string sQuestTag)
 {
-    return JsonGetString(quest_GetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ASSIGN, sQuestTag));
+    return "";//JsonGetString(quest_GetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ASSIGN, sQuestTag));
 }
 
 void SetQuestScriptOnAssign(string sScript)
 {
-    quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ASSIGN, JsonString(sScript));
+    //quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ASSIGN, JsonString(sScript));
 }
 
 string GetQuestScriptOnAccept(string sQuestTag)
 {
-    return JsonGetString(quest_GetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ACCEPT, sQuestTag));
+    return "";//JsonGetString(quest_GetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ACCEPT, sQuestTag));
 }
 
 void SetQuestScriptOnAccept(string sScript)
 {
-    quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ACCEPT, JsonString(sScript));
+    //quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ACCEPT, JsonString(sScript));
 }
 
 string GetQuestScriptOnAdvance(string sQuestTag)
 {
-    return JsonGetString(quest_GetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ADVANCE, sQuestTag));
+    return "";//JsonGetString(quest_GetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ADVANCE, sQuestTag));
 }
 
 void SetQuestScriptOnAdvance(string sScript)
 {
-    quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ADVANCE, JsonString(sScript));
+    //quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ADVANCE, JsonString(sScript));
 }
 
 string GetQuestScriptOnComplete(string sQuestTag)
 {
-    return JsonGetString(quest_GetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_COMPLETE, sQuestTag));
+    return "";//JsonGetString(quest_GetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_COMPLETE, sQuestTag));
 }
 
 void SetQuestScriptOnComplete(string sScript)
 {
-    quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_COMPLETE, JsonString(sScript));
+    //quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_COMPLETE, JsonString(sScript));
 }
 
 string GetQuestScriptOnFail(string sQuestTag)
 {
-    return JsonGetString(quest_GetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_FAIL, sQuestTag));
+    return "";//JsonGetString(quest_GetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_FAIL, sQuestTag));
 }
 
 void SetQuestScriptOnFail(string sScript)
 {
-    quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_FAIL, JsonString(sScript));
+    //quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_FAIL, JsonString(sScript));
 }
 
 void SetQuestScriptOnAll(string sScript)
 {
-    quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ALL, JsonString(sScript));
+    //quest_SetProperty(QUEST_KEY_SCRIPTS, QUEST_KEY_ON_ALL, JsonString(sScript));
 }
 
 int GetQuestJournalHandler(string sQuestTag)
 {
-    return JsonGetInt(quest_GetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_JOURNAL_HANDLER, sQuestTag));
+    return 0;//JsonGetInt(quest_GetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_JOURNAL_HANDLER, sQuestTag));
 }
 
 void SetQuestJournalHandler(int nJournalHandler = QUEST_JOURNAL_NWN)
 {
-    quest_SetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_JOURNAL_HANDLER, JsonInt(nJournalHandler));
+    //quest_SetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_JOURNAL_HANDLER, JsonInt(nJournalHandler));
 }
 
 int GetQuestJournalDeleteOnComplete(string sQuestTag)
 {
-    return JsonGetInt(quest_GetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_REMOVE_COMPLETED, sQuestTag));
+    return 0;//JsonGetInt(quest_GetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_REMOVE_COMPLETED, sQuestTag));
 }
 
 void DeleteQuestJournalEntriesOnCompletion()
 {
-    quest_SetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_REMOVE_COMPLETED, JSON_TRUE);
+    //quest_SetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_REMOVE_COMPLETED, JSON_TRUE);
 }
 
 void RetainQuestJournalEntriesOnCompletion()
 {
-    quest_SetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_REMOVE_COMPLETED, JSON_FALSE);
+    //quest_SetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_REMOVE_COMPLETED, JSON_FALSE);
 }
 
 int GetQuestAllowPrecollectedItems(string sQuestTag)
 {
-    return JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_ALLOW_PRECOLLECTED, sQuestTag));
+    return 0;//JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_ALLOW_PRECOLLECTED, sQuestTag));
 }
 
 void SetQuestAllowPrecollectedItems(int nAllow = TRUE)
 {
-    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_ALLOW_PRECOLLECTED, JsonBool(nAllow));
+    //quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_ALLOW_PRECOLLECTED, JsonBool(nAllow));
 }
 
 int GetQuestDeleteOnComplete(string sQuestTag)
 {
-    return JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_REMOVE_COMPLETED));
+    return 0;//JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_REMOVE_COMPLETED));
 }
 
 void SetQuestDeleteOnComplete(int bDelete = TRUE)
 {
-    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_REMOVE_COMPLETED, JsonBool(bDelete));
+    //quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_REMOVE_COMPLETED, JsonBool(bDelete));
 }
 
 int GetQuestVersion(string sQuestTag)
 {
-    return JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION, sQuestTag));
+    return 0;//JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION, sQuestTag));
 }
 
 void SetQuestVersion(int nVersion)
 {
-    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION, JsonInt(nVersion));
+    //quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION, JsonInt(nVersion));
 }
 
 int GetQuestVersionAction(string sQuestTag)
 {
-    return JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION_ACTION, sQuestTag));
+    return 0;//JsonGetInt(quest_GetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION_ACTION, sQuestTag));
 }
 
 void SetQuestVersionActionReset()
 {
-    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION_ACTION, JsonInt(QUEST_VERSION_ACTION_RESET));
+    //quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION_ACTION, JsonInt(QUEST_VERSION_ACTION_RESET));
 }
 
 void SetQuestVersionActionDelete()
 {
-    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION_ACTION, JsonInt(QUEST_VERSION_ACTION_DELETE));
+    //quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION_ACTION, JsonInt(QUEST_VERSION_ACTION_DELETE));
 }
 
 void SetQuestVersionActionNone()
 {
-    quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION_ACTION, JsonInt(QUEST_VERSION_ACTION_NONE));
+    //quest_SetProperty(QUEST_KEY_PROPERTIES, QUEST_KEY_VERSION_ACTION, JsonInt(QUEST_VERSION_ACTION_NONE));
 }
 
 string _GetQuestStepData(int q, int n, string t)
@@ -3293,67 +3293,67 @@ string _GetQuestStepData(int q, int n, string t)
 
 string GetQuestStepJournalEntry(string sQuestTag, int nStep)
 {
-    return ""; //_GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_JOURNAL_ENTRY);
+    return ""; //"";//_GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_JOURNAL_ENTRY);
 }
 
 void SetQuestStepJournalEntry(string sJournalEntry)
 {
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_JOURNAL, QUEST_KEY_JOURNAL_ENTRY, JsonString(sJournalEntry));
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_JOURNAL, QUEST_KEY_JOURNAL_ENTRY, JsonString(sJournalEntry));
 }
 
 string GetQuestStepTimeLimit(string sQuestTag, int nStep)
 {
-    return ""; //_GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_TIME_LIMIT);
+    return ""; //"";//_GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_TIME_LIMIT);
 }
 
 void SetQuestStepTimeLimit(string sTimeVector)
 {
-    if (sTimeVector != "")
-        quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_LIMIT, JsonString(sTimeVector));
+    //if (sTimeVector != "")
+        //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_PROPERTIES, QUEST_KEY_TIME_LIMIT, JsonString(sTimeVector));
 }
 
 int GetQuestStepPartyCompletion(string sQuestTag, int nStep)
 {   
-    string sData = ""; //= _GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_PARTY_COMPLETION);
+    string sData = ""; //= "";//_GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_PARTY_COMPLETION);
     return StringToInt(sData);
 }
 
 void SetQuestStepPartyCompletion(int nPartyCompletion = TRUE)
 {
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_PROPERTIES, QUEST_KEY_PARTY_COMPLETION, JsonBool(nPartyCompletion));
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_PROPERTIES, QUEST_KEY_PARTY_COMPLETION, JsonBool(nPartyCompletion));
 }
 
 int GetQuestStepProximity(string sQuestTag, int nStep)
 {
-    string sData = _GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_PARTY_PROXIMITY);
+    string sData = "";//_GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_PARTY_PROXIMITY);
     return StringToInt(sData);
 }
 
 void SetQuestStepProximity(int bProximity = TRUE)
 {
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_PROPERTIES, QUEST_KEY_PARTY_PROXIMITY, JsonBool(bProximity));
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_PROPERTIES, QUEST_KEY_PARTY_PROXIMITY, JsonBool(bProximity));
 }
 
 int GetQuestStepObjectiveMinimum(string sQuestTag, int nStep)
 {
-    string sData = _GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_OBJ_MIN_COUNT);
+    string sData = "";//_GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_OBJ_MIN_COUNT);
     return StringToInt(sData);
 }
 
 void SetQuestStepObjectiveMinimum(int nMinimum)
 {
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_PROPERTIES, QUEST_KEY_OBJ_MIN_COUNT, JsonInt(nMinimum));
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_PROPERTIES, QUEST_KEY_OBJ_MIN_COUNT, JsonInt(nMinimum));
 }
 
 int GetQuestStepObjectiveRandom(string sQuestTag, int nStep)
 {
-    string sData = _GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_OBJ_RANDOM_COUNT);
+    string sData = "";//_GetQuestStepData(GetQuestID(sQuestTag), nStep, QUEST_KEY_OBJ_RANDOM_COUNT);
     return StringToInt(sData);
 }
 
 void SetQuestStepObjectiveRandom(int nObjectiveCount)
 {
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_PROPERTIES, QUEST_KEY_OBJ_RANDOM_COUNT, JsonInt(nObjectiveCount));
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_PROPERTIES, QUEST_KEY_OBJ_RANDOM_COUNT, JsonInt(nObjectiveCount));
 }
 
 string GetRandomQuestCustomMessage(object oPC, string sQuestTag)
@@ -3409,235 +3409,235 @@ void SetQuestStepObjectiveFeedback(string sFeedback)
 void SetQuestPrerequisiteAlignment(int nAlignmentAxis, int bNeutral = FALSE)
 {
     json j = quest_BuildPrerequisite(QUEST_VALUE_ALIGNMENT, _i(nAlignmentAxis), _i(bNeutral));
-    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteClass(int nClass, int nLevels = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
     json j = quest_BuildPrerequisite(QUEST_VALUE_CLASS, _i(nClass), sOperator + ":" + _i(nLevels));
-    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteGold(int nGold = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
     json j = quest_BuildPrerequisite(QUEST_VALUE_GOLD, "", sOperator + ":" + _i(max(0, nGold)));
-    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteItem(string sItemTag, int nQuantity = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
     json j = quest_BuildPrerequisite(QUEST_VALUE_ITEM, sItemTag, sOperator + ":" + _i(nQuantity));
-    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteLevelMax(int nLevel)
 {
     json j = quest_BuildPrerequisite(QUEST_VALUE_LEVEL_MAX, "", _i(nLevel));
-    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteLevelMin(int nLevel)
 {
     json j = quest_BuildPrerequisite(QUEST_VALUE_LEVEL_MIN, "", _i(nLevel));
-    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteQuest(string sQuestTag, int nCompletionCount = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
     json j = quest_BuildPrerequisite(QUEST_VALUE_QUEST, sQuestTag, sOperator + ":" + _i(nCompletionCount));
-    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteQuestStep(string sQuestTag, int nStep)
 {
     json j = quest_BuildPrerequisite(QUEST_VALUE_QUEST_STEP, sQuestTag, _i(nStep));
-    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteRace(int nRace, int bAllowed = TRUE)
 {
     json j = quest_BuildPrerequisite(QUEST_VALUE_RACE, _i(nRace), _i(bAllowed));
-    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteXP(int nXP, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
     json j = quest_BuildPrerequisite(QUEST_VALUE_XP, "", sOperator + ":" + _i(nXP));
-    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteSkill(int nSkill, int nRank, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
     json j = quest_BuildPrerequisite(QUEST_VALUE_SKILL, _i(nSkill), sOperator + ":" + _i(nRank));
-    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteAbility(int nAbility, int nScore, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
     json j = quest_BuildPrerequisite(QUEST_VALUE_ABILITY, _i(nAbility), sOperator + ":" + _i(nScore));
-    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteReputation(string sFaction, int nStanding, string sOperator = GREATER_THAN_OR_EQUAL_TO)
 {
     json j = quest_BuildPrerequisite(QUEST_VALUE_REPUTATION, sFaction, sOperator + ":" + _i(nStanding));
-    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteVariableInt(string sVarName, string sOperator, int nValue)
 {
     json j = quest_BuildPrerequisite(QUEST_VALUE_VARIABLE, "INT:" + sVarName, sOperator + ":" + _i(nValue));
-    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestPrerequisiteVariableString(string sVarName, string sOperator, string sValue)
 {
     json j = quest_BuildPrerequisite(QUEST_VALUE_VARIABLE, "STRING:" + sVarName, sOperator + ":" + sValue);
-    quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREREQUISITES, "", j);
 }
 
 void SetQuestStepObjectiveKill(string sTargetTag, int nValue = 1, int nMax = 0)
 {
     json j = quest_BuildObjective(QUEST_OBJECTIVE_KILL, sTargetTag, nValue, nMax);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_OBJECTIVES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_OBJECTIVES, "", j);
 }
 
 void SetQuestStepObjectiveGather(string sTargetTag, int nValue = 1, int nMax = 0)
 {
     json j = quest_BuildObjective(QUEST_OBJECTIVE_GATHER, sTargetTag, nValue, nMax);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_OBJECTIVES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_OBJECTIVES, "", j);
 }
 
 void SetQuestStepObjectiveDeliver(string sTargetTag, string sData, int nValue, int nMax = 0)
 {
     json j = quest_BuildObjective(QUEST_OBJECTIVE_DELIVER, sTargetTag, nValue, nMax, sData);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_OBJECTIVES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_OBJECTIVES, "", j);
 }
 
 void SetQuestStepObjectiveDiscover(string sTargetTag, int nValue = 1, int nMax = 0)
 {
     json j = quest_BuildObjective(QUEST_OBJECTIVE_DISCOVER, sTargetTag, nValue, nMax);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_OBJECTIVES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_OBJECTIVES, "", j);
 }
 
 void SetQuestStepObjectiveSpeak(string sTargetTag, int nValue = 1, int nMax = 0)
 {
     json j = quest_BuildObjective(QUEST_OBJECTIVE_SPEAK, sTargetTag, nValue, nMax);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_OBJECTIVES, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_OBJECTIVES, "", j);
 }
 
 void SetQuestStepPrewardAlignment(int nAlignmentAxis, int nValue, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_ALIGNMENT, _i(nAlignmentAxis), _i(nValue), bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardGold(int nGold, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_GOLD, "", _i(nGold), bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardItem(string sResref, int nQuantity, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_ITEM, sResref, _i(nQuantity), bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardXP(int nXP, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_XP, "", _i(nXP), bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardMessage(string sMessage, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_MESSAGE, "", sMessage, bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardFloatingText(string sText, int bPartyOnly = FALSE, int bChatDisplay = FALSE, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_FLOATINGTEXT, _i(bPartyOnly) + ":" + _i(bChatDisplay), sText, bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardReputation(string sFaction, int nChange, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_REPUTATION, sFaction, _i(nChange), bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardVariableInt(string sVarName, string sOperator, int nValue, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_VARIABLE, "INT:" + sVarName, sOperator + ":" + _i(nValue), bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepPrewardVariableString(string sVarName, string sOperator, string sValue, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_VARIABLE, "STRING:" + sVarName, sOperator + ":" + sValue, bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardAlignment(int nAlignmentAxis, int nValue, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_ALIGNMENT, _i(nAlignmentAxis), _i(nValue), bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardGold(int nGold, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_GOLD, "", _i(nGold), bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardItem(string sResref, int nQuantity = 1, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_ITEM, sResref, _i(nQuantity), bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardQuest(string sQuestTag, int bAssign = TRUE, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_QUEST, sQuestTag, _i(bAssign), bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardXP(int nXP, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_XP, "", _i(nXP), bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardMessage(string sMessage, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_MESSAGE, "", sMessage, bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardReputation(string sFaction, int nChange, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_REPUTATION, sFaction, _i(nChange), bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardVariableInt(string sVarName, string sOperator, int nValue, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_VARIABLE, "INT:" + sVarName, sOperator + ":" + _i(nValue), bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardVariableString(string sVarName, string sOperator, string sValue, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_VARIABLE,"STRING:" + sVarName, sOperator + ":" + sValue, bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 void SetQuestStepRewardFloatingText(string sText, int bPartyOnly = FALSE, int bChatDisplay = FALSE, int bParty = FALSE)
 {
     json j = quest_BuildReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_FLOATINGTEXT, _i(bPartyOnly) + ":" + _i(bChatDisplay), sText, bParty);
-    quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
+    //quest_SetProperty(QUEST_KEY_PREFIX_STEP + QUEST_KEY_AWARDS, "", j);
 }
 
 int AddQuestResolutionSuccess(int nStep = -1)
