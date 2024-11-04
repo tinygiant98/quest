@@ -8,6 +8,8 @@
 #include "util_i_constants"
 #include "util_i_strings"
 
+const string THIS = "quest_i_const";
+
 // Versioning
 const string QUEST_SYSTEM_VERSION = "2.0.0";
 
@@ -19,12 +21,21 @@ const string QUEST_CURRENT_EVENT = "QUEST_CURRENT_EVENT";
 
 const string QUEST_DATABASE = "quest_database";
 
-// Primary Keys
-//const string QUEST_KEY_PREFIX_STEP = "steps:";
-
-// THESE ARE USED BY THE JSON STRUCTURES/SCHEMA AND GET/SET FUNCTIONS
+/// @brief These key values are used to replace placeholders in the quest schema.
+///     These are the keys that will be used within the quest documents to
+///     store quest definition and progression data.
+/// @warning These values can be modified, but should only be modified before
+///     the first use of the quest system within a specific module.  Although
+///     functions are provided to update these value in existing records, it is
+///     not guaranteed that all records will be updated correctly, which could
+///     lead to loss of data access.  DO NOT CHANGE THESE VALUES UNLESS YOU
+///     UNDERSTAND THE RAMIFICATIONS OF DOING SO.
+/// @warning All keys must be unique.  Repeated keys could lead to inaccurate
+///     value pathing, causing data integrity to be lost.
+/// @warning Adding or deleting keys should only be accomplished if the quest
+///     system schema is modified to reflect the changes.
 const string QUEST_KEY_ACTIVE = "questActive";
-const string QUEST_KEY_PRECOLLECTED = "questAllowProcollectItems";
+const string QUEST_KEY_PRECOLLECTED = "questAllowPrecollected";
 const string QUEST_KEY_JOURNAL_HANDLER = "questJournalHandler";
 const string QUEST_KEY_JOURNAL_TITLE = "questJournalTitle";
 const string QUEST_KEY_JOURNAL_REMOVE = "questJournalRemoveOnCompleted";
@@ -67,6 +78,10 @@ const string QUEST_KEY_PREREQUISITE_TYPE = "prerequisiteType";
 const string QUEST_KEY_PREREQUISITE_KEY = "prerequisiteKey";
 const string QUEST_KEY_PREREQUISITE_VALUE = "prerequisiteValue";
 
+
+
+// TODO see about modifying these to be strings?
+
 // Quest Categories and Values
 // Should these be bitwise?
 // Or can we use hash values here and change to string
@@ -77,7 +92,7 @@ const int QUEST_CATEGORY_PREWARD = 3;
 const int QUEST_CATEGORY_REWARD = 4;
 
 // Should these be bitwise?
-const int QUEST_VALUE_NONE = h"none";
+const int QUEST_VALUE_NONE = 0;
 const int QUEST_VALUE_ALIGNMENT = 1;
 const int QUEST_VALUE_CLASS = 2;
 const int QUEST_VALUE_GOLD = 3;
@@ -201,17 +216,10 @@ const string GREATER_THAN_OR_EQUAL_TO = ">=";
 const string LESS_THAN_OR_EQUAL_TO = "<=";
 const string NOT_EQUAL_TO = "!=";
 
-// regex to find last occurrence of a word in a string and remove
-// (\b\.fields\b)(?!.*\1)
-//    string r = "(\\b" + sWord + "\\b)(?!.*\\1)";
-//    string r = "(\\b\.fields\\b)(?!.*\\1)";
-//    string s = RegExpReplace(r, s, "");
-//
-
-const string QUEST_MODULE_SCHEMA = r"
+const string QUEST_SYSTEM_SCHEMA = r"
 {
     ""type"": ""object"",
-    ""fields"": {
+    ""quest"": {
         ""properties"": {
             ""type"": ""object"",
             ""fields"": {
@@ -231,7 +239,7 @@ const string QUEST_MODULE_SCHEMA = r"
                 },
                 QUEST_KEY_JOURNAL_REMOVE: {
                     ""type"": ""boolean"",
-                    ""default"": false
+                    ""default"": true
                 },
                 QUEST_KEY_REMOVE: {
                     ""type"": ""boolean"",
@@ -417,10 +425,10 @@ const string QUEST_MODULE_SCHEMA = r"
 
 json quest_GetSystemSchema(int bForce = FALSE)
 {
-    json jSchema = GetLocalJson(GetModule(), "QUEST_MODULE_SCHEMA");
+    json jSchema = GetLocalJson(GetModule(), "QUEST_SYSTEM_SCHEMA");
     if (jSchema == JSON_NULL || bForce)
     {
-        string s = SubstituteSubStrings(QUEST_MODULE_SCHEMA, "\n", "");
+        string s = SubstituteSubStrings(QUEST_SYSTEM_SCHEMA, "\n", "");
         s = RegExpReplace("\\s*([{}\\[\\]:,])\\s*", s, "$1");
         
         string r = "(int|string|float)\\s+(QUEST_(?:KEY|CONFIG)_[A-Z_]+)\\s*=\\s*(\"[^\"]*\"|[^\\s;]+)\\s*;";
@@ -440,30 +448,26 @@ json quest_GetSystemSchema(int bForce = FALSE)
                 struct CONSTANT c;
                 if (sType == "int")
                 {
-                    c = GetConstantInt(sValue, "quest_i_const");
+                    c = GetConstantInt(sValue, THIS);
                     sValue = IntToString(c.nValue);
                 }
                 else if (sType == "float")
                 {
-                    c = GetConstantFloat(sValue, "quest_i_const");
+                    c = GetConstantFloat(sValue, THIS);
                     sValue = FormatFloat(c.fValue, "%!f");
                 }
                 else if (sType == "string")
                 {
-                    c = GetConstantString(sValue, "quest_i_const");
+                    c = GetConstantString(sValue, THIS);
                     sValue = c.sValue;
                 }
             }
 
-            Notice("Replace " + sOption + " with " + sValue);
-
             s = RegExpReplace(sOption, s, sValue);
         }
 
-        Notice("Final = " + s);
-
         jSchema = JsonParse(s);
-        SetLocalJson(GetModule(), "QUEST_MODULE_SCHEMA", jSchema);
+        SetLocalJson(GetModule(), "QUEST_SYSTEM_SCHEMA", jSchema);
     }
 
     return jSchema;

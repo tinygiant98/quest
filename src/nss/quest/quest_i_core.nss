@@ -1,7 +1,7 @@
 /// ----------------------------------------------------------------------------
-/// @file   quest_i_database.nss
+/// @file   quest_i_core.nss
 /// @author Ed Burke (tinygiant98) <af.hog.pilot@gmail.com>
-/// @brief  Quest System (database)
+/// @brief  Quest System (core)
 /// ----------------------------------------------------------------------------
 
 #include "util_i_csvlists"
@@ -11,6 +11,8 @@
 #include "quest_i_const"
 #include "quest_i_debug"
 
+/// @private Central query preparation and supporting functions.
+/// @note 
 sqlquery quest_PrepareQuery(string s)
 {
     s = SubstituteSubStrings(s, "\n", "");
@@ -18,8 +20,131 @@ sqlquery quest_PrepareQuery(string s)
     return SqlPrepareQueryCampaign(QUEST_DATABASE, s);
 }
 
-void quest_BeginTransaction()  { SqlStep(quest_PrepareQuery("BEGIN TRANSACTION;")); }
-void quest_CommitTransaction() { SqlStep(quest_PrepareQuery("COMMIT TRANSACTION;")); }
+void quest_ExecuteQuery(string s) { SqlStep(quest_PrepareQuery(s)); }
+void quest_BeginTransaction()     { quest_ExecuteQuery("BEGIN TRANSACTION;"); }
+void quest_CommitTransaction()    { quest_ExecuteQuery("COMMIT TRANSACTION;"); }
+
+/// @private Transforms the system schema into a compact json object containing only
+///     keys and default values.  The result of this function is used as the default
+///     value for the quest_data column in the quest_module table, but can serve to
+///     summarize the quest system schema for other purposes.
+/// @param bIncludeItemTemplates If TRUE, item templates (defs) will be included as part
+///     of the returned json object.  This is primarily used when pathing keys.
+/// @param bForce If TRUE, the system schema will be reloaded.
+json quest_GetSchemaTemplate(string sPath = "", int bIncludeItemTemplates = FALSE, int bForce = FALSE)
+{
+    string s = r"
+        WITH RECURSIVE
+            schema_tree AS (
+                SELECT json_tree.*
+                FROM json_tree(json_extract(@schema, CASE WHEN @path = '' THEN '$' ELSE '$.' || @path END))
+                WHERE json_tree.type = 'object'
+                    AND NOT (@path = '' AND json_tree.fullkey LIKE '$.defs%')
+            ),
+            schema_defaults AS (
+                SELECT t.*,
+                    CASE
+                        WHEN t.parent IS NULL THEN ''
+                        ELSE
+                            CASE
+                                WHEN json_extract(t.value, '$.type') IS NULL THEN
+                                    COALESCE(json_extract(t.value, '$.fields'), t.value)
+                                ELSE
+                                    CASE
+                                        WHEN json_extract(t.value, '$.default') IS NOT NULL THEN
+                                            CASE json_extract(t.value, '$.type')
+                                                WHEN 'string' THEN json_quote(json_extract(t.value, '$.default'))
+                                                ELSE json_extract(t.value, '$.default')
+                                            END
+                                        ELSE
+                                            CASE json_extract(t.value, '$.type')
+                                                WHEN 'integer' THEN 0
+                                                WHEN 'float' THEN 0.0
+                                                WHEN 'string' THEN json_quote('')
+                                                WHEN 'boolean' THEN false
+                                                WHEN 'array' THEN
+                                                    IIF(@includeItemTemplates = 1,
+                                                        json_array(json_extract(@itemTemplates, '$.' || SUBSTR(json_extract(t.value, '$.items.$ref'), 8))),
+                                                        json_array()
+                                                    )
+                                                WHEN 'object' THEN 
+                                                    COALESCE(json_extract(t.value, '$.fields'), json_object())
+                                            END
+                                    END
+                            END
+                    END AS new_value,
+                    replace(t.fullkey, '.fields', '') AS new_fullkey,
+                    ROW_NUMBER() OVER (ORDER BY parent, id) AS row_num
+                FROM schema_tree t
+                ORDER BY parent, id
+            ),
+            schema_folded AS (
+                SELECT row_num, json_object() AS result
+                    FROM schema_defaults
+                    WHERE row_num = 1
+                
+                UNION ALL
+                
+                SELECT nr.row_num, json_set(schema_folded.result, nr.new_fullkey, json(nr.new_value)) AS result
+                    FROM schema_defaults nr
+                    JOIN schema_folded
+                        ON nr.row_num = schema_folded.row_num + 1 
+            )
+        SELECT result
+        FROM schema_folded
+        WHERE row_num = (SELECT MAX(row_num) FROM schema_folded);
+    ";
+    sqlquery q = quest_PrepareQuery(s);
+
+    json jExpanded = GetLocalJson(GetModule(), "QUEST_SCHEMA_DEFS_EXPANDED");
+    if (bIncludeItemTemplates == TRUE && jExpanded == JSON_NULL)
+    {
+        SqlBindJson  (q, "@schema", quest_GetSystemSchema(bForce));
+        SqlBindString(q, "@path", "defs");
+        SqlBindInt   (q, "@includeItemTemplates", FALSE);
+        SqlBindJson  (q, "@itemTemplates", JSON_NULL);
+
+        json jCompact = SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
+        SqlResetQuery(q, TRUE);
+    
+        SqlBindJson  (q, "@schema", quest_GetSystemSchema(bForce));
+        SqlBindString(q, "@path", "defs");
+        SqlBindInt   (q, "@includeItemTemplates", TRUE);
+        SqlBindJson  (q, "@itemTemplates", jCompact);
+
+        jExpanded = SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
+        SetLocalJson(GetModule(), "QUEST_SCHEMA_DEFS_EXPANDED", jExpanded);
+        SqlResetQuery(q, TRUE);
+    }
+
+    SqlBindJson  (q, "@schema", quest_GetSystemSchema(bForce));
+    SqlBindString(q, "@path", sPath);
+    SqlBindInt   (q, "@includeItemTemplates", bIncludeItemTemplates);
+    SqlBindJson  (q, "@itemTemplates", bIncludeItemTemplates ? jExpanded : JSON_NULL);
+
+    return SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
+}
+
+/// @private Retrieves the full path for the specified key in the system schema.
+/// @param sPath The parent path where the key resides.
+string quest_GetSchemaPath(string sKey, string sMode = "set")
+{
+    string s = r"
+        WITH schema_tree AS (
+                SELECT json_tree.*
+                FROM json_tree(@template)
+            )
+        SELECT fullkey
+        FROM schema_tree
+        WHERE key = @key;
+    ";
+    sqlquery q = quest_PrepareQuery(s);
+    SqlBindJson(q, "@template", quest_GetSchemaTemplate("", TRUE));
+    SqlBindString(q, "@key", sKey);
+
+    string sPath = SqlStep(q) ? SqlGetString(q, 0) : "";
+    return RegExpReplace("\\[0\\]", sPath, sMode == "get" ? "[#-1]" : "[#]");
+}
 
 /// @brief Create the database objects required to administer the system.
 /// @note See comments within the function for future table modification
@@ -34,7 +159,7 @@ void quest_CreateTables(int bReset = FALSE)
     ///     time the module is started to ensure quest data does not go stale.
 
     /// @note The default quest_data json object is retrieved from the quest
-    ///     data schema held in QUEST_MODULE_SCHEMA.  All changes to the keys
+    ///     data schema held in QUEST_SYSTEM_SCHEMA.  All changes to the keys
     ///     contained in quest documents should be accomplished in the schema,
     ///     not in the table definitions below.
 
@@ -49,7 +174,7 @@ void quest_CreateTables(int bReset = FALSE)
             quest_data TEXT DEFAULT '$1'
         );
     ";
-    sModule = SubstituteSubString(sModule, "$1", JsonDump(GetDefaultSchemaObject(quest_GetSystemSchema())));
+    sModule = SubstituteSubString(sModule, "$1", JsonDump(quest_GetSchemaTemplate("quest", TRUE)));
 
     /// @brief Create a trigger on the quest_modules table to prevent insertion of duplicate
     ///     step numbers (ordinals) into the $.steps[#].properties.ordinal field.
@@ -107,6 +232,11 @@ void quest_CreateTables(int bReset = FALSE)
         );
     ";
     
+    /// To support changing quests, should make a full copy of quest data in situ at the time
+    ///     the quest is assigned and save for each attempt.  This lets us give the module owner
+    ///     the option to allow the player to complete the quest as it existed when it was assigned
+    ///     in addition to the normal options or resetting to current/new, deleting all progress.
+
     /// Expected structure (array of): [{
     ///     properties:
     ///         startTime, completeTime, completeType, version
@@ -138,14 +268,12 @@ void quest_CreateTables(int bReset = FALSE)
             string s = r"
                 DROP TABLE IF EXISTS quest_$1;
             ";
-            s = SubstituteSubString(s, "$1", sTable);
-            SqlStep(quest_PrepareQuery(s));
+            quest_ExecuteQuery(SubstituteSubString(s, "$1", sTable));
 
             s = r"
                 DROP TRIGGER IF EXISTS quest_$1;
             ";
-            s = SubstituteSubString(s, "$1", sTable);
-            SqlStep(quest_PrepareQuery(s));
+            quest_ExecuteQuery(SubstituteSubString(s, "$1", sTable));
         }
     }
 
@@ -166,24 +294,13 @@ string quest_GetSegment(string s, int n = 0)
     return JsonGetString(JsonArrayGet(RegExpMatch(r, s), 1));
 }
 
-/// @private Retrieves the key from a key[:=]value pair, or the first segment from a
-///     segment series.
-string quest_GetKey(string s)
-{
-    return quest_GetSegment(s);
-}
-
-/// @private Retrieves the value from a key[:=]value pair, or the nNth segment from a
-///     segment series.
-string quest_GetValue(string s, int n = 1)
-{
-    return quest_GetSegment(s, n);
-}
+string quest_GetKey(string s) { return quest_GetSegment(s); }
+string quest_GetValue(string s, int n = 1) { return quest_GetSegment(s, n);}
 
 /// @private Clears module quest data.
 void quest_OnModuleLoad()
 {
-    SqlStep(quest_PrepareQuery("DELETE FROM quest_module;"));
+    quest_ExecuteQuery("DELETE FROM quest_module;");
 }
 
 /// @private Compares quest versions with new data in `quest_module`
@@ -194,17 +311,6 @@ void quest_OnClientEnter()
     // [ ] Drop the primary quest table...
 
     // check pc quest versions against module versions and see what to do...
-}
-
-string quest_GetKeyPath(string sKey)
-{
-    string s = GetKeyPath(quest_GetSystemSchema(), sKey);
-    s = RegExpReplace("^.*?\\..*?\\.", s, "");
-
-    if (RegExpMatch("^([^\\.]+Item)\\.", s) != JSON_ARRAY)
-        s = RegExpReplace("^([^\\.]+Item)\\.fields", s, "$1[#]");
-
-    return RegExpReplace("\\.fields\\.", s, ".");
 }
 
 /// @private Determine is a specific quest exists.
@@ -224,23 +330,21 @@ int quest_Exists(string sTag)
     return SqlStep(sql) ? SqlGetInt(sql, 0) : FALSE;    
 }
 
+
 /// @private Add a json value to a parent and/or child key in the `quest_module` table.
-/// @param sParent The parent/outer key.
-/// @param sChild The child/inner key.
-/// @param sNested The grandchild/nested key.
+/// @param sKey Schema-unique key to set.
 /// @param jValue The value to set to the parent-child-key combination.
 /// @param sTag The quest to set the data on.  If missing, will use the quest currently
 ///     being built.
+/// @param nIndex If setting an array element, the index to the element in the array.
+///     If missing, will set the value to the last element in the array.
 /// @warning This method will fail or have undefined behavior if called outside the quest
 ///     definition process and a quest tag is not passed.
 /// @note If a step is being added to this quest, the step number passed must either be -1
 ///     (to automatically increment step numbers) or unique.  Otherwise the step will
 ///     silently fail to be inserted into the .steps array.  The step number must match
 ///     the step number in the associated journal entry, if used.
-int quest_SetProperty(string sParent, string sChild, json jValue, string sTag = "", int nIndex = -1)
-
-// Ok, so the assumptino is we have schema-unique keys.  So good, so far
-//int quest_SetProperty(string sKey, json jValue, string sTag = "", int nIndex = -1)
+int quest_SetProperty(string sKey, json jValue, string sTag = "", int nIndex = -1)
 {
     if (sTag == "")
         sTag = quest_GetBuildQuest();
@@ -251,115 +355,15 @@ int quest_SetProperty(string sParent, string sChild, json jValue, string sTag = 
         return FALSE;
     }
 
-    //string sPath = quest_GetKeyPath(sKey);
-    //if (sPath == "")
-    //{
-    //    QuestError("Could not determine path for key sKey");
-    //    return;
-    //}
+    string sPath = quest_GetSchemaPath(sKey);
+    if (sPath == "")
+    {
+        QuestError("Could not determine path for key " + sKey);
+        return;
+    }
 
-
-//    /// @brief We need to determine what type of json objects we're working with.  All of the
-//    ///     json objects in the default `quest_data` json object are defined above, so let's use
-//    ///     the table definition to determine it (?).
-//    string s = r"
-//         WITH defaults AS (
-//            SELECT
-//                json(substr(dflt_value, 2, length(dflt_value) - 2)) AS fields
-//            FROM pragma_table_info('quest_module')
-//            WHERE name = 'quest_data'
-//        )
-//        SELECT json_type(fields, '$.$1')
-//        FROM defaults;
-//    ";
-//    s = SubstituteSubString(s, "$1", sParent);
-//    sqlquery q = quest_PrepareQuery(s);
-//    string sParentType = SqlStep(q) ? SqlGetString(q, 0) : "";
-//
-//    if (!HasListItem("object,array", sParentType))
-//    {
-//        QuestError("need an object or array!");
-//        return FALSE;
-//    }
-
-
-
-//    if (sParentType == "array")
-//    {    
-//        /// (1) Auto-number quest steps
-//        if (sParent == QUEST_KEY_STEPS && sChild == "")
-//        {
-//               string s = r"
-//                UPDATE quest_module
-//                SET quest_data = json_set(quest_data, '$.steps[#]',
-//                    CASE
-//                        WHEN json_extract(@jValue, '$.properties.ordinal') = -1 THEN
-//                            json_set(@jValue, '$.properties.ordinal',
-//                                COALESCE(
-//                                    (SELECT MAX(json_extract(value, '$.properties.ordinal')) + 1
-//                                    FROM json_each(quest_data, '$.steps')),
-//                                    1
-//                                )
-//                            )
-//                        ELSE
-//                            json(@jValue)
-//                    END
-//                )
-//                WHERE quest_tag = @sTag
-//                RETURNING json_extract(quest_data, '$.steps[#-1].properties.ordinal');
-//            ";
-//
-//            sqlquery q = quest_PrepareQuery(s);
-//            SqlBindJson(q, "@jValue", jValue);
-//            SqlBindString(q, "@sTag", sTag);
-//            return SqlStep(q) ? SqlGetInt(q, 0) : FALSE;
-//        }
-//        /// (2) Add a complete json object or array to parent key
-//        else if (sChild == "" && nType == JSON_TYPE_OBJECT)
-//            sPath += "[#]";
-//        /// (3) Add a json value to a child key
-//        else if (sChild != "" &&
-//            (nType == JSON_TYPE_BOOL    || 
-//             nType == JSON_TYPE_FLOAT   ||
-//             nType == JSON_TYPE_INTEGER ||
-//             nType == JSON_TYPE_STRING))
-//            sPath += "[$index].$child";
-//    }
-//    else if (sParentType == "object")
-//    {
-//        /// (4) Swap the default object with a complete json object
-//        if (sChild == "" && nType == JSON_TYPE_OBJECT)
-//            sPath = sPath;
-//        /// (5) Add a json value to a child key
-//        else if (sChild != "" &&
-//            (nType == JSON_TYPE_BOOL    || 
-//             nType == JSON_TYPE_FLOAT   ||
-//             nType == JSON_TYPE_INTEGER ||
-//             nType == JSON_TYPE_STRING))
-//            sPath += ".$child";
-//    }
-//    else
-//    {
-//        QuestError("unrecognized type");
-//        return FALSE;
-//    }
-//
-//    sPath = SubstituteSubString(sPath, "$parent", sParent);
-//    sPath = SubstituteSubString(sPath, "$child", sChild);
-//    sPath = SubstituteSubString(sPath, "$index", nIndex > -1 ? _i(nIndex) : "#-1");
-//
-//    s = r"
-//        UPDATE quest_module
-//        SET quest_data = json_set(quest_data, '$1', json(@jValue))
-//        WHERE quest_tag = @sTag;
-//    ";
-//    s = SubstituteSubString(s, "$1", sPath);
-//
-//    q = quest_PrepareQuery(s);
-//    SqlBindJson(q, "@jValue", jValue);
-//    SqlBindString(q, "@sTag", sTag);
-//    SqlStep(q);
-    
+    /// Do json type validation here...
+   
     return TRUE;
 }
 
@@ -368,17 +372,29 @@ int quest_SetProperty(string sParent, string sChild, json jValue, string sTag = 
 ///     system schema.
 json quest_GetDefaultObject()
 {
-    return GetDefaultSchemaObject(quest_GetSystemSchema());
+    json j = GetLocalJson(GetModule(), "QUEST_DEFAULT");
+    if (j == JSON_NULL)
+        j = quest_GetSchemaTemplate("quest");
+
+    if (j == JSON_NULL)
+        QuestError("Oh no");
+
+    SetLocalJson(GetModule(), "QUEST_DEFAULT", j);
+    return j;
 }
 
 /// @private Retrieve a json objectin containing the default item-level data,
 ///     including default settings.  This object is sourced from the quest
 ///     system schema.
 /// @param sKey The key of the item object to retrieve.
-json quest_GetDefaultItem(string sKey)
+json quest_GetDefaultItem(string sItem)
 {
-    json j = GetDefaultSchemaObject(quest_GetSystemSchema(), "defs");
-    return JsonObjectGet(j, sKey);
+    return GetDefaultSchemaObject(quest_GetSystemSchema(), "defs." + sItem);
+}
+
+json quest_GetDefaultItems()
+{
+    return JSON_NULL;
 }
 
 json quest_GetDefaultData()
@@ -467,7 +483,7 @@ json quest_GetProperty(string sParent = "", string sKey = "", string sTag = "", 
 /// @param nType QUEST_VALUE_*.
 /// @param sKey Prerequisite-specific data.
 /// @param sValue Prerequisite-specific data.
-/// @note See QUEST_MODULE_SCHEMA for json structure.
+/// @note See QUEST_SYSTEM_SCHEMA for json structure.
 json quest_BuildPrerequisite(int nType, string sKey, string sValue)
 {
     json j = GetLocalJson(GetModule(), "QUEST_DEFAULT_PREREQUISITE");
@@ -488,14 +504,15 @@ json quest_BuildPrerequisite(int nType, string sKey, string sValue)
 /// @param nValue Amount of sTag required to complete objective.
 /// @param nMax Maximum amount of sTag allowed.
 /// @param sData Objective-specific data.
-/// @note See QUEST_MODULE_SCHEMA for json structure.
+/// @note See QUEST_SYSTEM_SCHEMA for json structure.
 json quest_BuildObjective(int nType, string sTag, int nValue, int nMax, string sData = "")
 {
     json j = GetLocalJson(GetModule(), "QUEST_DEFAULT_OBJECTIVE");
     if (j == JSON_NULL)
+    {
         j = quest_GetDefaultItem("objectiveItem");
-
-    SetLocalJson(GetModule(), "QUEST_DEFAULT_OBJECTIVE", j);
+        SetLocalJson(GetModule(), "QUEST_DEFAULT_OBJECTIVE", j);
+    }
 
     //JsonObjectSetInplace(j, QUEST_KEY_TYPE, JsonInt(nType));
     //JsonObjectSetInplace(j, QUEST_KEY_TAG, JsonString(sTag));
@@ -511,7 +528,7 @@ json quest_BuildObjective(int nType, string sTag, int nValue, int nMax, string s
 /// @param sKey [p]reward-specific data.
 /// @param sValue [p]reward-specific data.
 /// @param bParty Provide [p]reward to entire party.
-/// @note See QUEST_MODULE_SCHEMA for json structure.
+/// @note See QUEST_SYSTEM_SCHEMA for json structure.
 json quest_BuildReward(int nCategory, int nType, string sKey, string sValue, int bParty)
 {
     json j = GetLocalJson(GetModule(), "QUEST_DEFAULT_REWARD");

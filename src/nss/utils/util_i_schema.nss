@@ -127,7 +127,7 @@ json GetDefaultSchemaObject(json jSchema, string sDef = "fields")
 
     return SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
 }
-
+/*
         SELECT t.*,
 			IIF(json_extract(t.value, '$.type') IS NOT NULL,
 				IIF(json_extract(t.value, '$.default') IS NOT NULL,
@@ -153,3 +153,4 @@ json GetDefaultSchemaObject(json jSchema, string sDef = "fields")
 				),
 				''
 			) AS new_value
+*/
