@@ -4,6 +4,51 @@
 /// @brief  Quest System (constants)
 /// ----------------------------------------------------------------------------
 
+/// @brief The quest system is a flexible and powerful system for creating and
+///     managing quests in Neverwinter Nights.  The system is designed to be
+///     easy to use and flexible enough to handle a wide variety of quest types.
+
+/// @note This version of the quest system requires some compiler and game
+///     features recently added to NWN:EE.
+
+/// @warning Minimum Game Version: 36.12
+
+// -----------------------------------------------------------------------------
+//                             Quest System Configuration
+// -----------------------------------------------------------------------------
+
+/// @note All values set below are default values and can be overriden on a
+///     per-quest or per-set basis during the quest definition process.
+
+/// @brief The quest system can use either the standard NWN journal system or
+///     the NWNX journal system.  Quests can be built to use existing journal
+///     entries, or custom journal entries can be added during the definition
+///     process.  Set QUEST_CONFIG_JOURNAL_HANDLER to one of the following
+///     three values.
+/// @note This is a default value and can be change per-quest during the quest
+///     definition process.
+const int QUEST_JOURNAL_NONE = 0;
+const int QUEST_JOURNAL_NWN  = 1;
+const int QUEST_JOURNAL_NWNX = 2;
+
+const int QUEST_CONFIG_JOURNAL_HANDLER = QUEST_JOURNAL_NWN;
+
+/// @brief Set the following value to TRUE to have new quests active by default.
+const int QUEST_CONFIG_QUEST_ACTIVE = TRUE;
+
+/// @brief Set the following value to TRUE to have new quest steps active by default.
+const int QUEST_CONFIG_STEP_ACTIVE = TRUE;
+
+// For semi-randomized quest objectives, you can override the standard journal entry with
+// the custom message created for the random objectives.  To override the step's normal
+// journal entry, set this value to TRUE.
+const int QUEST_CONFIG_USE_CUSTOM_MESSAGE = TRUE;
+
+// -----------------------------------------------------------------------------
+//                      END - Quest System Configuration
+//                    DO NOT CHANGE ANTYING BELOW THIS LINE
+// -----------------------------------------------------------------------------
+
 #include "util_i_debug"
 #include "util_i_constants"
 #include "util_i_strings"
@@ -151,10 +196,6 @@ const int QUEST_EVENT_ON_ADVANCE = 3;
 const int QUEST_EVENT_ON_COMPLETE = 4;
 const int QUEST_EVENT_ON_FAIL = 5;
 
-// Journal Locations
-const int QUEST_JOURNAL_NONE = 0;
-const int QUEST_JOURNAL_NWN = 1;
-const int QUEST_JOURNAL_NWNX = 2;
 
 // Variable Validity
 const string REQUEST_INVALID = "REQUEST_INVALID";
@@ -469,28 +510,3 @@ json quest_GetSystemSchema(int bForce = FALSE)
     return jSchema;
 }
 
-// -----------------------------------------------------------------------------
-//                             Quest System Configuration
-// -----------------------------------------------------------------------------
-
-// [ ] Move to its own file ...
-
-// Set this value to the standard journal handler you'd like to use.  If you use a combination,
-// set this to the one you use most often.  For any journal entries that don't use the
-// handler set below, you must specifically designate its handler with SetQuestJournalHandler().
-const int QUEST_CONFIG_JOURNAL_HANDLER = QUEST_JOURNAL_NWN;
-
-/// @brief (quest_tag).properties.active.  Set to TRUE to have
-///     new quests set to active by default.
-const int QUEST_CONFIG_QUEST_ACTIVE = TRUE;
-
-/// @brief (quest_tag).steps[#].properties.active.  Set to TRUE to have
-///     new steps set to active by default.
-const int QUEST_CONFIG_STEP_ACTIVE = TRUE;
-
-
-
-// For semi-randomized quest objectives, you can override the standard journal entry with
-// the custom message created for the random objectives.  To override the step's normal
-// journal entry, set this value to TRUE.
-const int QUEST_CONFIG_USE_CUSTOM_MESSAGE = TRUE;
