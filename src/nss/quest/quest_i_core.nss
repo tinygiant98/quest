@@ -208,22 +208,23 @@ void quest_CreateTables(int bReset = FALSE)
     sModule = SubstituteSubString(sModule, "$1", JsonDump(quest_GetSchemaTemplate("quest")));
 
     /// @brief Create a trigger on the quest_modules table to prevent insertion of duplicate
-    ///     step numbers (ordinals) into the $.steps[#].properties.ordinal field.
-
-    /// @note Unfortunately, we have to force a silent fail because RAISEing the appropriate
-    ///     SQLite error will throw yellow text all over every player's chat windows.
+    ///     step numbers (ordinals) into the $.steps[#].properties.stepOrdinal field.
+    /// @warning This trigger will raise a system wide sql error if a duplicated step number is
+    ///     inserted into the quest_data field.
     string sTriggerDuplicate = r"
         CREATE TRIGGER quest_module_duplicate
             BEFORE UPDATE ON quest_module
                 FOR EACH ROW
-                    WHEN EXISTS (
-                        SELECT 1
-                        FROM json_each(OLD.quest_data, '$.steps')
-                        WHERE json_extract(value, '$.properties.$1') = 
-                            json_extract(NEW.quest_data, '$.steps[#-1].properties.$1')
-                    )
+                    WHEN json_extract(OLD.quest_data, '$.steps[#-1].properties.$1') != 
+                        json_extract(NEW.quest_data, '$.steps[#-1].properties.$1')
+                        AND EXISTS (
+                            SELECT 1
+                            FROM json_each(OLD.quest_data, '$.steps')
+                            WHERE json_extract(value, '$.properties.$1') = 
+                                json_extract(NEW.quest_data, '$.steps[#-1].properties.$1')
+                        )
                     BEGIN
-                        SELECT RAISE(ABORT, 'Duplicate Step Number Found; Ignoring.');
+                        SELECT RAISE(ABORT, 'Duplicate step ordinal found (quest = ' || NEW.quest_tag || '); check logs');
                     END;
     ";
     sTriggerDuplicate = SubstituteSubStrings(sTriggerDuplicate, "$1", QUEST_KEY_STEP_ORDINAL);
@@ -369,6 +370,8 @@ void quest_OnClientEnter()
     // check pc quest versions against module versions and see what to do...
 }
 
+/// [ ] replace this with just trying to grab something from quest_getdata, no
+///     need for a special query (?)
 /// @private Determine is a specific quest exists.
 /// @param sTag The tag of the quest to search for.
 /// @warning This function does not determine if a quest has valid data, only
@@ -412,89 +415,12 @@ int quest_CountChanges()
     return SqlStep(q) ? SqlGetInt(q, 0) : 0;
 }
 
-/// @private Add a json value to a  key in the `quest_module` table.
-/// @param sKey Schema-unique key to set.
-/// @param jValue The value to set.
-/// @param sTag The quest to set the data on.  If missing, will use the quest currently
-///     being built.
-/// @param nIndex If setting an array element, the index to the element in the array.
-///     If missing, will set the value to the last element in the array.
-/// @warning This method will fail or have undefined behavior if called outside the quest
-///     definition process and a quest tag is not passed.
-/// @note If a step is being added to a quest, the step number passed must either be -1
-///     (to automatically increment step numbers) or unique.  Otherwise the step will
-///     silently fail to be inserted into the .steps array.  The step number must match
-///     the step number in the associated journal entry, if used.
-int quest_SetProperty(string sKey, json jValue, string sTag = "", int nIndex = -1)
-{
-    sTag = (sTag == "" ? quest_GetBuildQuest() : sTag);
-    if (sTag == "" || !quest_Exists(sTag))
-    {
-        QuestError("[quest_SetProperty] Quest '" + sTag + "'' does not exist; aborting");
-        return FALSE;
-    }
-
-    string sPath = quest_GetSchemaPath(sKey, quest_GetData(sTag));
-    if (sPath == "")
-    {
-        QuestError("[quest_SetProperty] Path for key '" + sKey + "'' not found; aborting");
-        return FALSE;
-    }
-
-    int nType = JsonGetType(jValue);
-    int nSchemaType = quest_GetSchemaType(sKey);
-
-    if (nType == JSON_TYPE_NULL)
-    {
-        QuestError("[quest_SetProperty] Value for key '" + sKey + "' is NULL; aborting");
-        return FALSE;
-    }
-    else if (nType == JSON_TYPE_OBJECT)
-    {
-        if (nSchemaType == JSON_TYPE_ARRAY)
-            sPath += "[#]";
-    }
-    else if (nType == JSON_TYPE_ARRAY || nType != nSchemaType)
-    {
-        QuestError("incorrect type");
-        return FALSE;
-    }
-    
-    string s = r"
-        UPDATE quest_module
-        SET quest_data = json_set(quest_data, @sPath, json(@jValue))
-        WHERE quest_tag = @sTag
-    ";
-    sqlquery q = quest_PrepareQuery(s);
-    SqlBindString(q, "@sTag", sTag);
-    SqlBindString(q, "@sPath", sPath);
-    SqlBindJson  (q, "@jValue", jValue);
-    
-    if (SqlStep(q) && !quest_CountChanges())
-    {
-        QuestError("Failed to set property");
-        return FALSE;
-    }
-
-    // Special handling for steps
-    if (sKey == "steps")
-    {
-        string s = r"
-            SELECT json_extract(quest_data, @sPath)
-            FROM quest_module
-            WHERE quest_tag = @sTag;
-        ";
-        sqlquery q = quest_PrepareQuery(s);
-        SqlBindString(q, "@sPath", quest_GetSchemaPath(QUEST_KEY_STEP_ORDINAL, quest_GetData(sTag), "get"));
-        SqlBindString(q, "@sTag", sTag);
-
-        return SqlStep(q) ? SqlGetInt(q, 0) : FALSE;
-    }
-
-    return TRUE;
-}
-
-json quest_GetProperty(string sTag, string sKey, int nIndex = -1)
+/// @private Retrieve a json value from a key in the `quest_module` table.
+/// @param sKey Schema-unique key to retrieve.
+/// @param sTag The quest to retrieve the data from.
+/// @param nIndex If retrieving an array element, the index to the element in the array.
+///     If missing, will retrieve the value from the last element in the array.
+json quest_GetProperty(string sKey, string sTag, int nIndex = -1)
 {
     string sPath = quest_GetSchemaPath(sKey, quest_GetData(sTag), "get");
     if (sPath == "")
@@ -517,6 +443,83 @@ json quest_GetProperty(string sTag, string sKey, int nIndex = -1)
 
     return SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
 }
+
+/// @private Add a json value to a key in the `quest_module` table.
+/// @param sKey Schema-unique key to set.
+/// @param jValue The value to set.
+/// @param sTag The quest to set the data on.  If missing, will use the quest currently
+///     being built.
+/// @param nIndex If setting an array element, the index to the element in the array.
+///     If missing, will set the value to the last element in the array.
+/// @warning This method will fail or have undefined behavior if called outside the quest
+///     definition process and a quest tag is not passed.
+/// @note If a step is being added to a quest, the step number passed must either be -1
+///     (to automatically increment step numbers) or unique.  Otherwise the step will
+///     silently fail to be inserted into the .steps array.  The step number must match
+///     the step number in the associated journal entry, if used.
+int quest_SetProperty(string sKey, json jValue, string sTag = "", int nIndex = -1)
+{
+    sTag = (sTag == "" ? quest_GetBuildQuest() : sTag);
+    if (sTag == "" || !quest_Exists(sTag))
+    {
+        QuestError("[quest_SetProperty] Quest '" + sTag + "' does not exist; aborting");
+        return FALSE;
+    }
+
+    string sPath = quest_GetSchemaPath(sKey, quest_GetData(sTag));
+    if (sPath == "")
+    {
+        QuestError("[quest_SetProperty] Path for key '" + sKey + "' not found; aborting");
+        return FALSE;
+    }
+
+    int nType = JsonGetType(jValue);
+    int nSchemaType = quest_GetSchemaType(sKey);
+
+    if (nType == JSON_TYPE_NULL)
+    {
+        QuestError("[quest_SetProperty] Value for key '" + sKey + "' is NULL; aborting");
+        return FALSE;
+    }
+    else if (nType == JSON_TYPE_OBJECT && nSchemaType == JSON_TYPE_ARRAY)
+        sPath += "[" + (nIndex == -1 ? "#" : IntToString(nIndex)) + "]";
+    else if (nType == JSON_TYPE_ARRAY || nType != nSchemaType)
+    {
+        QuestError("[quest_SetProperty] Incorrect type for key '" + sKey + "'; aborting");
+        return FALSE;
+    }
+    
+    string s = r"
+        UPDATE quest_module
+        SET quest_data = json_set(quest_data, @sPath, json(@jValue))
+        WHERE quest_tag = @sTag
+    ";
+    sqlquery q = quest_PrepareQuery(s);
+    SqlBindString(q, "@sTag", sTag);
+    SqlBindString(q, "@sPath", sPath);
+    SqlBindJson  (q, "@jValue", jValue);
+    
+    if (SqlStep(q) && !quest_CountChanges())
+    {
+        QuestError("[quest_SetProperty] Failed to set property:" +
+            "\n   sTag = " + sTag +
+            "\n   sKey = " + sKey +
+            "\n   sPath = " + sPath);
+        return FALSE;
+    }
+
+    /// @note Step ordinals have special handling and are automatically incremented
+    ///     via a table trigger as defined in `quest_CreateTables()`.  The incrementation
+    ///     occurs after the step is added and can't be returned with a RETURNING
+    ///     statement, so we need to retrieve the value manually.
+    /// @note Since we should only have sKey == 'steps' when adding a step, the
+    ///     index can safely be ignored for retrieving the step ordinal.
+    if (sKey == "steps")
+        return JsonGetInt(quest_GetProperty(QUEST_KEY_STEP_ORDINAL, sTag));
+
+    return TRUE;
+}
+
 
 /// @private Retrieve a json object containing the default quest-level data,
 ///     including default settings.  This object is sourced from the quest
@@ -574,22 +577,6 @@ json quest_GetDefaultData()
 
 
     //return GetDefaultSchemaObject(quest_GetSystemSchema(TRUE), "pc_data");
-}
-
-/// @private Retrieve a json value assigned to a parent-child-key combination.
-/// @param sParent The parent/outer key.
-/// @param sChild The child/inner key.
-/// @param sTag The quest to set the data on.  If missing, will use the quest currently
-///     being built.
-/// @param nIndex The index of the array element to be retrieved. 
-/// @warning This method will fail or have undefined behavior if called outside the quest
-///     definition process and a quest tag is not passed.
-/// @note This method expects arrays to be present at the parent/outer key level.
-json quest_GetProperty(string sParent = "", string sKey = "", string sTag = "", int nIndex = -1)
-{
-
-
-    return JSON_NULL;
 }
 
 /// @private Build a prerequisite json object.
