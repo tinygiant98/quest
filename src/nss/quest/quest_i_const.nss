@@ -25,11 +25,11 @@ const string QUEST_DATABASE = "quest_database";
 ///     These are the keys that will be used within the quest documents to
 ///     store quest definition and progression data.
 /// @warning These values can be modified, but should only be modified before
-///     the first use of the quest system within a specific module.  Although
-///     functions are provided to update these value in existing records, it is
-///     not guaranteed that all records will be updated correctly, which could
-///     lead to loss of data access.  DO NOT CHANGE THESE VALUES UNLESS YOU
-///     UNDERSTAND THE RAMIFICATIONS OF DOING SO.
+///     the first use of the quest system within a specific module.  There are
+///     no methods provided to update these values in records that have already
+///     been saved to the database.   DO NOT CHANGE THESE VALUES UNLESS YOU
+///     UNDERSTAND THE RAMIFICATIONS OF DOING SO, and really, there is no reason
+///     to do so.
 /// @warning All keys must be unique.  Repeated keys could lead to inaccurate
 ///     value pathing, causing data integrity to be lost.
 /// @warning Adding or deleting keys should only be accomplished if the quest
@@ -54,6 +54,7 @@ const string QUEST_KEY_ON_COMPLETE = "onComplete";
 const string QUEST_KEY_ON_FAIL = "onFail";
 
 const string QUEST_KEY_STEP_ACTIVE = "stepActive";
+const string QUEST_KEY_STEP_JOURNAL_ENTRY = "stepJournalEntry";
 const string QUEST_KEY_STEP_OBJECTIVE_MINIMUM = "stepObjectiveMinimum";
 const string QUEST_KEY_STEP_OBJECTIVE_RANDOM = "stepObjectiveRandom";
 const string QUEST_KEY_STEP_ORDINAL = "stepOrdinal";
@@ -80,7 +81,8 @@ const string QUEST_KEY_PREREQUISITE_VALUE = "prerequisiteValue";
 
 
 
-// TODO see about modifying these to be strings?
+
+
 
 // Quest Categories and Values
 // Should these be bitwise?
@@ -313,15 +315,6 @@ const string QUEST_SYSTEM_SCHEMA = r"
                         ""$ref"": ""#/defs/awardItem""
                     }
                 },
-                ""journal"": {
-                    ""type"": ""object"",
-                    ""fields"": {
-                        ""stepJournalEntry"": {
-                            ""type"": ""string"", 
-                            ""default"": ""This one""
-                        }
-                    }
-                },
                 ""objectives"": {
                     ""type"": ""array"",
                     ""items"": {
@@ -334,6 +327,9 @@ const string QUEST_SYSTEM_SCHEMA = r"
                         QUEST_KEY_STEP_ACTIVE: {
                             ""type"": ""boolean"",
                             ""default"": QUEST_CONFIG_STEP_ACTIVE
+                        },
+                        QUEST_KEY_STEP_JOURNAL_ENTRY: {
+                            ""type"": ""string""
                         },
                         QUEST_KEY_STEP_OBJECTIVE_MINIMUM: {
                             ""type"": ""integer""

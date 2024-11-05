@@ -125,9 +125,10 @@ json quest_GetSchemaTemplate(string sPath = "", int bIncludeItemTemplates = FALS
     return SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
 }
 
+
 /// @private Retrieves the full path for the specified key in the system schema.
 /// @param sPath The parent path where the key resides.
-string quest_GetSchemaPath(string sKey, string sMode = "set")
+string quest_GetSchemaPath(string sKey, json jTemplate = JSON_NULL, string sMode = "set")
 {
     string s = r"
         WITH schema_tree AS (
@@ -139,12 +140,42 @@ string quest_GetSchemaPath(string sKey, string sMode = "set")
         WHERE key = @key;
     ";
     sqlquery q = quest_PrepareQuery(s);
-    SqlBindJson(q, "@template", quest_GetSchemaTemplate("", TRUE));
+    SqlBindJson(q, "@template", jTemplate == JSON_NULL ? quest_GetSchemaTemplate("", TRUE) : jTemplate);
     SqlBindString(q, "@key", sKey);
 
     string sPath = SqlStep(q) ? SqlGetString(q, 0) : "";
     return RegExpReplace("\\[0\\]", sPath, sMode == "get" ? "[#-1]" : "[#]");
 }
+
+/// @private
+int quest_GetSchemaType(string sKey)
+{
+    string s = r"
+        WITH 
+            schema_tree AS (
+                SELECT json_tree.*
+                FROM json_tree(@schema)
+            ),
+            type AS (
+                SELECT json_extract(schema_tree.value, '$.type') AS type
+                FROM schema_tree
+                WHERE key = @key
+                ORDER BY parent, id
+            )
+        SELECT (
+            SELECT CAST(json_each.key AS INTEGER)
+            FROM json_each(json_array('null', 'object', 'array', 'string', 'integer', 'float', 'boolean'))
+            WHERE json_each.value = type.type
+        )
+        FROM type;
+    ";
+    sqlquery q = quest_PrepareQuery(s);
+    SqlBindJson(q, "@schema", quest_GetSystemSchema());
+    SqlBindString(q, "@key", sKey);
+
+    return SqlStep(q) ? SqlGetInt(q, 0) : -1;
+}
+
 
 /// @brief Create the database objects required to administer the system.
 /// @note See comments within the function for future table modification
@@ -174,27 +205,48 @@ void quest_CreateTables(int bReset = FALSE)
             quest_data TEXT DEFAULT '$1'
         );
     ";
-    sModule = SubstituteSubString(sModule, "$1", JsonDump(quest_GetSchemaTemplate("quest", TRUE)));
+    sModule = SubstituteSubString(sModule, "$1", JsonDump(quest_GetSchemaTemplate("quest")));
 
     /// @brief Create a trigger on the quest_modules table to prevent insertion of duplicate
     ///     step numbers (ordinals) into the $.steps[#].properties.ordinal field.
 
     /// @note Unfortunately, we have to force a silent fail because RAISEing the appropriate
     ///     SQLite error will throw yellow text all over every player's chat windows.
-    string sTrigger = r"
-        CREATE TRIGGER module_player
+    string sTriggerDuplicate = r"
+        CREATE TRIGGER quest_module_duplicate
             BEFORE UPDATE ON quest_module
-            FOR EACH ROW
-            WHEN EXISTS (
-                SELECT 1
-                FROM json_each(OLD.quest_data, '$.steps')
-                WHERE json_extract(value, '$.properties.ordinal') = 
-                    json_extract(NEW.quest_data, '$.steps[#-1].properties.ordinal')
-            )
-            BEGIN
-                SELECT 1;
-            END;
+                FOR EACH ROW
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM json_each(OLD.quest_data, '$.steps')
+                        WHERE json_extract(value, '$.properties.$1') = 
+                            json_extract(NEW.quest_data, '$.steps[#-1].properties.$1')
+                    )
+                    BEGIN
+                        SELECT RAISE(ABORT, 'Duplicate Step Number Found; Ignoring.');
+                    END;
     ";
+    sTriggerDuplicate = SubstituteSubStrings(sTriggerDuplicate, "$1", QUEST_KEY_STEP_ORDINAL);
+
+    string sTriggerIncrement = r"
+        CREATE TRIGGER quest_module_increment_after
+        AFTER UPDATE ON quest_module
+        FOR EACH ROW
+        WHEN json_extract(NEW.quest_data, '$.steps[#-1].properties.$1') = -1
+        BEGIN
+            UPDATE quest_module
+            SET quest_data = json_set(quest_data, '$.steps[#-1].properties.$1', 
+                IFNULL(
+                    (SELECT MAX(json_extract(value, '$.properties.$1')) + 1
+                     FROM json_each(quest_data, '$.steps')
+                     WHERE json_extract(value, '$.properties.$1') != -1),
+                    1
+                )
+            )
+            WHERE quest_tag = NEW.quest_tag;
+        END;
+    ";
+    sTriggerIncrement = SubstituteSubStrings(sTriggerIncrement, "$1", QUEST_KEY_STEP_ORDINAL);
 
     /// @brief The player quest table holds all of the player-related data.  Player data is
     ///     referenced by player uuid.  This mean that only one player-character can ever
@@ -260,7 +312,7 @@ void quest_CreateTables(int bReset = FALSE)
     {
         QuestDebug(HexColorString("Resetting", COLOR_RED_LIGHT) + " quest database tables");
 
-        string sTables = "module,player";
+        string sTables = "module,player,module_duplicate,module_increment";
         int n, nCount = CountList(sTables);  
         for (; n < nCount; n++)
         {
@@ -280,8 +332,11 @@ void quest_CreateTables(int bReset = FALSE)
     sqlquery q = quest_PrepareQuery(sModule); SqlStep(q);
     HandleSqlDebugging(q, "SQL:table", "quest_module", "campaign");
 
-    q = quest_PrepareQuery(sTrigger); SqlStep(q);
-    HandleSqlDebugging(q, "SQL:trigger", "quest_player", "campaign");
+    q = quest_PrepareQuery(sTriggerDuplicate); SqlStep(q);
+    HandleSqlDebugging(q, "SQL:trigger", "quest_module_duplicate", "campaign");
+
+    q = quest_PrepareQuery(sTriggerIncrement); SqlStep(q);
+    HandleSqlDebugging(q, "SQL:trigger", "quest_module_increment", "campaign");
 
     q = quest_PrepareQuery(sPlayer); SqlStep(q);
     HandleSqlDebugging(q, "SQL:table", "quest_player", "campaign");
@@ -294,6 +349,7 @@ string quest_GetSegment(string s, int n = 0)
     return JsonGetString(JsonArrayGet(RegExpMatch(r, s), 1));
 }
 
+/// @private Convenience function for quest_GetSegment().
 string quest_GetKey(string s) { return quest_GetSegment(s); }
 string quest_GetValue(string s, int n = 1) { return quest_GetSegment(s, n);}
 
@@ -330,71 +386,160 @@ int quest_Exists(string sTag)
     return SqlStep(sql) ? SqlGetInt(sql, 0) : FALSE;    
 }
 
+json quest_GetData(string sTag)
+{
+    string s = r"
+        SELECT quest_data
+        FROM quest_module
+        WHERE quest_tag = @sTag;
+    ";
+    sqlquery q = quest_PrepareQuery(s);
+    SqlBindString(q, "@sTag", sTag);
 
-/// @private Add a json value to a parent and/or child key in the `quest_module` table.
+    return SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
+}
+
+int quest_CountChanges()
+{
+    string s = r"
+        SELECT
+            CASE
+                WHEN changes() > 0 THEN 1
+                ELSE 0
+            END;
+    ";
+    sqlquery q = quest_PrepareQuery(s);
+    return SqlStep(q) ? SqlGetInt(q, 0) : 0;
+}
+
+/// @private Add a json value to a  key in the `quest_module` table.
 /// @param sKey Schema-unique key to set.
-/// @param jValue The value to set to the parent-child-key combination.
+/// @param jValue The value to set.
 /// @param sTag The quest to set the data on.  If missing, will use the quest currently
 ///     being built.
 /// @param nIndex If setting an array element, the index to the element in the array.
 ///     If missing, will set the value to the last element in the array.
 /// @warning This method will fail or have undefined behavior if called outside the quest
 ///     definition process and a quest tag is not passed.
-/// @note If a step is being added to this quest, the step number passed must either be -1
+/// @note If a step is being added to a quest, the step number passed must either be -1
 ///     (to automatically increment step numbers) or unique.  Otherwise the step will
 ///     silently fail to be inserted into the .steps array.  The step number must match
 ///     the step number in the associated journal entry, if used.
 int quest_SetProperty(string sKey, json jValue, string sTag = "", int nIndex = -1)
 {
-    if (sTag == "")
-        sTag = quest_GetBuildQuest();
-
+    sTag = (sTag == "" ? quest_GetBuildQuest() : sTag);
     if (sTag == "" || !quest_Exists(sTag))
     {
-        QuestError("quest doesn't exist");
+        QuestError("[quest_SetProperty] Quest '" + sTag + "'' does not exist; aborting");
         return FALSE;
     }
 
-    string sPath = quest_GetSchemaPath(sKey);
+    string sPath = quest_GetSchemaPath(sKey, quest_GetData(sTag));
     if (sPath == "")
     {
-        QuestError("Could not determine path for key " + sKey);
-        return;
+        QuestError("[quest_SetProperty] Path for key '" + sKey + "'' not found; aborting");
+        return FALSE;
     }
 
-    /// Do json type validation here...
-   
+    int nType = JsonGetType(jValue);
+    int nSchemaType = quest_GetSchemaType(sKey);
+
+    if (nType == JSON_TYPE_NULL)
+    {
+        QuestError("[quest_SetProperty] Value for key '" + sKey + "' is NULL; aborting");
+        return FALSE;
+    }
+    else if (nType == JSON_TYPE_OBJECT)
+    {
+        if (nSchemaType == JSON_TYPE_ARRAY)
+            sPath += "[#]";
+    }
+    else if (nType == JSON_TYPE_ARRAY || nType != nSchemaType)
+    {
+        QuestError("incorrect type");
+        return FALSE;
+    }
+    
+    string s = r"
+        UPDATE quest_module
+        SET quest_data = json_set(quest_data, @sPath, json(@jValue))
+        WHERE quest_tag = @sTag
+    ";
+    sqlquery q = quest_PrepareQuery(s);
+    SqlBindString(q, "@sTag", sTag);
+    SqlBindString(q, "@sPath", sPath);
+    SqlBindJson  (q, "@jValue", jValue);
+    
+    if (SqlStep(q) && !quest_CountChanges())
+    {
+        QuestError("Failed to set property");
+        return FALSE;
+    }
+
+    // Special handling for steps
+    if (sKey == "steps")
+    {
+        string s = r"
+            SELECT json_extract(quest_data, @sPath)
+            FROM quest_module
+            WHERE quest_tag = @sTag;
+        ";
+        sqlquery q = quest_PrepareQuery(s);
+        SqlBindString(q, "@sPath", quest_GetSchemaPath(QUEST_KEY_STEP_ORDINAL, quest_GetData(sTag), "get"));
+        SqlBindString(q, "@sTag", sTag);
+
+        return SqlStep(q) ? SqlGetInt(q, 0) : FALSE;
+    }
+
     return TRUE;
+}
+
+json quest_GetProperty(string sTag, string sKey, int nIndex = -1)
+{
+    string sPath = quest_GetSchemaPath(sKey, quest_GetData(sTag), "get");
+    if (sPath == "")
+    {
+        QuestError("[quest_GetProperty] Path for key '" + sKey + "'' not found; aborting");
+        return JSON_NULL;
+    }
+
+    if (nIndex > -1)
+        sPath = RegExpReplace("\\[#-1\\]", sPath, "[" + IntToString(nIndex) + "]");
+
+    string s = r"
+        SELECT json_extract(quest_data, @sPath)
+        FROM quest_module
+        WHERE quest_tag = @sTag;
+    ";
+    sqlquery q = quest_PrepareQuery(s);
+    SqlBindString(q, "@sTag", sTag);
+    SqlBindString(q, "@sPath", sPath);
+
+    return SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
 }
 
 /// @private Retrieve a json object containing the default quest-level data,
 ///     including default settings.  This object is sourced from the quest
 ///     system schema.
-json quest_GetDefaultObject()
+/// @param sPath The path to the schema object to retrieve.
+/// @param bIncludeItemTemplates If TRUE, item templates (defs) will be
+///     included as part of the returned object.
+json quest_GetTemplate(string sPath, int bIncludeItemTemplates = FALSE)
 {
-    json j = GetLocalJson(GetModule(), "QUEST_DEFAULT");
-    if (j == JSON_NULL)
-        j = quest_GetSchemaTemplate("quest");
-
-    if (j == JSON_NULL)
-        QuestError("Oh no");
-
-    SetLocalJson(GetModule(), "QUEST_DEFAULT", j);
-    return j;
+    return quest_GetSchemaTemplate(sPath, bIncludeItemTemplates);
 }
 
-/// @private Retrieve a json objectin containing the default item-level data,
-///     including default settings.  This object is sourced from the quest
-///     system schema.
+/// @private Convenience function for retrieving the quest template.
+json quest_GetQuestTemplate()
+{ 
+    return quest_GetTemplate("quest");
+}
+
+/// @private Convenience function for retrieving an item template.
 /// @param sKey The key of the item object to retrieve.
-json quest_GetDefaultItem(string sItem)
+json quest_GetItemTemplate(string sKey)
 {
-    return GetDefaultSchemaObject(quest_GetSystemSchema(), "defs." + sItem);
-}
-
-json quest_GetDefaultItems()
-{
-    return JSON_NULL;
+    return quest_GetTemplate("defs." + sKey);
 }
 
 json quest_GetDefaultData()
@@ -442,41 +587,9 @@ json quest_GetDefaultData()
 /// @note This method expects arrays to be present at the parent/outer key level.
 json quest_GetProperty(string sParent = "", string sKey = "", string sTag = "", int nIndex = -1)
 {
-    if (sTag == "")
-        sTag = quest_GetBuildQuest();
 
-    if (sTag == "" || !quest_Exists(sTag))
-    {
-        QuestError("quest doesn't exist");
-        return JSON_NULL;
-    }
 
-    string sPath = "$";
-    if (sParent != "") sPath += "." + sParent;
-    if (sKey  != "") sPath += "." + sKey;
-
-    string sArrays = "steps,prerequisites,objectives,awards";
-    if (HasListItem(sArrays, sParent) && nIndex > -1)
-    {
-        //SELECT '$.steps[' || idx || ']'
-        //FROM quest_module, json_each(quest_data, '$.steps')
-        //WHERE json_extract(value, '$.properties.ordinal') = 2
-
-       // sPath = quest_PathToStep(sTag, nStep);
-    }
-
-    /// @note We allow an empty sParent here in case we want to return
-    ///     the entire json structure.  Unlikely, but why not?
-    string s = r"
-        SELECT json_extract(quest_data, '$1')
-        FROM quest_module
-        WHERE quest_tag = @sTag;
-    ";
-    s = SubstituteSubString(s, "$1", sPath);
-    sqlquery q = quest_PrepareQuery(s);
-    SqlBindString(q, "@sTag", sTag);
-
-    return SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
+    return JSON_NULL;
 }
 
 /// @private Build a prerequisite json object.
@@ -488,14 +601,14 @@ json quest_BuildPrerequisite(int nType, string sKey, string sValue)
 {
     json j = GetLocalJson(GetModule(), "QUEST_DEFAULT_PREREQUISITE");
     if (j == JSON_NULL)
-        j = quest_GetDefaultItem("prerequisitesItem");
+    {
+        j = quest_GetItemTemplate("prerequisiteItem");
+        SetLocalJson(GetModule(), "QUEST_DEFAULT_PREREQUISITE", j);
+    }
 
-    SetLocalJson(GetModule(), "QUEST_DEFAULT_PREREQUISITE", j);
-
-    //JsonObjectSetInplace(j, QUEST_KEY_TYPE, JsonInt(nType));
-    //JsonObjectSetInplace(j, QUEST_KEY_KEY, JsonString(sKey));
-    //JsonObjectSetInplace(j, QUEST_KEY_VALUE, JsonString(sValue));
-    return j;
+    j = JsonObjectSet(j, QUEST_KEY_PREREQUISITE_TYPE, JsonInt(nType));
+    j = JsonObjectSet(j, QUEST_KEY_PREREQUISITE_KEY, JsonString(sKey));
+    return JsonObjectSet(j, QUEST_KEY_PREREQUISITE_VALUE, JsonString(sValue));
 }
 
 /// @private Build an objective json object.
@@ -510,16 +623,15 @@ json quest_BuildObjective(int nType, string sTag, int nValue, int nMax, string s
     json j = GetLocalJson(GetModule(), "QUEST_DEFAULT_OBJECTIVE");
     if (j == JSON_NULL)
     {
-        j = quest_GetDefaultItem("objectiveItem");
+        j = quest_GetItemTemplate("objectiveItem");
         SetLocalJson(GetModule(), "QUEST_DEFAULT_OBJECTIVE", j);
     }
 
-    //JsonObjectSetInplace(j, QUEST_KEY_TYPE, JsonInt(nType));
-    //JsonObjectSetInplace(j, QUEST_KEY_TAG, JsonString(sTag));
-    //JsonObjectSetInplace(j, QUEST_KEY_VALUE, JsonInt(nValue));
-    //JsonObjectSetInplace(j, QUEST_KEY_MAX, JsonInt(nMax));
-    //JsonObjectSetInplace(j, QUEST_KEY_DATA, JsonString(sData));
-    return j;
+    j = JsonObjectSet(j, QUEST_KEY_OBJECTIVE_TYPE, JsonInt(nType));
+    j = JsonObjectSet(j, QUEST_KEY_OBJECTIVE_TAG, JsonString(sTag));
+    j = JsonObjectSet(j, QUEST_KEY_OBJECTIVE_VALUE, JsonInt(nValue));
+    j = JsonObjectSet(j, QUEST_KEY_OBJECTIVE_MAX, JsonInt(nMax));
+    return JsonObjectSet(j, QUEST_KEY_OBJECTIVE_DATA, JsonString(sData));
 }
 
 /// @private Build a [p]reward object.
@@ -533,33 +645,40 @@ json quest_BuildReward(int nCategory, int nType, string sKey, string sValue, int
 {
     json j = GetLocalJson(GetModule(), "QUEST_DEFAULT_REWARD");
     if (j == JSON_NULL)
-        j = quest_GetDefaultItem("rewardItem");
+    {
+        j = quest_GetItemTemplate("rewardItem");
+        SetLocalJson(GetModule(), "QUEST_DEFAULT_REWARD", j);
+    }
 
-    SetLocalJson(GetModule(), "QUEST_DEFAULT_REWARD", j);
-
-    //JsonObjectSetInplace(j, QUEST_KEY_CATEGORY, JsonInt(nCategory));
-    //JsonObjectSetInplace(j, QUEST_KEY_TYPE, JsonInt(nType));
-    //JsonObjectSetInplace(j, QUEST_KEY_KEY, JsonString(sKey));
-    //JsonObjectSetInplace(j, QUEST_KEY_VALUE, JsonString(sValue));
-    //JsonObjectSetInplace(j, QUEST_KEY_PARTY, JsonBool(bParty));
-
-    return j;
+    j = JsonObjectSet(j, QUEST_KEY_CATEGORY_CATEGORY, JsonInt(nCategory));
+    j = JsonObjectSet(j, QUEST_KEY_CATEGORY_TYPE, JsonInt(nType));
+    j = JsonObjectSet(j, QUEST_KEY_CATEGORY_KEY, JsonString(sKey));
+    j = JsonObjectSet(j, QUEST_KEY_CATEGORY_VALUE, JsonString(sValue));
+    return JsonObjectSet(j, QUEST_KEY_CATEGORY_PARTY, JsonBool(bParty));
 }
 
 /// @private Build a step object.
 /// @param nStep The next step number.  This number should be -1 (if numbering
 ///     sequentially/incrementally) or a quest-unique step number.  It must
-///     match the associate journal entry, if used.
+///     match the associated journal entry, if used.
 json quest_BuildStep(int nStep)
 {
     json j = GetLocalJson(GetModule(), "QUEST_DEFAULT_STEP");
     if (j == JSON_NULL)
-        j = quest_GetDefaultItem("stepItem");
+        j = quest_GetItemTemplate("stepItem");
 
     SetLocalJson(GetModule(), "QUEST_DEFAULT_STEP", j);
-    
-    //if (nStep > 0)
-    //    JsonObjectSetInplace(j, QUEST_KEY_ORDINAL, JsonInt(nStep));
+
+    if (nStep > -1)
+    {
+        string s = r"
+            SELECT json_set(@stepItem, @path, json(@step));
+        ";
+        sqlquery q = quest_PrepareQuery(s);
+        SqlBindJson(q, "@stepItem", j);
+        SqlBindString(q, "@path", "$.properties.ordinal");
+        SqlBindInt(q, "@step", nStep);
+    }
 
     return j;
 }
@@ -579,14 +698,15 @@ int quest_AddQuest(string sTag, string sTitle = "")
     SqlBindString(q, "@sTag", sTag);
     SqlStep(q);
 
-    //if (sTitle != "")
-    //    quest_SetProperty(QUEST_KEY_JOURNAL, QUEST_KEY_JOURNAL_TITLE, JsonString(sTitle), sTag);
-
     if (quest_Exists(sTag))
     {
         quest_SetBuildQuest(sTag);
         quest_DeleteBuildStep();
         quest_DeleteBuildObjective();
+
+        if (sTitle != "")
+            quest_SetProperty(QUEST_KEY_JOURNAL_TITLE, JsonString(sTitle));
+        
         return TRUE;
     }
     else
@@ -597,15 +717,14 @@ int quest_AddQuest(string sTag, string sTitle = "")
 }
 
 /// @private Add a quest step to the quest currently being defined.
-/// @param nValueType QUEST_VALUE_* constant -> see quest_i_const.nss.
-/// @param sKey Prerequisite key reference.
-/// @param sValue Prerequisite value.
 /// @returns If nStep == -1, the incremented step number, otherwise nStep.
 /// @warning This function is designed for use during the quest definition
 ///     process.  Calling this function outside of that process may have
 ///     unintended consequences and could cause data modification or loss.
 int quest_AddStep(int nStep)
 {
+
+
     //nStep = quest_SetProperty(QUEST_KEY_STEPS, "", quest_BuildStep(nStep));
     //SetLocalInt(GetModule(), QUEST_BUILD_STEP, nStep);
 
