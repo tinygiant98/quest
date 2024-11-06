@@ -509,4 +509,3 @@ json quest_GetSystemSchema(int bForce = FALSE)
 
     return jSchema;
 }
-
