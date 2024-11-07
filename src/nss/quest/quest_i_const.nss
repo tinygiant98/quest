@@ -53,7 +53,8 @@ const int QUEST_CONFIG_USE_CUSTOM_MESSAGE = TRUE;
 #include "util_i_constants"
 #include "util_i_strings"
 
-const string THIS = "quest_i_const";
+//const string THIS = "quest_i_const";
+string THIS = GetStringLeft(__FILE__, GetStringLength(__FILE__) - 4);
 
 // Versioning
 const string QUEST_SYSTEM_VERSION = "2.0.0";

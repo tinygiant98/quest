@@ -125,13 +125,13 @@ json quest_GetSchemaTemplate(string sPath = "", int bIncludeItemTemplates = FALS
     return SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
 }
 
-
 /// @private Retrieves the full path for the specified key in the system schema.
 /// @param sPath The parent path where the key resides.
-string quest_GetSchemaPath(string sKey, json jTemplate = JSON_NULL, string sMode = "set")
+string quest_GetSchemaPath(string sKey, json jTemplate = JSON_NULL)
 {
     string s = r"
-        WITH schema_tree AS (
+        WITH
+            schema_tree AS (
                 SELECT json_tree.*
                 FROM json_tree(@template)
             )
@@ -143,14 +143,12 @@ string quest_GetSchemaPath(string sKey, json jTemplate = JSON_NULL, string sMode
     SqlBindJson(q, "@template", jTemplate == JSON_NULL ? quest_GetSchemaTemplate("", TRUE) : jTemplate);
     SqlBindString(q, "@key", sKey);
 
-    string sPath = SqlStep(q) ? SqlGetString(q, 0) : "";
-    return RegExpReplace("\\[0\\]", sPath, sMode == "get" ? "[#-1]" : "[#]");
+    return RegExpReplace("\\[0\\]", SqlStep(q) ? SqlGetString(q, 0) : "", "[#-1]");
 }
 
 /// @private Determine the type of json object expected by sKey in the system schema.
 json quest_GetSchemaTypes(string sKey)
 {
-/*
     string s = r"
         WITH 
             schema_tree AS (
@@ -160,28 +158,6 @@ json quest_GetSchemaTypes(string sKey)
             type AS (
                 SELECT json_extract(schema_tree.value, '$.type') AS type
                 FROM schema_tree
-                WHERE key = @key
-                ORDER BY parent, id
-            )
-        SELECT (
-            SELECT CAST(json_each.key AS INTEGER)
-            FROM json_each(json_array('null', 'object', 'array', 'string', 'integer', 'float', 'boolean'))
-            WHERE json_each.value = type.type
-        )
-        FROM type;
-    ";
-*/
-
-    string s = r"
-        WITH 
-            schema_tree AS (
-                SELECT json_tree.*
-                FROM json_tree(@schema)
-            ),
-            type AS (
-                SELECT json_each.value AS type
-                FROM schema_tree,
-                    json_each(json_extract(schema_tree.value, '$.type'))
                 WHERE key = @key
                 ORDER BY parent, id
             ),
@@ -198,7 +174,7 @@ json quest_GetSchemaTypes(string sKey)
     SqlBindJson(q, "@schema", quest_GetSystemSchema());
     SqlBindString(q, "@key", sKey);
 
-    return SqlStep(q) ? SqlGetJson(q, 0) : -1;
+    return SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
 }
 
 
@@ -249,7 +225,7 @@ void quest_CreateTables(int bReset = FALSE)
                                 json_extract(NEW.quest_data, '$.steps[#-1].properties.$1')
                         )
                         BEGIN
-                            SELECT RAISE(ABORT, 'Duplicate step ordinal found (quest = ' || NEW.quest_tag || '); check logs');
+                            SELECT RAISE(ABORT, 'Duplicate step ordinal found');
                         END;
     ";
     sTriggerDuplicate = SubstituteSubStrings(sTriggerDuplicate, "$1", QUEST_KEY_STEP_ORDINAL);
@@ -442,28 +418,79 @@ int quest_Exists(string sTag)
     return quest_GetData(sTag) != JSON_NULL;
 }
 
+/// @private Determine whether a specified path exists in the
+///     quest document for sTag.
+/// @param sPath The path to search for.
+/// @param sTag The quest to search for the path in.
+/// @returns TRUE if the path exists, FALSE otherwise.
+/// @warning This function should only be used internally as it
+///     requires specific formatting for sPath.
+int quest_PathExists(string sPath, string sTag = "")
+{
+    sTag = (sTag == "" ? quest_GetBuildQuest() : sTag);
+    if (sTag == "" || !quest_Exists(sTag))
+    {
+        QuestError("Quest '" + sTag + "' does not exist; aborting");
+        return FALSE;
+    }
+
+    string s = r"
+        SELECT 
+            CASE 
+                WHEN json_extract(quest_data, @sPath) IS NOT NULL THEN 1
+                ELSE 0
+            END
+        FROM quest_module
+        WHERE quest_tag = @sTag;
+    ";
+    sqlquery q = quest_PrepareQuery(s);
+    SqlBindString(q, "@sTag", sTag);
+    SqlBindString(q, "@sPath", sPath);
+
+    return SqlStep(q) ? SqlGetInt(q, 0) : FALSE;
+}
+
 /// @private Retrieve a json value from a key in the `quest_module` table.
 /// @param sKey Schema-unique key to retrieve.
 /// @param sTag The quest to retrieve the data from.
 /// @param nIndex If retrieving an array element, the index to the element in the array.
 ///     If missing, will retrieve the value from the last element in the array.
-json quest_GetProperty(string sKey, string sTag, int nIndex = -1)
+json quest_GetProperty(string sKey = "", string sTag = "", int nIndex = -1)
 {
-    string sPath = quest_GetSchemaPath(sKey, quest_GetData(sTag), "get");
+    sTag = (sTag == "" ? quest_GetBuildQuest() : sTag);
+    if (sTag == "" || !quest_Exists(sTag))
+    {
+        QuestError("Quest '" + sTag + "' does not exist");
+        return JSON_NULL;
+    }
+
+    string sPath = sKey == "" ? "$" : quest_GetSchemaPath(sKey, quest_GetData(sTag));
     if (sPath == "")
     {
-        QuestError("[quest_GetProperty] Path for key '" + sKey + "'' not found; aborting");
+        QuestError("Path for key '" + sKey + "' not found");
         return JSON_NULL;
     }
 
     if (nIndex > -1)
         sPath = RegExpReplace("\\[#-1\\]", sPath, "[" + IntToString(nIndex) + "]");
 
+    if (!quest_PathExists(sPath, sTag))
+    {
+        QuestError("Path '" + sPath + "' does not exist in quest '" + sTag + "'");
+        return JSON_NULL;
+    }
+
     string s = r"
-        SELECT json_extract(quest_data, @sPath)
+        SELECT 
+            CASE 
+                WHEN json_type(quest_data, @sPath) = 'text' 
+                    THEN json_quote(json_extract(quest_data, @sPath))
+                ELSE json_extract(quest_data, @sPath)
+            END
         FROM quest_module
         WHERE quest_tag = @sTag;
     ";
+
     sqlquery q = quest_PrepareQuery(s);
     SqlBindString(q, "@sTag", sTag);
     SqlBindString(q, "@sPath", sPath);
@@ -489,14 +516,14 @@ int quest_SetProperty(string sKey, json jValue, string sTag = "", int nIndex = -
     sTag = (sTag == "" ? quest_GetBuildQuest() : sTag);
     if (sTag == "" || !quest_Exists(sTag))
     {
-        QuestError("[quest_SetProperty] Quest '" + sTag + "' does not exist; aborting");
+        QuestError("Quest '" + sTag + "' does not exist; aborting");
         return FALSE;
     }
 
     string sPath = quest_GetSchemaPath(sKey, quest_GetData(sTag));
     if (sPath == "")
     {
-        QuestError("[quest_SetProperty] Path for key '" + sKey + "' not found; aborting");
+        QuestError("Path for key '" + sKey + "' not found; aborting");
         return FALSE;
     }
 
@@ -505,17 +532,17 @@ int quest_SetProperty(string sKey, json jValue, string sTag = "", int nIndex = -
 
     if (nType == JSON_TYPE_NULL)
     {
-        QuestError("[quest_SetProperty] Value for key '" + sKey + "' is NULL; aborting");
+        QuestError("Value for key '" + sKey + "' is NULL; aborting");
         return FALSE;
     }
     else if (nType == JSON_TYPE_OBJECT && JsonFind(jTypes, JsonInt(JSON_TYPE_ARRAY)) != JSON_NULL)
         sPath += "[" + (nIndex == -1 ? "#" : IntToString(nIndex)) + "]";
     else if (nType == JSON_TYPE_ARRAY || JsonFind(jTypes, JsonInt(nType)) == JSON_NULL)
     {
-        QuestError("[quest_SetProperty] Incorrect type for key '" + sKey + "'; aborting");
+        QuestError("Incorrect type for key '" + sKey + "'; aborting");
         return FALSE;
     }
-    
+
     string s = r"
         UPDATE quest_module
         SET quest_data = json_set(quest_data, @sPath, json(@jValue))
@@ -528,7 +555,7 @@ int quest_SetProperty(string sKey, json jValue, string sTag = "", int nIndex = -
     
     if (SqlStep(q) && !quest_CountChanges())
     {
-        QuestError("[quest_SetProperty] Failed to set property:" +
+        QuestError("Failed to set property:" +
             "\n   sTag = " + sTag +
             "\n   sKey = " + sKey +
             "\n   sPath = " + sPath);
@@ -556,28 +583,99 @@ int quest_SetProperty(string sKey, json jValue, string sTag = "", int nIndex = -
 ///     included as part of the returned object.
 json quest_GetTemplate(string sPath = "", int bIncludeItemTemplates = FALSE)
 {
+    QuestDebug("Getting template: " + sPath, __FUNCTION__);
+
     return quest_GetSchemaTemplate(sPath, bIncludeItemTemplates);
 }
 
-/// @private Convenience function for retrieving the quest template.
-json quest_GetQuestTemplate()
+/// @private Convenience function for retrieving a quest template.
+json quest_GetQuestTemplate(int bIncludeItemTemplates = FALSE)
 { 
-    return quest_GetTemplate("quest");
+    return quest_GetTemplate("quest", bIncludeItemTemplates);
 }
 
 /// @private Convenience function for retrieving an item template.
 /// @param sKey The key of the item object to retrieve.
-json quest_GetItemTemplate(string sKey)
+json quest_GetItemTemplate(string sKey, int bIncludeItemTemplates = FALSE)
 {
-    return quest_GetTemplate("defs." + sKey);
+    QuestDebug("Getting item template: " + sKey, __FUNCTION__);
+
+    return quest_GetTemplate("defs." + sKey, bIncludeItemTemplates);
 }
 
-/// @private Build a prerequisite json object.
+/// @private Add a quest to the `quest_module` table.  This is the beginning of the quest
+///     definition process.
+/// @param sTag The tag of the quest being added.  Must be unique.
+/// @param sTitle The title of the associated journal entry.
+/// @returns TRUE/FALSE whether the quest was successfully added.
+int quest_AddQuest(string sTag, string sTitle = "")
+{
+    string s = r"
+        INSERT INTO quest_module (quest_tag)
+        VALUES (@sTag)
+        RETURNING id;
+    ";
+    sqlquery q = quest_PrepareQuery(s);
+    SqlBindString(q, "@sTag", sTag);
+
+    if (SqlStep(q))
+    {
+        quest_SetBuildQuest(sTag);
+        if (sTitle != "")
+            quest_SetProperty(QUEST_KEY_JOURNAL_TITLE, JsonString(sTitle));
+        
+        return TRUE;
+    }
+    else
+    {
+        QuestError("Failed to add quest '" + sTag + "'");
+        return FALSE;
+    }
+}
+
+/// @private Add a quest step to the quest currently being defined.
+/// @returns If nStep == -1, the incremented step number, nStep if nStep
+///     is unique to this quest, or FALSE if nStep is not unique.
+/// @warning This function is designed for use during the quest definition
+///     process.  Calling this function outside of that process may have
+///     unintended consequences and could cause data modification or loss.
+int quest_AddStep(int nStep = -1)
+{
+    json j = GetLocalJson(GetModule(), "QUEST_DEFAULT_STEP");
+    if (j == JSON_NULL)
+    {
+        j = quest_GetItemTemplate("stepItem");
+        SetLocalJson(GetModule(), "QUEST_DEFAULT_STEP", j);
+    }
+
+    if (nStep > 0)
+    {
+        string s = r"
+            SELECT json_set(@stepItem, @path, json(@step));
+        ";
+        sqlquery q = quest_PrepareQuery(s);
+        SqlBindString(q, "@path", "$.properties." + QUEST_KEY_STEP_ORDINAL);
+        SqlBindJson  (q, "@stepItem", j);
+        SqlBindInt   (q, "@step", nStep);
+
+        j = SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
+    }
+
+    if (nStep == 0 || nStep < -1)
+    {
+        QuestError("Attempt to add step " + quest_StepToString(nStep) + " to quest '" + quest_QuestToString() + "' failed");
+        return FALSE;
+    }
+    else
+        return quest_SetProperty("steps", j);
+}
+
+/// @private Add a prerequisite to the quest currently being defined.
 /// @param nType QUEST_VALUE_*.
 /// @param sKey Prerequisite-specific data.
 /// @param sValue Prerequisite-specific data.
 /// @note See QUEST_SYSTEM_SCHEMA for json structure.
-json quest_BuildPrerequisite(int nType, string sKey, string sValue)
+int quest_AddPrerequisite(int nType, string sKey, string sValue)
 {
     json j = GetLocalJson(GetModule(), "QUEST_DEFAULT_PREREQUISITE");
     if (j == JSON_NULL)
@@ -588,17 +686,25 @@ json quest_BuildPrerequisite(int nType, string sKey, string sValue)
 
     j = JsonObjectSet(j, QUEST_KEY_PREREQUISITE_TYPE, JsonInt(nType));
     j = JsonObjectSet(j, QUEST_KEY_PREREQUISITE_KEY, JsonString(sKey));
-    return JsonObjectSet(j, QUEST_KEY_PREREQUISITE_VALUE, JsonString(sValue));
+    j = JsonObjectSet(j, QUEST_KEY_PREREQUISITE_VALUE, JsonString(sValue));
+
+    if (!quest_SetProperty("prerequisites", j))
+    {
+        QuestError("Failed to add prerequisite to quest '" + quest_GetBuildQuest() + "'");
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
-/// @private Build an objective json object.
+/// @private An an objective to the quest step currently being defined.
 /// @param nType QUEST_OBJECTIVE_*.
 /// @param sTag Target object tag.
 /// @param nValue Amount of sTag required to complete objective.
 /// @param nMax Maximum amount of sTag allowed.
 /// @param sData Objective-specific data.
 /// @note See QUEST_SYSTEM_SCHEMA for json structure.
-json quest_BuildObjective(int nType, string sTag, int nValue, int nMax, string sData = "")
+int quest_AddObjective(int nType, string sTag, int nValue, int nMax, string sData = "")
 {
     json j = GetLocalJson(GetModule(), "QUEST_DEFAULT_OBJECTIVE");
     if (j == JSON_NULL)
@@ -611,22 +717,30 @@ json quest_BuildObjective(int nType, string sTag, int nValue, int nMax, string s
     j = JsonObjectSet(j, QUEST_KEY_OBJECTIVE_TAG, JsonString(sTag));
     j = JsonObjectSet(j, QUEST_KEY_OBJECTIVE_VALUE, JsonInt(nValue));
     j = JsonObjectSet(j, QUEST_KEY_OBJECTIVE_MAX, JsonInt(nMax));
-    return JsonObjectSet(j, QUEST_KEY_OBJECTIVE_DATA, JsonString(sData));
+    j = JsonObjectSet(j, QUEST_KEY_OBJECTIVE_DATA, JsonString(sData));
+
+    if (!quest_SetProperty("objectives", j))
+    {
+        QuestError("Failed to add objective to quest '" + quest_GetBuildQuest() + "'");
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
-/// @private Build a [p]reward object.
+/// @private Add a [p]reward object to the quest step currently being defined.
 /// @param nCategory QUEST_CATEGORY_*.
 /// @param nType QUEST_VALUE_*.
 /// @param sKey [p]reward-specific data.
 /// @param sValue [p]reward-specific data.
 /// @param bParty Provide [p]reward to entire party.
 /// @note See QUEST_SYSTEM_SCHEMA for json structure.
-json quest_BuildReward(int nCategory, int nType, string sKey, string sValue, int bParty)
+int quest_AddReward(int nCategory, int nType, string sKey, string sValue, int bParty)
 {
     json j = GetLocalJson(GetModule(), "QUEST_DEFAULT_REWARD");
     if (j == JSON_NULL)
     {
-        j = quest_GetItemTemplate("rewardItem");
+        j = quest_GetItemTemplate("awardItem");
         SetLocalJson(GetModule(), "QUEST_DEFAULT_REWARD", j);
     }
 
@@ -634,84 +748,15 @@ json quest_BuildReward(int nCategory, int nType, string sKey, string sValue, int
     j = JsonObjectSet(j, QUEST_KEY_CATEGORY_TYPE, JsonInt(nType));
     j = JsonObjectSet(j, QUEST_KEY_CATEGORY_KEY, JsonString(sKey));
     j = JsonObjectSet(j, QUEST_KEY_CATEGORY_VALUE, JsonString(sValue));
-    return JsonObjectSet(j, QUEST_KEY_CATEGORY_PARTY, JsonBool(bParty));
-}
+    j = JsonObjectSet(j, QUEST_KEY_CATEGORY_PARTY, JsonBool(bParty));
 
-/// @private Build a step object.
-/// @param nStep The next step number.  This number should be -1 (if numbering
-///     sequentially/incrementally) or a quest-unique step number.  It must
-///     match the associated journal entry, if used.
-json quest_BuildStep(int nStep)
-{
-    json j = GetLocalJson(GetModule(), "QUEST_DEFAULT_STEP");
-    if (j == JSON_NULL)
+    if (!quest_SetProperty("awards", j))
     {
-        j = quest_GetItemTemplate("stepItem");
-        SetLocalJson(GetModule(), "QUEST_DEFAULT_STEP", j);
-    }
-
-    if (nStep > -1)
-    {
-        string s = r"
-            SELECT json_set(@stepItem, @path, json(@step));
-        ";
-        sqlquery q = quest_PrepareQuery(s);
-        SqlBindJson(q, "@stepItem", j);
-        SqlBindString(q, "@path", "$.properties.ordinal");
-        SqlBindInt(q, "@step", nStep);
-
-        j = SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
-    }
-
-    return j;
-}
-
-/// @private Add a quest to the `quest_module` table.  This is the beginning of the quest
-///     definition process.
-/// @param sTag The tag of the quest being added.  Must be unique.
-/// @param sTitle The title of the associated journal entry.
-/// @return TRUE/FALSE whether the quest was successfully added.
-int quest_AddQuest(string sTag, string sTitle = "")
-{
-    string s = r"
-        INSERT INTO quest_module (quest_tag)
-        VALUES (@sTag);
-    ";
-    sqlquery q = quest_PrepareQuery(s);
-    SqlBindString(q, "@sTag", sTag);
-    SqlStep(q);
-
-    if (quest_Exists(sTag))
-    {
-        quest_SetBuildQuest(sTag);
-        quest_DeleteBuildStep();
-        quest_DeleteBuildObjective();
-
-        if (sTitle != "")
-            quest_SetProperty(QUEST_KEY_JOURNAL_TITLE, JsonString(sTitle));
-        
-        return TRUE;
-    }
-    else
-    {
-        QuestError("[quest_AddQuest] Failed to added quest '" + sTag + "'");
+        QuestError("Failed to add reward to quest '" + quest_GetBuildQuest() + "'");
         return FALSE;
     }
-}
 
-/// @private Add a quest step to the quest currently being defined.
-/// @returns If nStep == -1, the incremented step number, otherwise nStep.
-/// @warning This function is designed for use during the quest definition
-///     process.  Calling this function outside of that process may have
-///     unintended consequences and could cause data modification or loss.
-int quest_AddStep(int nStep)
-{
-
-
-    //nStep = quest_SetProperty(QUEST_KEY_STEPS, "", quest_BuildStep(nStep));
-    //SetLocalInt(GetModule(), QUEST_BUILD_STEP, nStep);
-
-    return 0;//nStep;
+    return TRUE;
 }
 
 /// @private Retrieve the script associated with a specific event.
@@ -759,38 +804,6 @@ int GetLastInsertedID(string sTable)
     sqlquery sql = quest_PrepareQuery(s);
     SqlBindString(sql, "@sTable", sTable);
     
-    return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
-}
-
-/// @private Retrieve a quest's tag given its ID.
-/// @param nID The record ID of the quest.
-/// @returns The quest tag, if found, otherwise an empty string.
-string quest_GetTag(int nID)
-{
-    string s = r"
-        SELECT sTag
-        FROM quest_quests
-        WHERE id = @nID;
-    ";
-    sqlquery sql = quest_PrepareQuery(s);
-    SqlBindInt(sql, "@nID", nID);
-
-    return (SqlStep(sql) ? SqlGetString(sql, 0) : "");
-}
-
-/// @private Retrieves a quest's ID given its tag.
-/// @param sTag The tag of the quest.
-/// @returns The quest record ID, if found, otherwise -1.
-int quest_GetID(string sTag)
-{
-    string s = r"
-        SELECT id 
-        FROM quest_quests 
-        WHERE sTag = @sTag;
-    ";
-    sqlquery sql = quest_PrepareQuery(s);
-    SqlBindString(sql, "@sTag", sTag);
-
     return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
 }
 
@@ -917,79 +930,6 @@ string GetModifiedTimeStamp(string sTimeStamp, string sTimeVector)
     SqlStep(sql);
 
     return SqlGetString(sql, 0);
-}
-
-/// @private Add minimal quest metadata and start quest definition process.
-/// @param sTag Unique quest tag
-/// @param sTitle Jounral title
-/// @returns Unique quest record ID, if created, otherwise -1.
-/// @note If a quest tagged with `sTag` already exists, or `sTag` is an
-///     empty string, this function will fail and -1 will be returned.
-int quest_AddQuest(string sTag, string sTitle)
-{
-    int nID = quest_GetID(sTag);
-    if (nID > 0)
-    {
-        QuestError(quest_QuestToString(nID) + " already exists and cannot be " +
-            "overwritten; use `DeleteQuest(" + sTag + ")");
-        return -1;
-    }
-
-    if (sTag == "")
-    {
-        QuestError("Cannot add quest with empty tag");
-        return -1;
-    }
-
-    string s = r"
-        INSERT INTO quest_quests 
-            (sTag, sJournalTitle)
-        VALUES
-            (@sTag, @sTitle)
-        RETURNING id;
-    ";
-    sqlquery sql = quest_PrepareQuery(s);
-    SqlBindString(sql, "@sTag", sTag);
-    SqlBindString(sql, "@sTitle", sTitle);
-    
-    nID = SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
-    HandleSqlDebugging(sql);
-
-    if (nID != -1)
-    {
-        QuestDebug(quest_QuestToString(nID) + " has been created");
-        SetLocalInt(GetModule(), QUEST_BUILD_QUEST, nID);
-        DeleteLocalInt(GetModule(), QUEST_BUILD_STEP);
-        DeleteLocalInt(GetModule(), QUEST_BUILD_OBJECTIVE);
-    }
-
-    return nID;
-}
-
-/// @private Add a prerequisite to the quest currently being .
-/// @param nValueType QUEST_VALUE_* constant -> see quest_i_const.nss.
-/// @param sKey Prerequisite key reference.
-/// @param sValue Prerequisite value.
-/// @warning This function is designed for use during the quest definition
-///     process.  Calling this function outside of that process may have
-///     unintended consequences and could cause data modification or loss.
-void quest_AddPrerequisite(int nValueType, string sKey, string sValue)
-{
-    int nID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
-    string s = r"
-        INSERT INTO quest_prerequisites
-            (quests_id, nValueType, sKey, sValue)
-        VALUES
-            (@nID, @nValueType, @sKey, @sValue);
-    ";
-    sqlquery sql = quest_PrepareQuery(s);
-    SqlBindInt(sql, "@nID", nID);
-    SqlBindInt(sql, "@nValueType", nValueType);
-    SqlBindString(sql, "@sKey", sKey);
-    SqlBindString(sql, "@sValue", sValue);
-    SqlStep(sql);
-
-    HandleSqlDebugging(sql);
 }
 
 /// @private Delete all quest primary and supporting data.

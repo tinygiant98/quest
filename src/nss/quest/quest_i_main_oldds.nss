@@ -1518,7 +1518,7 @@ void _AwardQuestStepAllotments(object oPC, int nQuestID, int nStep, int nCategor
     string sKey, sValue, sData;
 
     QuestDebug("Awarding quest step allotments for " + QuestToString(nQuestID) +
-        " " + StepToString(nStep) + " of type " + CategoryTypeToString(nCategoryType) +
+        " " + quest_StepToString(nStep) + " of type " + CategoryTypeToString(nCategoryType) +
         " to " + PCToString(oPC));
 
     sqlquery sPairs = GetQuestStepPropertySets(nQuestID, nStep, nCategoryType);
@@ -1598,13 +1598,13 @@ void _AwardQuestStepAllotments(object oPC, int nQuestID, int nStep, int nCategor
                         string sQuestTag = GetQuestTag(nQuestID);
                         string sCustomMessage = GetPCQuestString(oPC, sQuestTag, QUEST_CUSTOM_MESSAGE, nStep);
                         if (sCustomMessage == "")
-                            QuestDebug("Custom preward message for " + QuestToString(nQuestID) + " " + StepToString(nStep) +
+                            QuestDebug("Custom preward message for " + QuestToString(nQuestID) + " " + quest_StepToString(nStep) +
                                 " not created; there is no preward message to build from");
                         else
                         {
                             sMessage = sCustomMessage;
                             QuestDebug("Overriding standard preward message for " + QuestToString(nQuestID) + " " +
-                                StepToString(nStep) + " with customized preward message for random quest creation: " +
+                                quest_StepToString(nStep) + " with customized preward message for random quest creation: " +
                                 ColorValue(sMessage));
                         }                            
                     }
@@ -1713,7 +1713,7 @@ void _AwardQuestStepAllotments(object oPC, int nQuestID, int nStep, int nCategor
 
     if (IsDebugging(DEBUG_LEVEL_DEBUG))
     {
-        QuestDebug("Found " + IntToString(nAllotmentCount) + " allotments for " + QuestToString(nQuestID) + " " + StepToString(nStep) +
+        QuestDebug("Found " + IntToString(nAllotmentCount) + " allotments for " + QuestToString(nQuestID) + " " + quest_StepToString(nStep) +
             (nAllotmentCount > 0 ?          
                 "\n  Category -> " + ColorValue(CategoryTypeToString(nCategoryType)) +
                 "\n  Award -> " + ColorValue(AwardTypeToString(nAwardType)) : ""));
@@ -2281,12 +2281,12 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
                     sQuestTag = SqlGetString(sqlPrerequisitesByType, 0);
                     nRequiredStep = SqlGetInt(sqlPrerequisitesByType, 1);
 
-                    QuestDebug("  QUEST_STEP | " + sQuestTag + " | " + StepToString(nRequiredStep));
+                    QuestDebug("  QUEST_STEP | " + sQuestTag + " | " + quest_StepToString(nRequiredStep));
 
                     bPCHasQuest = GetPCHasQuest(oPC, sQuestTag);
                     nPCStep = GetPCQuestStep(oPC, sQuestTag);
 
-                    QuestDebug("  PC | Has Quest -> " + (bPCHasQuest ? "TRUE":"FALSE") + " | " + StepToString(nRequiredStep));
+                    QuestDebug("  PC | Has Quest -> " + (bPCHasQuest ? "TRUE":"FALSE") + " | " + quest_StepToString(nRequiredStep));
 
                     if (bPCHasQuest)
                     {
@@ -2618,7 +2618,7 @@ int RunQuestScript(object oPC, string sQuestTag, string sQuestEvent)
         DeleteLocalInt(oModule, QUEST_CURRENT_STEP);
 
     QuestDebug("Running " + QuestEventToString(sQuestEvent) + " event script " +
-        "for " + QuestToString(nQuestID) + (sQuestEvent == QUEST_EVENT_ON_ADVANCE ? " " + StepToString(nStep) : "") + 
+        "for " + QuestToString(nQuestID) + (sQuestEvent == QUEST_EVENT_ON_ADVANCE ? " " + quest_StepToString(nStep) : "") + 
         " with " + PCToString(oPC) + " as OBJECT_SELF");
     
     Notice("Running event " + sQuestEvent + " with " + GetName(oPC) + " as oInit/oSelf");
@@ -2670,7 +2670,7 @@ void CopyQuestStepObjectiveData(object oPC, int nQuestID, int nStep)
     {
         sqlStepData = GetQuestStepObjectiveData(nQuestID, nStep);
         QuestDebug("Selecting all quest step objectives from " + QuestToString(nQuestID) +
-            " " + StepToString(nStep) + " for assignment to " + PCToString(oPC));
+            " " + quest_StepToString(nStep) + " for assignment to " + PCToString(oPC));
     }
     else
     {
@@ -2679,7 +2679,7 @@ void CopyQuestStepObjectiveData(object oPC, int nQuestID, int nStep)
         int nObjectiveCount = CountQuestStepObjectives(nQuestID, nStep);
         QuestDebug("Selecting " + ColorValue(IntToString(nRecords)) + " of " +
             ColorValue(IntToString(nObjectiveCount)) + " available objectives from " +
-            QuestToString(nQuestID) + " " + StepToString(nStep) + " for assignment to " +
+            QuestToString(nQuestID) + " " + quest_StepToString(nStep) + " for assignment to " +
             PCToString(oPC));
 
         int nRandomCount = GetQuestStepObjectiveRandom(sQuestTag, nStep);
@@ -2744,7 +2744,7 @@ void SendJournalQuestEntry(object oPC, int nQuestID, int nStep, int bComplete = 
             else
                 AddJournalQuestEntry(sQuestTag, nStep, oPC, FALSE, FALSE, TRUE);
             
-            QuestDebug("Journal Quest entry for " + QuestToString(nQuestID) + " " + StepToString(nStep) +
+            QuestDebug("Journal Quest entry for " + QuestToString(nQuestID) + " " + quest_StepToString(nStep) +
                 " on " + PCToString(oPC) + " has been dispatched to the NWN journal system");
             break;
         case QUEST_JOURNAL_NWNX:
@@ -2828,7 +2828,7 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
 
             if (GetQuestStepObjectiveRandom(sQuestTag, nCurrentStep) != -1)
             {
-                QuestDebug(QuestToString(nQuestID) + " " + StepToString(nCurrentStep) + " is marked " +
+                QuestDebug(QuestToString(nQuestID) + " " + quest_StepToString(nCurrentStep) + " is marked " +
                     "random and has been completed; deleting custom message");
 
                 DeletePCQuestString(oPC, sQuestTag, QUEST_CUSTOM_MESSAGE, nCurrentStep);
@@ -2865,10 +2865,10 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
 
                         if (nPCCount == 0)
                             QuestDebug(PCToString(oPC) + " does not have any precollected items that " +
-                                "satisfy requirements for " + QuestToString(nQuestID) + " " + StepToString(nNextStep));
+                                "satisfy requirements for " + QuestToString(nQuestID) + " " + quest_StepToString(nNextStep));
                         else
                             QuestDebug("Applying " + IntToString(nPCCount) + " precollected items toward " +
-                                "requirements for " + QuestToString(nQuestID) + " " + StepToString(nNextStep));
+                                "requirements for " + QuestToString(nQuestID) + " " + quest_StepToString(nNextStep));
 
                         for (n = 0; n < nPCCount; n++)
                             SignalQuestStepProgress(oPC, sItemTag, QUEST_OBJECTIVE_GATHER, sData);
@@ -2876,12 +2876,12 @@ void AdvanceQuest(object oPC, int nQuestID, int nRequestType = QUEST_ADVANCE_SUC
                 }
             }
             else
-                QuestDebug("Precollected items are not authorized for " + QuestToString(nQuestID) + " " + StepToString(nNextStep));
+                QuestDebug("Precollected items are not authorized for " + QuestToString(nQuestID) + " " + quest_StepToString(nNextStep));
         }
 
         QuestDebug("Advanced " + QuestToString(nQuestID) + " for " +
-            PCToString(oPC) + " from " + StepToString(nCurrentStep) +
-            " to " + StepToString(nNextStep));
+            PCToString(oPC) + " from " + quest_StepToString(nCurrentStep) +
+            " to " + quest_StepToString(nNextStep));
     }
     else if (nRequestType == QUEST_ADVANCE_FAIL)
     {
@@ -2930,7 +2930,7 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
         if (GetGreaterUnixTimeStamp(nGoalTime) != nGoalTime)
         {
             QuestDebug(PCToString(oPC) + " failed to meet the time limit for " +
-                QuestToString(nQuestID) + " " + StepToString(nStep) +
+                QuestToString(nQuestID) + " " + quest_StepToString(nStep) +
                 "\n  Step Start Time -> " + ColorValue(FormatUnixTimestamp(nStartTime, QUEST_TIME_FORMAT) + " UTC") +
                 "\n  Allowed Time -> " + ColorValue(TimeVectorToString(sStepTimeLimit)) +
                 "\n  Goal Time -> " + ColorValue(FormatUnixTimestamp(nGoalTime, QUEST_TIME_FORMAT) + " UTC") + 
@@ -2939,7 +2939,7 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
         }
     }
     else
-        QuestDebug(QuestToString(nQuestID) + " " + StepToString(nStep) + " does not have " +
+        QuestDebug(QuestToString(nQuestID) + " " + quest_StepToString(nStep) + " does not have " +
             "a time limit specified");
 
     if (nStatus != QUEST_STEP_FAIL)
@@ -2980,7 +2980,7 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
             {
                 nStatus = QUEST_STEP_FAIL;
                 QuestDebug(PCToString(oPC) + "failed to meet an exclusive quest objective " +
-                    "for " + QuestToString(nQuestID) + " " + StepToString(nStep));
+                    "for " + QuestToString(nQuestID) + " " + quest_StepToString(nStep));
             }
         }
 
@@ -3000,7 +3000,7 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
                     {
                         QuestDebug(PCToString(oPC) + " has met all requirements to " +
                             "successfully complete " + QuestToString(nQuestID) +
-                            " " + StepToString(nStep));
+                            " " + quest_StepToString(nStep));
                         nStatus = QUEST_STEP_COMPLETE;
                     }
                 }
@@ -3014,12 +3014,12 @@ void CheckQuestStepProgress(object oPC, int nQuestID, int nStep)
                 {
                     QuestDebug(PCToString(oPC) + " has completed " + IntToString(nCompletedCount) +
                         " of " + IntToString(nObjectives) + " possible objectives for " + 
-                        QuestToString(nQuestID) + " " + StepToString(nStep) + " and has met all " +
+                        QuestToString(nQuestID) + " " + quest_StepToString(nStep) + " and has met all " +
                         "requirements for successfull step completion");
                     nStatus = QUEST_STEP_COMPLETE;
                 }
                 else
-                    QuestDebug(QuestToString(nQuestID) + " " + StepToString(nStep) + " requires at " +
+                    QuestDebug(QuestToString(nQuestID) + " " + quest_StepToString(nStep) + " requires at " +
                         "least " + IntToString(nObjectiveCount) + " objective" + 
                         (nObjectiveCount == 1 ? "" : "s") + " be completed before step requirements are " +
                         "satisfied");                    

@@ -178,7 +178,7 @@ void main()
                     string sRequired = SqlGetString(sql1, ++n);
                     string sAcquired = SqlGetString(sql1, ++n);
 
-                    Debug(HexColorString("Dumping PC step data for " + sPCQuestTag + " " + StepToString(nPCStep), COLOR_CYAN));
+                    Debug(HexColorString("Dumping PC step data for " + sPCQuestTag + " " + quest_StepToString(nPCStep), COLOR_CYAN));
                     Debug("    Objective Type  " + ColorValue(sObjectiveType) +
                          "\n    Tag  " + ColorValue(sTag) +
                          "\n    sData  " + ColorValue(sData) +
@@ -190,14 +190,14 @@ void main()
             }
 
             if (!bDataFound)
-                Debug(HexColorString("  No quest data found for " + PCToString(oPC), COLOR_RED_LIGHT));
+                Debug(HexColorString("  No quest data found for " + quest_PCToSTring(oPC), COLOR_RED_LIGHT));
 
             // Dump variables
             Debug(HexColorString("Dumping PC Quest Variables", COLOR_CYAN));
             if (quest_TableExists("quest_pc_variables") == FALSE)
-                Debug(HexColorString("  Variables table does not exist on " + PCToString(oPC), COLOR_RED_LIGHT));
+                Debug(HexColorString("  Variables table does not exist on " + quest_PCToSTring(oPC), COLOR_RED_LIGHT));
             else if (CountQuestVariables(oPC, "quest_pc_variables") == 0)
-                Debug(HexColorString("  No variables found for " + PCToString(oPC), COLOR_RED_LIGHT));
+                Debug(HexColorString("  No variables found for " + quest_PCToSTring(oPC), COLOR_RED_LIGHT));
             else
             {
                 if (sRequestedQuest == "")
@@ -221,7 +221,7 @@ void main()
                     string sPCValue = SqlGetString(sql, 4);
 
                     Debug("  Quest Tag -> " + ColorValue(sPCQuestTag) + 
-                        "\n    Step -> " + (nPCStep > 0 ? StepToString(nPCStep) : ColorValue(IntToString(nPCStep), TRUE)) +
+                        "\n    Step -> " + (nPCStep > 0 ? quest_StepToString(nPCStep) : ColorValue(IntToString(nPCStep), TRUE)) +
                         "\n    Type -> " + ColorValue((sPCType == "INT" ? "INTEGER" : "STRING")) +
                         "\n    Var Name -> " + ColorValue(sPCName) +
                         "\n    Value -> " + ColorValue(sPCValue));
@@ -359,7 +359,7 @@ void main()
                             "\n        Random Objective Count  " + ColorValue(IntToString(nRandomObjectives)));
                     
                         // Another inside loop for the step objectives/properties
-                        Debug(HexColorString("        Dumping step properties for " + StepToString(nStep), COLOR_CYAN));
+                        Debug(HexColorString("        Dumping step properties for " + quest_StepToString(nStep), COLOR_CYAN));
                         sNewQuery = "SELECT quest_step_properties.* FROM quest_steps INNER JOIN quest_step_properties " +
                                         "ON quest_steps.id = quest_step_properties.quest_steps_id " +
                                     "WHERE quest_steps.quests_id = @id " +

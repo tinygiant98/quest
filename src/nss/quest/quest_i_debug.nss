@@ -126,7 +126,7 @@ string ClassToString(int nClass)
         return "[NOT FOUND]";
 }
 
-string StepToString(int nStep)
+string quest_StepToString(int nStep)
 {
     return HexColorString("Step " + IntToString(nStep), COLOR_PINK);
 }
@@ -279,37 +279,39 @@ string ValueTypeToString(int nValueType, int nCategoryType = QUEST_CATEGORY_PRER
     return "[NOT FOUND]";
 }
 
-string quest_GetDebugPrefix()
+string quest_GetDebugPrefix(string sFunction = "")
 {
-    return HexColorString("[quest] ", COLOR_GOLD);
+    return HexColorString("[quest] ", COLOR_GOLD) +
+        (sFunction == "" ? "" : HexColorString("[" + sFunction + "] ", COLOR_ORANGE_LIGHT));
 }
 
-void QuestDebug(string sMessage)
+void QuestDebug(string sMessage, string sFunction = "")
 {
-    Debug(quest_GetDebugPrefix() + sMessage);
+    Debug(quest_GetDebugPrefix(sFunction) + sMessage);
 }
 
-void QuestNotice(string sMessage)
+void QuestNotice(string sMessage, string sFunction = "")
 {
-    Notice(quest_GetDebugPrefix() + sMessage);
+    Notice(quest_GetDebugPrefix(sFunction) + sMessage);
 }
 
-void QuestWarning(string sMessage)
+void QuestWarning(string sMessage, string sFunction = "")
 {
-    Warning(quest_GetDebugPrefix() + sMessage);
+    Warning(quest_GetDebugPrefix(sFunction) + sMessage);
 }
 
-void QuestError(string sMessage)
+void QuestError(string sMessage, string sFunction = "")
 {
-    Error(quest_GetDebugPrefix() + sMessage);
+    Error(quest_GetDebugPrefix(sFunction) + sMessage);
 }
 
-void QuestCriticalError(string sMessage)
+void QuestCriticalError(string sMessage, string sFunction = "")
 {
-    CriticalError(quest_GetDebugPrefix() + sMessage);
+    CriticalError(quest_GetDebugPrefix(sFunction) + sMessage);
 }
 
-string PCToString(object oPC)
+//string PCToString(object oPC)
+string quest_PCToSTring(object oPC)
 {
     if (!GetIsObjectValid(oPC))
         return HexColorString("[NOT FOUND]", COLOR_RED_LIGHT);
@@ -590,6 +592,13 @@ void HandleDebugging(string sType, string s1 = "", string s2 = "", string s3 = "
             else
                 QuestError("Error creating table '" + s2 + "' in sqlite database for " + s3);
         }
+        else if (sValue == "trigger")
+        {
+            if (bSuccess)
+                sResult = "Created or confirmed existence of trigger '" + s2 + "; in sqlite database for " + s3;
+            else
+                QuestError("Error creating trigger '" + s2 + "' in sqlite database for " + s3);
+        }
         else if (sValue == "retrieve-field") // s2 = questID || s3 = field name || s4 = target || s5 = result value
         {
             sResult = "Attempting to retrieve quest data from " + s4 +
@@ -617,7 +626,7 @@ void HandleDebugging(string sType, string s1 = "", string s2 = "", string s3 = "
         }
         else if (sValue == "set-step") // s2 = questID || s3 = step || s4 = field name || s5 = field value
         {
-            sResult = "Attempting to set quest step data for " + sQuest + "  " + StepToString(StringToInt(s3)) +
+            sResult = "Attempting to set quest step data for " + sQuest + "  " + quest_StepToString(StringToInt(s3)) +
                 "\n  Field -> " + s4 +
                 "\n  Value -> " + s5 +
                 "\n  Result -> ";
@@ -629,7 +638,7 @@ void HandleDebugging(string sType, string s1 = "", string s2 = "", string s3 = "
         }
         else if (sValue == "retrieve-step") // s2 = questID || s3 = step || s4 = field name || s5 = result value
         {
-            sResult = "Attempting to retrieve quest step data for " + sQuest + "  " + StepToString(StringToInt(s3)) +
+            sResult = "Attempting to retrieve quest step data for " + sQuest + "  " + quest_StepToString(StringToInt(s3)) +
                 "\n  Field -> " + s4 +
                 "\n  Result -> ";
             
@@ -646,7 +655,7 @@ void HandleDebugging(string sType, string s1 = "", string s2 = "", string s3 = "
             else
                 sValue = ValueTypeToString(StringToInt(s5));
                           
-            sResult = "Attempting to set property for " + quest_QuestToString(s2) + "  " + StepToString(StringToInt(s3)) +
+            sResult = "Attempting to set property for " + quest_QuestToString(s2) + "  " + quest_StepToString(StringToInt(s3)) +
                 "\n  Category -> " + CategoryTypeToString(StringToInt(s4)) +
                 "\n  Value Type -> " + sValue +
                 "\n  Key -> " + s6 +
