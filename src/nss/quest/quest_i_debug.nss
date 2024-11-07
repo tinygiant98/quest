@@ -311,7 +311,7 @@ void QuestCriticalError(string sMessage, string sFunction = "")
 }
 
 //string PCToString(object oPC)
-string quest_PCToSTring(object oPC)
+string quest_PCToString(object oPC)
 {
     if (!GetIsObjectValid(oPC))
         return HexColorString("[NOT FOUND]", COLOR_RED_LIGHT);

@@ -1719,14 +1719,14 @@ int GetIsQuestAssignable(object oPC, string sQuestTag)
     int bAssignable = FALSE;
     string sError, sErrors;
 
-    QuestDebug("Checking for assignability of " + quest_QuestToString(sQuestTag) + " to " + quest_quest_PCToString(oPC));
+    //QuestDebug("Checking for assignability of " + quest_QuestToString(sQuestTag) + " to " + quest_PCToString(oPC));
 
     // Check if the quest exists
     if (!quest_Exists(sQuestTag))
     {
         QuestWarning("Quest " + sQuestTag + " does not exist and " +
             "cannot be assigned" +
-            "\n  PC -> " + quest_quest_PCToString(oPC) +
+            "\n  PC -> " + quest_PCToString(oPC) +
             "\n  Area -> " + ColorValue(GetName(GetArea(oPC))));
         return FALSE;
     }
