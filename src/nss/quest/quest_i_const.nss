@@ -18,20 +18,18 @@
 // -----------------------------------------------------------------------------
 
 /// @note All values set below are default values and can be overriden on a
-///     per-quest or per-set basis during the quest definition process.
+///     per-quest or per-step basis during the quest definition process.
 
 /// @brief The quest system can use either the standard NWN journal system or
 ///     the NWNX journal system.  Quests can be built to use existing journal
 ///     entries, or custom journal entries can be added during the definition
 ///     process.  Set QUEST_CONFIG_JOURNAL_HANDLER to one of the following
 ///     three values.
-/// @note This is a default value and can be change per-quest during the quest
-///     definition process.
 const int QUEST_JOURNAL_NONE = 0;
-const int QUEST_JOURNAL_NWN  = 1;
+const int QUEST_JOURNAL_NWN = 1;
 const int QUEST_JOURNAL_NWNX = 2;
 
-const int QUEST_CONFIG_JOURNAL_HANDLER = QUEST_JOURNAL_NWN;
+const int QUEST_CONFIG_JOURNAL_HANDLER = QUEST_JOURNAL_NWNX;
 
 /// @brief Set the following value to TRUE to have new quests active by default.
 const int QUEST_CONFIG_QUEST_ACTIVE = TRUE;
@@ -50,13 +48,10 @@ const int QUEST_CONFIG_USE_CUSTOM_MESSAGE = TRUE;
 // -----------------------------------------------------------------------------
 
 #include "util_i_debug"
-#include "util_i_constants"
 #include "util_i_strings"
 
-//const string THIS = "quest_i_const";
 string THIS = GetStringLeft(__FILE__, GetStringLength(__FILE__) - 4);
 
-// Versioning
 const string QUEST_SYSTEM_VERSION = "2.0.0";
 
 // Variable names for event scripts
@@ -80,6 +75,10 @@ const string QUEST_DATABASE = "quest_database";
 ///     value pathing, causing data integrity to be lost.
 /// @warning Adding or deleting keys should only be accomplished if the quest
 ///     system schema is modified to reflect the changes.
+/// @warning Keys should contain alphanumeric values only, using no special
+///     characters, and should not start with a number.  Doing so will cause
+///     the sqlite json functions to handle these strings differently and may
+///     cause some functions to fail.
 const string QUEST_KEY_ACTIVE = "questActive";
 const string QUEST_KEY_PRECOLLECTED = "questAllowPrecollected";
 const string QUEST_KEY_JOURNAL_HANDLER = "questJournalHandler";
@@ -220,32 +219,12 @@ const string QUEST_DESCRIPTION = "DESCRIPTION_";
 const string QUEST_CUSTOM_MESSAGE = "CUSTOM_MESSAGE";
 const string QUEST_FEEDBACK = "FEEDBACK_";
 
-// Build state variables.
+/// @private Quest build state variables, getters and setters.
 const string QUEST_BUILD_QUEST = "QUEST_BUILD_QUEST";
-const string QUEST_BUILD_STEP = "QUEST_BUILD_STEP";
-const string QUEST_BUILD_OBJECTIVE = "QUEST_BUILD_OBJECTIVE";
-
-/// @private Clear state-machine build variables.
-void quest_ClearBuildVariables()
-{
-    object o = GetModule();
-    DeleteLocalInt(o, QUEST_BUILD_QUEST);
-    DeleteLocalInt(o, QUEST_BUILD_STEP);
-    DeleteLocalInt(o, QUEST_BUILD_OBJECTIVE);
-}
-
-/// @private Build state setters/getters.
-void quest_SetBuildQuest(string s)  { SetLocalString(GetModule(), QUEST_BUILD_QUEST, s); }
-void quest_SetBuildStep(int n)      { SetLocalInt   (GetModule(), QUEST_BUILD_STEP, n); }
-void quest_SetBuildObjective(int n) { SetLocalInt   (GetModule(), QUEST_BUILD_OBJECTIVE, n); }
-
-string quest_GetBuildQuest()     { return GetLocalString(GetModule(), QUEST_BUILD_QUEST); }
-int    quest_GetBuildStep()      { return GetLocalInt   (GetModule(), QUEST_BUILD_STEP); }
-int    quest_GetBuildObjective() { return GetLocalInt   (GetModule(), QUEST_BUILD_OBJECTIVE); }
-
-void quest_DeleteBuildQuest()     { DeleteLocalString(GetModule(), QUEST_BUILD_QUEST); }
-void quest_DeleteBuildStep()      { DeleteLocalInt   (GetModule(), QUEST_BUILD_STEP); }
-void quest_DeleteBuildObjective() { DeleteLocalInt(GetModule(), QUEST_BUILD_OBJECTIVE); }
+void   quest_ClearBuildVariables()   { DeleteLocalString(GetModule(), QUEST_BUILD_QUEST); }
+void   quest_SetBuildQuest(string s) { SetLocalString(GetModule(), QUEST_BUILD_QUEST, s); }
+string quest_GetBuildQuest()         { return GetLocalString(GetModule(), QUEST_BUILD_QUEST); }
+void   quest_DeleteBuildQuest()      { DeleteLocalString(GetModule(), QUEST_BUILD_QUEST); }
 
 // Quest Version Actions
 const int QUEST_VERSION_ACTION_NONE = 0;
@@ -263,8 +242,14 @@ const string NOT_EQUAL_TO = "!=";
 const string QUEST_SYSTEM_SCHEMA = r"
 {
     ""type"": ""object"",
+    ""pcquest"": {
+        ""type"": ""array"",
+        ""items"": {
+            ""$ref"": ""#/defs/pcquestItem""
+        }
+    },
     ""quest"": {
-        ""properties"": {
+        ""questProperties"": {
             ""type"": ""object"",
             ""fields"": {
                 QUEST_KEY_ACTIVE: {
@@ -299,14 +284,15 @@ const string QUEST_SYSTEM_SCHEMA = r"
                     ""type"": ""string""
                 },
                 QUEST_KEY_VERSION_VERSION: {
-                    ""type"": ""integer""
+                    ""type"": ""integer"",
+                    ""default"": 1
                 },
                 QUEST_KEY_VERSION_ACTION: {
                     ""type"": ""integer""
                 }
             }
         },
-        ""scripts"": {
+        ""questScripts"": {
             ""type"": ""object"",
             ""fields"": {
                 QUEST_KEY_ON_ACCEPT: {
@@ -329,41 +315,96 @@ const string QUEST_SYSTEM_SCHEMA = r"
                 }
             }
         },
-        ""prerequisites"": {
+        ""questPrerequisites"": {
             ""type"": ""array"",
             ""items"": {
                 ""$ref"": ""#/defs/prerequisiteItem"",
                 ""defaultCount"": 2
             }
         },
-        ""steps"": {
+        ""questSteps"": {
             ""type"": ""array"",
             ""items"": {
                 ""$ref"": ""#/defs/stepItem""
             }
         },
-        ""variables"": {
+        ""questVariables"": {
             ""type"": ""object"",
             ""additionalFields"": true
         }
     },
     ""defs"": {
+        ""pcquestItem"": {
+            ""type"": ""object"",
+            ""fields"": {
+                ""pcquestData"": {
+                    ""type"": ""object""
+                },
+                ""pcquestProperties"": {
+                    ""type"": ""object"",
+                    ""fields"": {
+                        ""pcquestTimeStart"": {
+                            ""type"": ""string""
+                        },
+                        ""pcquestTimeComplete"": {
+                            ""type"": ""string""
+                        },
+                        ""pcquestCompleteType"": {
+                            ""type"": ""integer""
+                        }
+                    }
+                },
+                ""pcquestSteps"": {
+                    ""type"": ""array"",
+                    ""items"": {
+                        ""$ref"": ""#/defs/pcquestStepItem""
+                    }
+                },
+                ""pcquestVariables"": {
+                    ""type"": ""object"",
+                    ""additionalFields"": true
+                }
+            }
+        },
+        ""pcquestStepItem"": {
+            ""type"": ""object"",
+            ""fields"": {
+                ""pcquestStepOrdinal"": {
+                    ""type"": ""integer""
+                },
+                ""pcquestStepRequired"": {
+                    ""type"": ""integer""
+                },
+                ""pcquestStepAcquired"": {
+                    ""type"": ""integer""
+                },
+                ""pcquestStepObjectiveID"": {
+                    ""type"": ""integer""
+                },
+                ""pcquestStepTimeStart"": {
+                    ""type"": ""string""
+                },
+                ""pcquestStepTimeComplete"": {
+                    ""type"": ""string""
+                }
+            }
+        },
         ""stepItem"": {
             ""type"": ""object"",
             ""fields"": {
-                ""awards"": {
+                ""stepAwards"": {
                     ""type"": ""array"",
                     ""items"": {
                         ""$ref"": ""#/defs/awardItem""
                     }
                 },
-                ""objectives"": {
+                ""stepObjectives"": {
                     ""type"": ""array"",
                     ""items"": {
                         ""$ref"": ""#/defs/objectiveItem""
                     }
                 },
-                ""properties"": {
+                ""stepProperties"": {
                     ""type"": ""object"",
                     ""fields"": {
                         QUEST_KEY_STEP_ACTIVE: {
@@ -397,7 +438,7 @@ const string QUEST_SYSTEM_SCHEMA = r"
                         }
                     }
                 },
-                ""variables"": {
+                ""stepVariables"": {
                     ""type"": ""object"",
                     ""additionalFields"": true
                 }
@@ -483,29 +524,22 @@ json quest_GetSystemSchema(int bForce = FALSE)
                 sValue = GetStringLowerCase(sValue);
             else if (GetStringUpperCase(sValue) == sValue && !GetIsNumeric(sValue))
             {
-                struct CONSTANT c;
-                if (sType == "int")
-                {
-                    c = GetConstantInt(sValue, THIS);
-                    sValue = IntToString(c.nValue);
-                }
-                else if (sType == "float")
-                {
-                    c = GetConstantFloat(sValue, THIS);
-                    sValue = FormatFloat(c.fValue, "%!f");
-                }
-                else if (sType == "string")
-                {
-                    c = GetConstantString(sValue, THIS);
-                    sValue = c.sValue;
-                }
+                string r = sType + "\\s+" + sValue + "\\s*=\\s*(\"[^\"]*\"|[^\\s;]+)\\s*;";
+                json jDefaults = RegExpIterate(r, ResManGetFileContents("quest_i_const", RESTYPE_NSS));
+                sValue = JsonGetString(JsonArrayGet(JsonArrayGet(jDefaults, 0), 1));
             }
 
             s = RegExpReplace(sOption, s, sValue);
         }
 
         jSchema = JsonParse(s);
-        SetLocalJson(GetModule(), "QUEST_SYSTEM_SCHEMA", jSchema);
+        string sError = JsonGetError(jSchema);
+        if (sError == "")
+            SetLocalJson(GetModule(), "QUEST_SYSTEM_SCHEMA", jSchema);
+        else
+        {
+            Notice(sError);
+        }    
     }
 
     return jSchema;
