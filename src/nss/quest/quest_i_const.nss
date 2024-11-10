@@ -242,13 +242,13 @@ const string NOT_EQUAL_TO = "!=";
 const string QUEST_SYSTEM_SCHEMA = r"
 {
     ""type"": ""object"",
-    ""pcquest"": {
+    ""pc"": {
         ""type"": ""array"",
         ""items"": {
-            ""$ref"": ""#/defs/pcquestItem""
+            ""$ref"": ""#/defs/pcItem""
         }
     },
-    ""quest"": {
+    ""module"": {
         ""questProperties"": {
             ""type"": ""object"",
             ""fields"": {
@@ -318,8 +318,7 @@ const string QUEST_SYSTEM_SCHEMA = r"
         ""questPrerequisites"": {
             ""type"": ""array"",
             ""items"": {
-                ""$ref"": ""#/defs/prerequisiteItem"",
-                ""defaultCount"": 2
+                ""$ref"": ""#/defs/prerequisiteItem""
             }
         },
         ""questSteps"": {
@@ -334,57 +333,57 @@ const string QUEST_SYSTEM_SCHEMA = r"
         }
     },
     ""defs"": {
-        ""pcquestItem"": {
+        ""pcItem"": {
             ""type"": ""object"",
             ""fields"": {
-                ""pcquestData"": {
+                ""pcData"": {
                     ""type"": ""object""
                 },
-                ""pcquestProperties"": {
+                ""pcProperties"": {
                     ""type"": ""object"",
                     ""fields"": {
-                        ""pcquestTimeStart"": {
+                        ""pcTimeStart"": {
                             ""type"": ""string""
                         },
-                        ""pcquestTimeComplete"": {
+                        ""pcTimeComplete"": {
                             ""type"": ""string""
                         },
-                        ""pcquestCompleteType"": {
+                        ""pcCompleteType"": {
                             ""type"": ""integer""
                         }
                     }
                 },
-                ""pcquestSteps"": {
+                ""pcSteps"": {
                     ""type"": ""array"",
                     ""items"": {
-                        ""$ref"": ""#/defs/pcquestStepItem""
+                        ""$ref"": ""#/defs/pcStepItem""
                     }
                 },
-                ""pcquestVariables"": {
+                ""pcVariables"": {
                     ""type"": ""object"",
                     ""additionalFields"": true
                 }
             }
         },
-        ""pcquestStepItem"": {
+        ""pcStepItem"": {
             ""type"": ""object"",
             ""fields"": {
-                ""pcquestStepOrdinal"": {
+                ""pcStepOrdinal"": {
                     ""type"": ""integer""
                 },
-                ""pcquestStepRequired"": {
+                ""pcStepRequired"": {
                     ""type"": ""integer""
                 },
-                ""pcquestStepAcquired"": {
+                ""pcStepAcquired"": {
                     ""type"": ""integer""
                 },
-                ""pcquestStepObjectiveID"": {
+                ""pcStepObjectiveID"": {
                     ""type"": ""integer""
                 },
-                ""pcquestStepTimeStart"": {
+                ""pcStepTimeStart"": {
                     ""type"": ""string""
                 },
-                ""pcquestStepTimeComplete"": {
+                ""pcStepTimeComplete"": {
                     ""type"": ""string""
                 }
             }

@@ -207,7 +207,7 @@ void quest_CreateTables(int bReset = FALSE)
             quest_data TEXT DEFAULT '$1'
         );
     ";
-    sModule = SubstituteSubString(sModule, "$1", JsonDump(quest_GetSchemaTemplate("quest")));
+    sModule = SubstituteSubString(sModule, "$1", JsonDump(quest_GetSchemaTemplate("module")));
 
     /// @brief Create a trigger on the quest_modules table to prevent insertion of duplicate
     ///     step numbers (ordinals) into the $.questSteps[#].stepProperties.stepOrdinal field.
@@ -400,8 +400,12 @@ int quest_CountChanges()
     return SqlStep(q) ? SqlGetInt(q, 0) : 0;
 }
 
-int quest_GetStepIndex(int nStep)
+int quest_GetStepIndex(string sKey, int nStep)
 {   
+    string sPath = quest_GetSchemaPath(sKey);
+
+
+
 // Working here.  Need to get the steps array and get the path from there.
 
 //    string sPath = quest_GetSchemaPath(sKey, jArray);
@@ -626,7 +630,7 @@ json quest_GetTemplate(string sPath = "", int bIncludeItemTemplates = FALSE)
 /// @private Convenience function for retrieving a quest template.
 json quest_GetQuestTemplate(int bIncludeItemTemplates = FALSE)
 { 
-    return quest_GetTemplate("quest", bIncludeItemTemplates);
+    return quest_GetTemplate("module", bIncludeItemTemplates);
 }
 
 /// @private Convenience function for retrieving an item template.
