@@ -56,6 +56,13 @@ int GetNextPCQuestStep(object oPC, string sQuestTag);
 
 #include "nwnx_player"
 
+/// @note idea is to keep all the prototypes from v1 in place, so quests can be
+///     easily migrated and nothing breaks, so we'll just modify what the various
+///     functions do instead of changing the names of the functions.
+
+/// @note If any functions names *must* be changed, we'll be sure to note those
+///     in the readme.
+
 // -----------------------------------------------------------------------------
 //                          Quest System Function Prototypes
 // -----------------------------------------------------------------------------

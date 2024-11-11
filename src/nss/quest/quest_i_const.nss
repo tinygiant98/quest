@@ -242,7 +242,7 @@ const string NOT_EQUAL_TO = "!=";
 const string QUEST_SYSTEM_SCHEMA = r"
 {
     ""type"": ""object"",
-    ""pc"": {
+    ""player"": {
         ""type"": ""array"",
         ""items"": {
             ""$ref"": ""#/defs/pcItem""
@@ -324,7 +324,7 @@ const string QUEST_SYSTEM_SCHEMA = r"
         ""questSteps"": {
             ""type"": ""array"",
             ""items"": {
-                ""$ref"": ""#/defs/stepItem""
+                ""$ref"": ""#/defs/modStepItem""
             }
         },
         ""questVariables"": {
@@ -388,7 +388,7 @@ const string QUEST_SYSTEM_SCHEMA = r"
                 }
             }
         },
-        ""stepItem"": {
+        ""modStepItem"": {
             ""type"": ""object"",
             ""fields"": {
                 ""stepAwards"": {

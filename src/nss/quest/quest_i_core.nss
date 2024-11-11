@@ -11,6 +11,17 @@
 #include "quest_i_const"
 #include "quest_i_debug"
 
+/// temporary until configuration file
+/// Used to allow customization of how to uniquely identify a player
+/// [ ] put this into the configuration file
+string quest_GetPC(object oPC)
+{
+    if (oPC != OBJECT_INVALID && GetIsObjectValid(oPC))
+        return GetObjectUUID(oPC);
+    else
+        return "";
+}
+
 /// @private Central query preparation and supporting functions.
 sqlquery quest_PrepareQuery(string s)
 {
@@ -126,9 +137,31 @@ json quest_GetSchemaTemplate(string sPath = "", int bIncludeItemTemplates = FALS
     return SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
 }
 
+string quest_GetTable(string sPath)
+{
+    string r = "^(?:\\$\\.)([^\\.\\[\\]]+)";
+    json j = RegExpMatch(r, sPath);
+
+    if (j == JSON_NULL || j == JSON_ARRAY)
+        return sPath;
+    else
+        return JsonGetString(JsonArrayGet(j, 1));
+}
+
+json quest_GetArrayPath(string sPath)
+{
+    string r = "^\\$\\.(\\w+)(?:\\.?(.*)\\[.*\\]|)\\.?(.*)$";
+    json j = RegExpMatch(r, sPath);
+
+    if (j == JSON_NULL || j == JSON_ARRAY)
+        return JsonString(sPath);
+    else
+        return JsonArrayGetRange(j, 1, -1);
+}
+
 /// @private Retrieves the full path for the specified key in the system schema.
 /// @param sPath The parent path where the key resides.
-string quest_GetSchemaPath(string sKey, json jTemplate = JSON_NULL)
+string quest_GetPath(string sKey, json jTemplate = JSON_NULL)
 {
     string s = r"
         WITH
@@ -381,15 +414,22 @@ void quest_OnClientEnter()
     // check pc quest versions against module versions and see what to do...
 }
 
-json quest_GetData(string sTag)
+json quest_GetData(string sTag, object oPC = OBJECT_INVALID)
 {
     string s = r"
         SELECT quest_data
-        FROM quest_module
-        WHERE quest_tag = @sTag;
+        FROM quest_$1
+        WHERE quest_tag = @sTag
+            $2
     ";
+    s = SubstituteSubString(s, "$1", oPC == OBJECT_INVALID ? "module" : "player");
+    s = SubstituteSubString(s, "$2", oPC == OBJECT_INVALID ? "" : "AND pc_uuid = @pc_uuid");
+    
     sqlquery q = quest_PrepareQuery(s);
     SqlBindString(q, "@sTag", sTag);
+    
+    if (oPC != OBJECT_INVALID)
+        SqlBindString(q, "@pc_uuid", quest_GetPC(oPC));
 
     return SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
 }
@@ -400,35 +440,61 @@ int quest_CountChanges()
     return SqlStep(q) ? SqlGetInt(q, 0) : 0;
 }
 
-int quest_GetStepIndex(string sKey, int nStep)
+int quest_GetArrayIndex(string sKey, json jValue, string sTag = "", object oPC = OBJECT_INVALID)
 {   
-    string sPath = quest_GetSchemaPath(sKey);
+    sTag = (sTag == "" ? quest_GetBuildQuest() : sTag);
+    json jPath = quest_GetArrayPath(quest_GetPath(sKey));
 
+    string sq = oPC == OBJECT_INVALID ?
+        r"
+            SELECT json_each.value AS obj
+            FROM quest_module, json_each(quest_data, 
+                CASE
+                    WHEN @arrayPath = '' THEN '$' 
+                    ELSE '$.' || @arrayPath
+                END
+            )
+            WHERE quest_tag = @sTag
+        " :
+        r"  
+            SELECT json_each.value AS obj
+            FROM quest_player, json_each(quest_data, 
+                CASE
+                    WHEN @arrayPath = '' THEN '$' 
+                    ELSE '$.' || @arrayPath
+                END
+            )
+            WHERE quest_tag = @sTag
+                AND pc_uuid = @pc_uuid
+        ";
 
+    string s = r"
+        WITH 
+            json_array AS (
+                $1
+            ),
+            indexed_array AS (
+                SELECT 
+                    row_number() OVER () - 1 AS idx,
+                    json_extract(obj, '$.' || @path) AS extracted_value
+                FROM json_array
+            )
+        SELECT idx
+        FROM indexed_array
+        WHERE extracted_value = @value ->> '$';
+    "; 
+    s = SubstituteSubStrings(s, "$1", sq);
 
-// Working here.  Need to get the steps array and get the path from there.
+    sqlquery q = quest_PrepareQuery(s);
+    SqlBindString(q, "@sTag", sTag);
+    SqlBindString(q, "@path", JsonGetString(JsonArrayGet(jPath, 2)));
+    SqlBindString(q, "@arrayPath", JsonGetString(JsonArrayGet(jPath, 1)));
+    SqlBindJson(q, "@value", jValue);
 
-//    string sPath = quest_GetSchemaPath(sKey, jArray);
-//    string s = r"
-//        WITH 
-//            json_array AS (
-//                SELECT json_each.value AS obj
-//                FROM json_each(@array)
-//            ),
-//            indexed_array AS (
-//                SELECT 
-//                    row_number() OVER () - 1 AS idx,
-//                    json_extract(obj, @path) AS extracted_value
-//                FROM json_array
-//            )
-//        SELECT idx 
-//        FROM indexed_array
-//        WHERE extracted_value = json(@desired_value);
-//    ";
-//    sqlquery q = quest_PrepareQuery(s);
-//    SqlBindString(q, "@path", sPath);
-    
-    return 0;
+    if (oPC != OBJECT_INVALID)
+        SqlBindString(q, "@pc_uuid", quest_GetPC(oPC));
+
+    return SqlStep(q) ? SqlGetInt(q, 0) : -1;
 }
 
 /// @private Determine is a specific quest exists.
@@ -437,9 +503,9 @@ int quest_GetStepIndex(string sKey, int nStep)
 ///     populated, only if sTag exists in the `quest_module` table.
 ///     By definition, any existing quest will have at least the
 ///     default data populated.
-int quest_Exists(string sTag)
+int quest_Exists(string sTag, object oPC = OBJECT_INVALID)
 {
-    return quest_GetData(sTag) != JSON_NULL;
+    return quest_GetData(sTag, oPC) != JSON_NULL;
 }
 
 /// @private Determine whether a specified path exists in the
@@ -482,13 +548,15 @@ int quest_PathExists(string sPath, string sTag = "")
 json quest_GetProperty(string sKey = "", string sTag = "", int nIndex = -1)
 {
     sTag = (sTag == "" ? quest_GetBuildQuest() : sTag);
-    if (sTag == "" || !quest_Exists(sTag))
+    if (sTag == "" || !quest_Exists(sTag)) // <- maybe not this as it's possible for
+    //      players to have quests that no longer exist in the module, so it
+    //      probably shoult be quest_Exists(module) || quest_Exists(player)
     {
         QuestError("Quest '" + sTag + "' does not exist");
         return JSON_NULL;
     }
 
-    string sPath = sKey == "" ? "$" : quest_GetSchemaPath(sKey, quest_GetData(sTag));
+    string sPath = sKey == "" ? "$" : quest_GetPath(sKey, quest_GetData(sTag));
     if (sPath == "")
     {
         QuestError("Path for key '" + sKey + "' not found");
@@ -544,7 +612,7 @@ int quest_SetProperty(string sKey, json jValue, string sTag = "", int nIndex = -
         return FALSE;
     }
 
-    string sPath = quest_GetSchemaPath(sKey, quest_GetData(sTag));
+    string sPath = quest_GetPath(sKey, quest_GetData(sTag));
     if (sPath == "")
     {
         QuestError("Path for key '" + sKey + "' not found; aborting");
@@ -681,7 +749,7 @@ int quest_AddStep(int nStep = -1)
     json j = GetLocalJson(GetModule(), "QUEST_DEFAULT_STEP");
     if (j == JSON_NULL)
     {
-        j = quest_GetItemTemplate("stepItem");
+        j = quest_GetItemTemplate("modStepItem");
         SetLocalJson(GetModule(), "QUEST_DEFAULT_STEP", j);
     }
 
