@@ -239,6 +239,10 @@ const string GREATER_THAN_OR_EQUAL_TO = ">=";
 const string LESS_THAN_OR_EQUAL_TO = "<=";
 const string NOT_EQUAL_TO = "!=";
 
+const string OP_OR = "OP_OR";
+const string OP_AND = "OP_AND";
+const string OP_NOT = "OP_NOT";
+
 const string QUEST_SYSTEM_SCHEMA = r"
 {
     ""type"": ""object"",

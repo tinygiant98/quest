@@ -137,18 +137,15 @@ json quest_GetSchemaTemplate(string sPath = "", int bIncludeItemTemplates = FALS
     return SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
 }
 
-string quest_GetTable(string sPath)
-{
-    string r = "^(?:\\$\\.)([^\\.\\[\\]]+)";
-    json j = RegExpMatch(r, sPath);
-
-    if (j == JSON_NULL || j == JSON_ARRAY)
-        return sPath;
-    else
-        return JsonGetString(JsonArrayGet(j, 1));
-}
-
-json quest_GetArrayPath(string sPath)
+/// @private Split sPath into the following components:
+///     (0) table name
+///     (1) path to the final array
+///     (2) path within final array
+/// @param sPath The schema path to split.
+/// @returns A json array containing the three elements defined above.  On error,
+///     returns a json representation of sPath.  An error can be identified if
+///     quest_SplitPath(sPath) == JsonString(sPath).
+json quest_SplitPath(string sPath)
 {
     string r = "^\\$\\.(\\w+)(?:\\.?(.*)\\[.*\\]|)\\.?(.*)$";
     json j = RegExpMatch(r, sPath);
@@ -159,8 +156,10 @@ json quest_GetArrayPath(string sPath)
         return JsonArrayGetRange(j, 1, -1);
 }
 
-/// @private Retrieves the full path for the specified key in the system schema.
-/// @param sPath The parent path where the key resides.
+/// @private Retrieves the full path for the specified key in jTemplate.
+/// @param sKey The key to search for.
+/// @param sTemplate The json object to search for sKey.  If missing,
+///     the full system schema will be searched.
 string quest_GetPath(string sKey, json jTemplate = JSON_NULL)
 {
     string s = r"
@@ -210,7 +209,6 @@ json quest_GetSchemaTypes(string sKey)
 
     return SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
 }
-
 
 /// @brief Create the database objects required to administer the system.
 /// @note See comments within the function for future table modification
@@ -263,6 +261,8 @@ void quest_CreateTables(int bReset = FALSE)
                         END;
     ";
     sTriggerDuplicate = SubstituteSubStrings(sTriggerDuplicate, "$1", QUEST_KEY_STEP_ORDINAL);
+
+
 
     /// @brief Create a trigger on the quest_modules table that will automatically increment
     ///     the QUEST_KEY_STEP_ORDINAL field when a new step is added to the quest, assuming
@@ -443,7 +443,7 @@ int quest_CountChanges()
 int quest_GetArrayIndex(string sKey, json jValue, string sTag = "", object oPC = OBJECT_INVALID)
 {   
     sTag = (sTag == "" ? quest_GetBuildQuest() : sTag);
-    json jPath = quest_GetArrayPath(quest_GetPath(sKey));
+    json jPath = quest_SplitPath(quest_GetPath(sKey));
 
     string sq = oPC == OBJECT_INVALID ?
         r"
@@ -622,17 +622,41 @@ int quest_SetProperty(string sKey, json jValue, string sTag = "", int nIndex = -
     int nType = JsonGetType(jValue);
     json jTypes = quest_GetSchemaTypes(sKey);
 
+    /// @brief jValue's type should never be NULL
     if (nType == JSON_TYPE_NULL)
     {
         QuestError("Value for key '" + sKey + "' is NULL; aborting");
         return FALSE;
     }
+    /// @brief json objects are only used for adding new objects to an array
+    ///     or adding a variable to a list
     else if (nType == JSON_TYPE_OBJECT)
     {
+        /// @brief Receiving a json object against a json array is most likely
+        ///     adding an entire object to the referenced array; however, check
+        ///     to see if it may be a variable
         if (JsonFind(jTypes, JsonInt(JSON_TYPE_ARRAY)) != JSON_NULL)
-            sPath += "[" + (nIndex == -1 ? "#" : IntToString(nIndex)) + "]";
+        {
+            if (JsonGetLength(jValue) == 1)
+            {
+                /// @brief Although this doesn't cover edge cases, there are no
+                ///     json objects sent to this function by this system which
+                ///     are one element in length and are not variables; so
+                ///     assume this is a variable
+                string sKey = JsonGetString(JsonArrayGet(JsonObjectKeys(jValue), 0));
+                sPath += "[#-1]." + sKey;
+                jValue = JsonObjectGet(jValue, sKey);
+            }
+            else
+                /// @brief This is not a variable; add the json object as a new
+                ///     element in the referenced array
+                sPath += "[" + (nIndex == -1 ? "#" : IntToString(nIndex)) + "]";
+        }
         else if (JsonFind(jTypes, JsonInt(JSON_TYPE_OBJECT)) != JSON_NULL)
         {
+            /// @brief Variables are passed in as a json object with a single
+            ///     key-value pair; pull the key-value pair out and add it to
+            ///     the path-referenced json object
             if (JsonGetLength(jValue) == 1)
             {
                 string sKey = JsonGetString(JsonArrayGet(JsonObjectKeys(jValue), 0));
@@ -780,12 +804,8 @@ int quest_AddStep(int nStep = -1)
 /// @param sKey Prerequisite-specific data.
 /// @param sValue Prerequisite-specific data.
 /// @note See QUEST_SYSTEM_SCHEMA for json structure.
-int quest_AddPrerequisite(int nType, string sKey, string sValue)
+int quest_AddPrerequisite(json j)
 {
-    json j = JsonObjectSet(JSON_OBJECT, QUEST_KEY_PREREQUISITE_TYPE, JsonInt(nType));
-         j = JsonObjectSet(j, QUEST_KEY_PREREQUISITE_KEY, JsonString(sKey));
-         j = JsonObjectSet(j, QUEST_KEY_PREREQUISITE_VALUE, JsonString(sValue));
-
     if (!quest_SetProperty("questPrerequisites", j))
     {
         QuestError("Failed to add prerequisite to quest '" + quest_GetBuildQuest() + "'");
@@ -802,14 +822,8 @@ int quest_AddPrerequisite(int nType, string sKey, string sValue)
 /// @param nMax Maximum amount of sTag allowed.
 /// @param sData Objective-specific data.
 /// @note See QUEST_SYSTEM_SCHEMA for json structure.
-int quest_AddObjective(int nType, string sTag, int nValue, int nMax, string sData = "")
+int quest_AddObjective(json j)
 {
-    json j = JsonObjectSet(JSON_OBJECT, QUEST_KEY_OBJECTIVE_TYPE, JsonInt(nType));
-         j = JsonObjectSet(j, QUEST_KEY_OBJECTIVE_TAG, JsonString(sTag));
-         j = JsonObjectSet(j, QUEST_KEY_OBJECTIVE_VALUE, JsonInt(nValue));
-         j = JsonObjectSet(j, QUEST_KEY_OBJECTIVE_MAX, JsonInt(nMax));
-         j = JsonObjectSet(j, QUEST_KEY_OBJECTIVE_DATA, JsonString(sData));
-
     if (!quest_SetProperty("stepObjectives", j))
     {
         QuestError("Failed to add objective to quest '" + quest_GetBuildQuest() + "'");
@@ -826,14 +840,8 @@ int quest_AddObjective(int nType, string sTag, int nValue, int nMax, string sDat
 /// @param sValue [p]reward-specific data.
 /// @param bParty Provide [p]reward to entire party.
 /// @note See QUEST_SYSTEM_SCHEMA for json structure.
-int quest_AddReward(int nCategory, int nType, string sKey, string sValue, int bParty)
+int quest_AddReward(json j)
 {
-    json j = JsonObjectSet(JSON_OBJECT, QUEST_KEY_CATEGORY_CATEGORY, JsonInt(nCategory));
-         j = JsonObjectSet(j, QUEST_KEY_CATEGORY_TYPE, JsonInt(nType));
-         j = JsonObjectSet(j, QUEST_KEY_CATEGORY_KEY, JsonString(sKey));
-         j = JsonObjectSet(j, QUEST_KEY_CATEGORY_VALUE, JsonString(sValue));
-         j = JsonObjectSet(j, QUEST_KEY_CATEGORY_PARTY, JsonBool(bParty));
-
     if (!quest_SetProperty("stepAwards", j))
     {
         QuestError("Failed to add reward to quest '" + quest_GetBuildQuest() + "'");

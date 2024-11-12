@@ -274,32 +274,23 @@ void SetQuestVersionActionDelete();
 // version action.  Not mean for use outside the quest definition process.
 void SetQuestVersionActionNone();
 
-// ---< SetQuestPrerequisite[Alignment|Class|Gold|Item|LevelMax|LevelMin|Quest|QuestStep|Race|XP|Skill|Ability] >---
-// Sets a prerequisite for a PC to be able to be assigned a quest.  Prerequisites are used by
-//  GetIsQuestAssignable() to determine if a PC is eligible to be assigned quest sTag
+/// @brief Add an alignment prerequisite.
+/// @param nAlignment ALIGNMENT_* constant.
+/// @param bNeutral If TRUE, the player must have a neutral alignment on the axis
+///     specified by nAlignment.
+/// @note Stackable.  If stacked, player must meet all alignment prerequisites.
+/// @warning Not meant for use outside of the quest definition process.
+void SetQuestPrerequisiteAlignment(int nAlignment, int bNeutral = FALSE);
 
-// ---< SetQuestPrerequisiteAlignment >---
-// Adds a quest prerequisite to the quest currently being defined which requires the
-// PC have an alignment values that equals nAlignmentAxis.  If bNeutral is TRUE, the
-// PC's alignment must be Neutral on the nAlignmentAxis axis.  Not meant for use outside
-// the quest definition process.
-void SetQuestPrerequisiteAlignment(int nAlignmentAxis, int bNeutral = FALSE);
-
-// ---< SetQuestPrerequisiteClass >---
-// Adds a quest prerequisite to the quest currently being defined which requires the
-// PC have at least nLevels of nClass.  nClass is an NWN CLASS_TYPE_* constant.  nLevels
-// should be one of the following values:
-//   >= 1 : Any number of levels in nClass is allowed
-//    = 0 : nClass is excluded
-// The default logic is to check the PC class >= nLevels.  If you want a different logical
-// operator to be used, change sOperator to one of the following constants:
-//   GREATER_THAN
-//   GREATER_THAN_OR_EQUAL_TO
-//   LESS_THAN
-//   LESS_THAN_OR_EQUAL_TO
-//   EQUAL_TO
-// Not meant for use outside the quest definition process.
-void SetQuestPrerequisiteClass(int nClass, int nLevels = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO);
+/// @brief Add a class prerequisite.
+/// @param nClass CLASS_TYPE_* constant.
+/// @param nLevels Number of levels.
+///     nLevel > 0 : Compare nClass using sComparison
+///     nLevel = 0 : nClass is excluded
+/// @param sComparison Comparison operator.
+/// @note Stackable.  If stacked, player must meet at least one of the prerequisites.
+/// @warning Not meant for use outside of the quest definition process.
+void SetQuestPrerequisiteClass(int nClass, int nLevels = 1, string sComparison = GREATER_THAN_OR_EQUAL_TO);
 
 // ---< SetQuestPrerequisiteGold >---
 // Adds a quest prerequisite to the quest currently being defined which requires the
@@ -312,7 +303,7 @@ void SetQuestPrerequisiteClass(int nClass, int nLevels = 1, string sOperator = G
 //   LESS_THAN_OR_EQUAL_TO
 //   EQUAL_TO
 // Not meant for use outside the quest definition process.
-void SetQuestPrerequisiteGold(int nGold = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO);
+void SetQuestPrerequisiteGold(int nGold = 1, string sComparison = GREATER_THAN_OR_EQUAL_TO);
 
 // ---< SetQuestPrerequisiteItem >---
 // Adds a quest prerequisite to the quest currently being defined which requires the
@@ -325,7 +316,7 @@ void SetQuestPrerequisiteGold(int nGold = 1, string sOperator = GREATER_THAN_OR_
 //   LESS_THAN_OR_EQUAL_TO
 //   EQUAL_TO
 // Not meant for use outside the quest definition process.
-void SetQuestPrerequisiteItem(string sItemTag, int nQuantity = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO);
+void SetQuestPrerequisiteItem(string sItemTag, int nQuantity = 1, string sComparison = GREATER_THAN_OR_EQUAL_TO);
 
 // ---< SetQuestPrerequisiteLevelMax >---
 // Adds a quest prerequisite to the quest currently being defined which requires the
@@ -354,7 +345,7 @@ void SetQuestPrerequisiteLevelMin(int nLevelMin);
 //   LESS_THAN_OR_EQUAL_TO
 //   EQUAL_TO
 // Not meant for use outside the quest definition process.
-void SetQuestPrerequisiteQuest(string sQuestTag, int nCompletionCount = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO);
+void SetQuestPrerequisiteQuest(string sQuestTag, int nCompletionCount = 1, string sComparison = GREATER_THAN_OR_EQUAL_TO);
 
 // ---< SetQuestPrerequisiteRace >---
 // Adds a quest prerequisite to the quest currently being defined which requires the
@@ -375,7 +366,7 @@ void SetQuestPrerequisiteRace(int nRace, int bAllowed = TRUE);
 //   LESS_THAN_OR_EQUAL_TO
 //   EQUAL_TO
 // Not meant for use outside the quest definition process.
-void SetQuestPrerequisiteXP(int nXP, string sOperator = GREATER_THAN_OR_EQUAL_TO);
+void SetQuestPrerequisiteXP(int nXP, string sComparison = GREATER_THAN_OR_EQUAL_TO);
 
 // ---< SetQuestPrerequisiteSkill >---
 // Adds a quest prerequisite to the quest currently being defined which requires the
@@ -390,7 +381,7 @@ void SetQuestPrerequisiteXP(int nXP, string sOperator = GREATER_THAN_OR_EQUAL_TO
 //   LESS_THAN_OR_EQUAL_TO
 //   EQUAL_TO
 // Not meant for use outside the quest definition process.
-void SetQuestPrerequisiteSkill(int nSkill, int nRank, string sOperator = GREATER_THAN_OR_EQUAL_TO);
+void SetQuestPrerequisiteSkill(int nSkill, int nRank, string sComparison = GREATER_THAN_OR_EQUAL_TO);
 
 // ---< SetQuestPrerequisiteAbility >---
 // Adds a quest prerequisite to the quest currently being defined which requires the
@@ -403,7 +394,7 @@ void SetQuestPrerequisiteSkill(int nSkill, int nRank, string sOperator = GREATER
 //   LESS_THAN_OR_EQUAL_TO
 //   EQUAL_TO
 // Not meant for use outside the quest definition process.
-void SetQuestPrerequisiteAbility(int nScore, int nScore, string sOperator = GREATER_THAN_OR_EQUAL_TO);
+void SetQuestPrerequisiteAbility(int nScore, int nScore, string sComparison = GREATER_THAN_OR_EQUAL_TO);
 
 // ---< SetQuestPrerequisiteReputation >---
 // Adds a quest prerequisite to the quest currently being defined which requires the
@@ -416,7 +407,7 @@ void SetQuestPrerequisiteAbility(int nScore, int nScore, string sOperator = GREA
 //   LESS_THAN_OR_EQUAL_TO
 //   EQUAL_TO
 // Not meant for use outside the quest definition process.
-void SetQuestPrerequisiteReputation(string sFaction, int nStanding, string sOperator = GREATER_THAN_OR_EQUAL_TO);
+void SetQuestPrerequisiteReputation(string sFaction, int nStanding, string sComparison = GREATER_THAN_OR_EQUAL_TO);
 
 // ---< AddQuestStep >---
 // Adds a new quest step to the quest currently being defined.  If defining steps in
@@ -650,14 +641,14 @@ void SetQuestStepPrewardReputation(string sFaction, int nChange, int bParty = FA
 // currently being defined is started.  This preward will create, modify or delete a specified
 // local variable on the PC object.  This function is considered advance usage and the
 // system README should be consulted before using.
-void SetQuestStepPrewardVariableInt(string sVarName, string sOperator, int nValue, int bParty = FALSE);
+void SetQuestStepPrewardVariableInt(string sVarName, string sComparison, int nValue, int bParty = FALSE);
 
 // ---< SetQuestStepPrewardVariableInt >---
 // Provides a preward allotment for the assigned PC when the active step of the quest
 // currently being defined is started.  This preward will create, modify or delete a specified
 // local variable on the PC object.  This function is considered advance usage and the
 // system README should be consulted before using.
-void SetQuestStepPrewardVariableString(string sVarName, string sOperator, string sValue, int bParty = FALSE);
+void SetQuestStepPrewardVariableString(string sVarName, string sComparison, string sValue, int bParty = FALSE);
 
 // ---< SetQuestStepPrewardMessage >---
 // Provides a preward allotment for the assigned PC when the active step of the quest
@@ -720,14 +711,14 @@ void SetQuestStepRewardReputation(string sFaction, int nChange, int bParty = FAL
 // currently being defined is ended.  This reward will create, modify or delete a specified
 // local variable on the PC object.  This function is considered advance usage and the
 // system README should be consulted before using.
-void SetQuestStepRewardVariableInt(string sVarName, string sOperator, int nValue, int bParty = FALSE);
+void SetQuestStepRewardVariableInt(string sVarName, string sComparison, int nValue, int bParty = FALSE);
 
 // ---< SetQuestStepRewardVariableString >---
 // Provides a reward allotment for the assigned PC when the active step of the quest
 // currently being defined is ended.  This reward will create, modify or delete a specified
 // local variable on the PC object.  This function is considered advance usage and the
 // system README should be consulted before using.
-void SetQuestStepRewardVariableString(string sVarName, string sOperator, string sValue, int bParty = FALSE);
+void SetQuestStepRewardVariableString(string sVarName, string sComparison, string sValue, int bParty = FALSE);
 
 // ---< SetQuestStepRewardFloatingText >---
 // Provides a reward allotment for the assigned PC when the active step of the quest
@@ -806,82 +797,12 @@ void DeleteQuestString(string sQuestTag, string sVarName);
 //                          Private Function Definitions
 // -----------------------------------------------------------------------------
 
+void SetQuestVariable(string sTag, string sVarName, json jValue)
+{
+    quest_AddVariable(sVarName, jValue, "questVariables", sTag);
+}
+
 /*
-string _GetPCQuestData(object oPC, int nQuestID, string sField)
-{
-    string sQuestTag = quest_GetTag(nQuestID);
-    string s = r"
-        SELECT $1
-        FROM quest_pc_data
-        WHERE quest_tag = @tag;
-    ";
-    s = SubstituteSubString(s, "$1", sField);
-    
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@tag", sQuestTag);
-
-    string sResult = SqlStep(sql) ? SqlGetString(sql, 0) : "";
-    if (IsDebugging(DEBUG_LEVEL_DEBUG))
-        HandleSqlDebugging(sql, "SQL:retrieve-field", _i(nQuestID),
-            sField, quest_PCToString(oPC), sResult);
-
-    return sResult;
-}
-
-void _SetPCQuestData(object oPC, int nQuestID, string sField, string sValue)
-{
-    string sResult, sQuestTag = quest_GetTag(nQuestID);
-    string s = r"
-        UPDATE quest_pc_data
-        SET $1 = @value
-        WHERE quest_tag = @tag;
-    ";
-    s = SubstituteSubString(s, "$1", sField);
-
-    sqlquery sql = SqlPrepareQueryObject(oPC, s);
-    SqlBindString(sql, "@value", sValue);
-    SqlBindString(sql, "@tag", sQuestTag);
-    
-    SqlStep(sql);
-
-    if (IsDebugging(DEBUG_LEVEL_DEBUG))
-        HandleSqlDebugging(sql, "SQL:set-field", _i(nQuestID),
-            sField, quest_PCToString(oPC), sValue);
-}
-
-
-string _BuildVariableTag(string sQuestTag, string sType, object oPC, int nStep)
-{
-    string sTag = sQuestTag + ":" + _i(nStep) + ":" + sType;
-    if (oPC == OBJECT_INVALID)
-        return QUEST_VARIABLE + ":" + sTag;
-    else
-        return QUEST_VARIABLE_PC + ":" + sTag + ":" + GetObjectUUID(oPC);
-}
-
-void _SetQuestVariable(string sQuestTag, string sType, string sVarName, string sValue, object oPC = OBJECT_INVALID, int nStep = -1)
-{
-    int nQuestID = GetQuestID(sQuestTag);
-    if (nQuestID == -1 || sVarName == "" || sValue == "" || !HasListItem("INT,STRING", sType))
-        return;
-
-    SetModuleString(sVarName, sValue, _BuildVariableTag(sQuestTag, sType, oPC, nStep));
-}
-
-string _GetQuestVariable(string sQuestTag, string sType, string sVarName, object oPC = OBJECT_INVALID, int nStep = -1, int bDelete = FALSE)
-{
-    int nQuestID = GetQuestID(sQuestTag);
-    if (nQuestID == -1 || sVarName == "" || !HasListItem("INT,STRING", sType))
-        return "";
-
-    string sTag = _BuildVariableTag(sQuestTag, sType, oPC, nStep);
-    string sValue = GetModuleString(sVarName, sTag);
-    if (bDelete)
-        DeleteModuleString(sVarName, sTag);
-
-    return sValue;
-}
-
 void _DeleteQuestVariable(string sQuestTag, string sType, string sVarName, object oPC = OBJECT_INVALID, int nStep = -1)
 {
     int nQuestID = GetQuestID(sQuestTag);
@@ -3255,9 +3176,7 @@ string GetQuestStepObjectiveDescription(int nQuestID, int nObjectiveID)
 
 void SetQuestStepObjectiveDescription(string sDescription)
 {
-    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
-    //int nObjectiveID = GetLocalInt(GetModule(), QUEST_BUILD_OBJECTIVE);
-    //SetQuestString(quest_GetTag(nQuestID), QUEST_DESCRIPTION + _i(nObjectiveID), sDescription);
+    quest_AddVariable("description", JsonString(sDescription), "stepObjectives");
 }
 
 string GetQuestStepObjectiveDescriptor(int nQuestID, int nObjectiveID)
@@ -3267,12 +3186,7 @@ string GetQuestStepObjectiveDescriptor(int nQuestID, int nObjectiveID)
 
 void SetQuestStepObjectiveDescriptor(string sDescriptor)
 {
-    if (sDescriptor == "")
-        return;
-
-    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
-    //int nObjectiveID = GetLocalInt(GetModule(), QUEST_BUILD_OBJECTIVE);
-    //SetQuestString(quest_GetTag(nQuestID), QUEST_DESCRIPTOR + _i(nObjectiveID), sDescriptor);
+    quest_AddVariable("descriptor", JsonString(sDescriptor), "stepObjectives");
 }
 
 string GetQuestStepObjectiveFeedback(int nQuestID, int nObjectiveID)
@@ -3282,206 +3196,383 @@ string GetQuestStepObjectiveFeedback(int nQuestID, int nObjectiveID)
 
 void SetQuestStepObjectiveFeedback(string sFeedback)
 {
-    int nQuestID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
-    //int nObjectiveID = GetLocalInt(GetModule(), QUEST_BUILD_OBJECTIVE);
-    //string sQuestTag = quest_GetTag(nQuestID);
-
-    //SetQuestString(sQuestTag, QUEST_FEEDBACK + _i(nObjectiveID), sFeedback);
+    quest_AddVariable("feedback", JsonString(sFeedback), "stepObjectives");
 }
 
-void SetQuestPrerequisiteAlignment(int nAlignmentAxis, int bNeutral = FALSE)
+void SetQuestPrerequisiteAlignment(int nAlignment, int bNeutral = FALSE)
 {
-    quest_AddPrerequisite(QUEST_VALUE_ALIGNMENT, _i(nAlignmentAxis), _i(bNeutral));
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("alignment"));
+         j = JsonObjectSet(j, "axis", JsonInt(nAlignment));
+         j = JsonObjectSet(j, "neutral", JsonBool(bNeutral));
+         j = JsonObjectSet(j, "op", JsonString(OP_AND));
+    quest_AddPrerequisite(j);
 }
 
-void SetQuestPrerequisiteClass(int nClass, int nLevels = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO)
+void SetQuestPrerequisiteClass(int nClass, int nLevels = 1, string sComparison = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_CLASS, _i(nClass), sOperator + ":" + _i(nLevels));
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("class"));
+         j = JsonObjectSet(j, "class", JsonInt(nClass));
+         j = JsonObjectSet(j, "levels", JsonInt(nLevels));
+         j = JsonObjectSet(j, "comp", JsonString(sComparison));
+         j = JsonObjectSet(j, "op", JsonString(OP_OR));
+    quest_AddPrerequisite(j);     
 }
 
-void SetQuestPrerequisiteGold(int nGold = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO)
+void SetQuestPrerequisiteGold(int nGold = 1, string sComparison = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_GOLD, "", sOperator + ":" + _i(max(0, nGold)));
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("gold"));
+         j = JsonObjectSet(j, "gold", JsonInt(nGold));
+         j = JsonObjectSet(j, "comp", JsonString(sComparison));
+    quest_AddPrerequisite(j);
 }
 
-void SetQuestPrerequisiteItem(string sItemTag, int nQuantity = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO)
+void SetQuestPrerequisiteItem(string sTag, int nQuantity = 1, string sComparison = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_ITEM, sItemTag, sOperator + ":" + _i(nQuantity));
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("item"));
+         j = JsonObjectSet(j, "tag", JsonString(sTag));
+         j = JsonObjectSet(j, "quantity", JsonInt(nQuantity));
+         j = JsonObjectSet(j, "comp", JsonString(sComparison));
+         j = JsonObjectSet(j, "op", JsonString(OP_AND));
+    quest_AddPrerequisite(j);
 }
 
 void SetQuestPrerequisiteLevelMax(int nLevel)
 {
-    quest_AddPrerequisite(QUEST_VALUE_LEVEL_MAX, "", _i(nLevel));
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("level"));
+         j = JsonObjectSet(j, "level", JsonInt(nLevel));
+         j = JsonObjectSet(j, "comp", JsonString(LESS_THAN_OR_EQUAL_TO));
+    quest_AddPrerequisite(j);
 }
 
 void SetQuestPrerequisiteLevelMin(int nLevel)
 {
-    quest_AddPrerequisite(QUEST_VALUE_LEVEL_MIN, "", _i(nLevel));
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("level"));
+         j = JsonObjectSet(j, "level", JsonInt(nLevel));
+         j = JsonObjectSet(j, "comp", JsonString(GREATER_THAN_OR_EQUAL_TO));
+    quest_AddPrerequisite(j);
 }
 
-void SetQuestPrerequisiteQuest(string sQuestTag, int nCompletionCount = 1, string sOperator = GREATER_THAN_OR_EQUAL_TO)
+void SetQuestPrerequisiteQuest(string sTag, int nCompletions = 1, string sComparison = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_QUEST, sQuestTag, sOperator + ":" + _i(nCompletionCount));
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("quest"));
+         j = JsonObjectSet(j, "tag", JsonString(sTag));
+         j = JsonObjectSet(j, "completions", JsonInt(nCompletions));
+         j = JsonObjectSet(j, "comp", JsonString(sComparison));
+         j = JsonObjectSet(j, "op", JsonString(OP_AND));
+    quest_AddPrerequisite(j);
 }
 
-void SetQuestPrerequisiteQuestStep(string sQuestTag, int nStep)
+void SetQuestPrerequisiteQuestStep(string sTag, int nStep, string sComparison = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_QUEST_STEP, sQuestTag, _i(nStep));
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("step"));
+         j = JsonObjectSet(j, "tag", JsonString(sTag));
+         j = JsonObjectSet(j, "step", JsonInt(nStep));
+         j = JsonObjectSet(j, "comp", JsonString(sComparison));
+         j = JsonObjectSet(j, "op", JsonString(OP_AND));
+    quest_AddPrerequisite(j);
 }
 
 void SetQuestPrerequisiteRace(int nRace, int bAllowed = TRUE)
 {
-    quest_AddPrerequisite(QUEST_VALUE_RACE, _i(nRace), _i(bAllowed));
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("race"));
+         j = JsonObjectSet(j, "race", JsonInt(nRace));
+         j = JsonObjectSet(j, "allowed", JsonBool(bAllowed));
+         j = JsonObjectSet(j, "op", JsonString(OP_OR));
+    quest_AddPrerequisite(j);
 }
 
-void SetQuestPrerequisiteXP(int nXP, string sOperator = GREATER_THAN_OR_EQUAL_TO)
+void SetQuestPrerequisiteXP(int nXP, string sComparison = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_XP, "", sOperator + ":" + _i(nXP));
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("xp"));
+         j = JsonObjectSet(j, "xp", JsonInt(nXP));
+         j = JsonObjectSet(j, "comp", JsonString(sComparison));
+    quest_AddPrerequisite(j);
 }
 
-void SetQuestPrerequisiteSkill(int nSkill, int nRank, string sOperator = GREATER_THAN_OR_EQUAL_TO)
+void SetQuestPrerequisiteSkill(int nSkill, int nRank, string sComparison = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_SKILL, _i(nSkill), sOperator + ":" + _i(nRank));
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("skill"));
+         j = JsonObjectSet(j, "skill", JsonInt(nSkill));
+         j = JsonObjectSet(j, "rank", JsonInt(nRank));
+         j = JsonObjectSet(j, "comp", JsonString(sComparison));
+         j = JsonObjectSet(j, "op", JsonString(OP_AND));
+    quest_AddPrerequisite(j);    
 }
 
-void SetQuestPrerequisiteAbility(int nAbility, int nScore, string sOperator = GREATER_THAN_OR_EQUAL_TO)
+void SetQuestPrerequisiteAbility(int nAbility, int nScore, string sComparison = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_ABILITY, _i(nAbility), sOperator + ":" + _i(nScore));
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("ability"));
+         j = JsonObjectSet(j, "ability", JsonInt(nAbility));
+         j = JsonObjectSet(j, "score", JsonInt(nScore));
+         j = JsonObjectSet(j, "comp", JsonString(sComparison));
+         j = JsonObjectSet(j, "op", JsonString(OP_AND));
+    quest_AddPrerequisite(j);
 }
 
-void SetQuestPrerequisiteReputation(string sFaction, int nStanding, string sOperator = GREATER_THAN_OR_EQUAL_TO)
+void SetQuestPrerequisiteReputation(string sFaction, int nStanding, string sComparison = GREATER_THAN_OR_EQUAL_TO)
 {
-    quest_AddPrerequisite(QUEST_VALUE_REPUTATION, sFaction, sOperator + ":" + _i(nStanding));
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("reputation"));
+         j = JsonObjectSet(j, "faction", JsonString(sFaction));
+         j = JsonObjectSet(j, "standing", JsonInt(nStanding));
+         j = JsonObjectSet(j, "comp", JsonString(sComparison));
+         j = JsonObjectSet(j, "op", JsonString(OP_AND));
+    quest_AddPrerequisite(j);
 }
 
-void SetQuestPrerequisiteVariableInt(string sVarName, string sOperator, int nValue)
+void SetQuestPrerequisiteVariableInt(string sVarName, string sComparison, int nValue)
 {
-    quest_AddPrerequisite(QUEST_VALUE_VARIABLE, "INT:" + sVarName, sOperator + ":" + _i(nValue));
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("variable"));
+         j = JsonObjectSet(j, "varname", JsonString(sVarName));
+         j = JsonObjectSet(j, "value", JsonInt(nValue));
+         j = JsonObjectSet(j, "comp", JsonString(sComparison));
+         j = JsonObjectSet(j, "op", JsonString(OP_AND));
+    quest_AddPrerequisite(j);
 }
 
-void SetQuestPrerequisiteVariableString(string sVarName, string sOperator, string sValue)
+void SetQuestPrerequisiteVariableString(string sVarName, string sComparison, string sValue)
 {
-    quest_AddPrerequisite(QUEST_VALUE_VARIABLE, "STRING:" + sVarName, sOperator + ":" + sValue);
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("variable"));
+         j = JsonObjectSet(j, "varname", JsonString(sVarName));
+         j = JsonObjectSet(j, "value", JsonString(sValue));
+         j = JsonObjectSet(j, "comp", JsonString(sComparison));
+         j = JsonObjectSet(j, "op", JsonString(OP_AND));
+    quest_AddPrerequisite(j);
 }
 
-void SetQuestStepObjectiveKill(string sTargetTag, int nValue = 1, int nMax = 0)
+void SetQuestStepObjectiveKill(string sTag, int nValue = 1, int nMax = 0)
 {
-    quest_AddObjective(QUEST_OBJECTIVE_KILL, sTargetTag, nValue, nMax);
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("kill"));
+         j = JsonObjectSet(j, "tag", JsonString(sTag));
+         j = JsonObjectSet(j, "quantity", JsonInt(nValue));
+         j = JsonObjectSet(j, "max", JsonInt(nMax));
+    quest_AddObjective(j);
 }
 
-void SetQuestStepObjectiveGather(string sTargetTag, int nValue = 1, int nMax = 0)
+void SetQuestStepObjectiveGather(string sTag, int nValue = 1, int nMax = 0)
 {
-    quest_AddObjective(QUEST_OBJECTIVE_GATHER, sTargetTag, nValue, nMax);
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("gather"));
+         j = JsonObjectSet(j, "tag", JsonString(sTag));
+         j = JsonObjectSet(j, "quantity", JsonInt(nValue));
+         j = JsonObjectSet(j, "max", JsonInt(nMax));
+    quest_AddObjective(j);
 }
 
-void SetQuestStepObjectiveDeliver(string sTargetTag, string sData, int nValue, int nMax = 0)
+void SetQuestStepObjectiveDeliver(string sTag, string sData, int nValue, int nMax = 0)
 {
-    quest_AddObjective(QUEST_OBJECTIVE_DELIVER, sTargetTag, nValue, nMax, sData);
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("discover"));
+         j = JsonObjectSet(j, "tag", JsonString(sTag));
+         j = JsonObjectSet(j, "quantity", JsonInt(nValue));
+         j = JsonObjectSet(j, "max", JsonInt(nMax));
+         j = JsonObjectSet(j, "destination", JsonString(sData));
+    quest_AddObjective(j);
 }
 
-void SetQuestStepObjectiveDiscover(string sTargetTag, int nValue = 1, int nMax = 0)
+void SetQuestStepObjectiveDiscover(string sTag, int nValue = 1, int nMax = 0)
 {
-    quest_AddObjective(QUEST_OBJECTIVE_DISCOVER, sTargetTag, nValue, nMax);
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("discover"));
+         j = JsonObjectSet(j, "tag", JsonString(sTag));
+         j = JsonObjectSet(j, "quantity", JsonInt(nValue));
+         j = JsonObjectSet(j, "max", JsonInt(nMax));
+    quest_AddObjective(j);
 }
 
-void SetQuestStepObjectiveSpeak(string sTargetTag, int nValue = 1, int nMax = 0)
+void SetQuestStepObjectiveSpeak(string sTag, int nValue = 1, int nMax = 0)
 {
-    quest_AddObjective(QUEST_OBJECTIVE_SPEAK, sTargetTag, nValue, nMax);
+    json j = JsonObjectSet(JSON_OBJECT, "type", JsonString("speak"));
+         j = JsonObjectSet(j, "tag", JsonString(sTag));
+         j = JsonObjectSet(j, "quantity", JsonInt(nValue));
+         j = JsonObjectSet(j, "max", JsonInt(nMax));
+    quest_AddObjective(j);
 }
 
-void SetQuestStepPrewardAlignment(int nAlignmentAxis, int nValue, int bParty = FALSE)
+void SetQuestStepPrewardAlignment(int nAxis, int nValue, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_ALIGNMENT, _i(nAlignmentAxis), _i(nValue), bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("preward"));
+         j = JsonObjectSet(j, "type", JsonString("alignment"));
+         j = JsonObjectSet(j, "axis", JsonInt(nAxis));
+         j = JsonObjectSet(j, "value", JsonInt(nValue));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
 void SetQuestStepPrewardGold(int nGold, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_GOLD, "", _i(nGold), bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("preward"));
+         j = JsonObjectSet(j, "type", JsonString("gold"));
+         j = JsonObjectSet(j, "gold", JsonInt(nGold));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
 void SetQuestStepPrewardItem(string sResref, int nQuantity, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_ITEM, sResref, _i(nQuantity), bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("preward"));
+         j = JsonObjectSet(j, "type", JsonString("item"));
+         j = JsonObjectSet(j, "resref", JsonString(sResref));
+         j = JsonObjectSet(j, "quantity", JsonInt(nQuantity));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
 void SetQuestStepPrewardXP(int nXP, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_XP, "", _i(nXP), bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("preward"));
+         j = JsonObjectSet(j, "type", JsonString("xp"));
+         j = JsonObjectSet(j, "xp", JsonInt(nXP));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
 void SetQuestStepPrewardMessage(string sMessage, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_MESSAGE, "", sMessage, bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("preward"));
+         j = JsonObjectSet(j, "type", JsonString("message"));
+         j = JsonObjectSet(j, "message", JsonString(sMessage));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
 void SetQuestStepPrewardFloatingText(string sText, int bPartyOnly = FALSE, int bChatDisplay = FALSE, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_FLOATINGTEXT, _i(bPartyOnly) + ":" + _i(bChatDisplay), sText, bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("preward"));
+         j = JsonObjectSet(j, "type", JsonString("float"));
+         j = JsonObjectSet(j, "text", JsonString(sText));
+         j = JsonObjectSet(j, "partyOnly", JsonBool(bPartyOnly));
+         j = JsonObjectSet(j, "chatDisplay", JsonBool(bChatDisplay));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
-void SetQuestStepPrewardReputation(string sFaction, int nChange, int bParty = FALSE)
+void SetQuestStepPrewardReputation(string sFaction, int nValue, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_REPUTATION, sFaction, _i(nChange), bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("preward"));
+         j = JsonObjectSet(j, "type", JsonString("reputation"));
+         j = JsonObjectSet(j, "faction", JsonString(sFaction));
+         j = JsonObjectSet(j, "value", JsonInt(nValue));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
-void SetQuestStepPrewardVariableInt(string sVarName, string sOperator, int nValue, int bParty = FALSE)
+void SetQuestStepPrewardVariableInt(string sVarName, string sComparison, int nValue, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_VARIABLE, "INT:" + sVarName, sOperator + ":" + _i(nValue), bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("preward"));
+         j = JsonObjectSet(j, "type", JsonString("variable"));
+         j = JsonObjectSet(j, "varname", JsonString(sVarName));
+         j = JsonObjectSet(j, "comp", JsonString(sComparison));
+         j = JsonObjectSet(j, "value", JsonInt(nValue));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
-void SetQuestStepPrewardVariableString(string sVarName, string sOperator, string sValue, int bParty = FALSE)
+void SetQuestStepPrewardVariableString(string sVarName, string sComparison, string sValue, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_PREWARD, QUEST_VALUE_VARIABLE, "STRING:" + sVarName, sOperator + ":" + sValue, bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("preward"));
+         j = JsonObjectSet(j, "type", JsonString("variable"));
+         j = JsonObjectSet(j, "varname", JsonString(sVarName));
+         j = JsonObjectSet(j, "comp", JsonString(sComparison));
+         j = JsonObjectSet(j, "value", JsonString(sValue));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
-void SetQuestStepRewardAlignment(int nAlignmentAxis, int nValue, int bParty = FALSE)
+void SetQuestStepRewardAlignment(int nAxis, int nValue, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_ALIGNMENT, _i(nAlignmentAxis), _i(nValue), bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("reward"));
+         j = JsonObjectSet(j, "type", JsonString("alignment"));
+         j = JsonObjectSet(j, "axis", JsonInt(nAxis));
+         j = JsonObjectSet(j, "value", JsonInt(nValue));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
 void SetQuestStepRewardGold(int nGold, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_GOLD, "", _i(nGold), bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("reward"));
+         j = JsonObjectSet(j, "type", JsonString("gold"));
+         j = JsonObjectSet(j, "gold", JsonInt(nGold));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
 void SetQuestStepRewardItem(string sResref, int nQuantity = 1, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_ITEM, sResref, _i(nQuantity), bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("reward"));
+         j = JsonObjectSet(j, "type", JsonString("item"));
+         j = JsonObjectSet(j, "resref", JsonString(sResref));
+         j = JsonObjectSet(j, "quantity", JsonInt(nQuantity));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
-void SetQuestStepRewardQuest(string sQuestTag, int bAssign = TRUE, int bParty = FALSE)
+void SetQuestStepRewardQuest(string sTag, int bAssign = TRUE, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_QUEST, sQuestTag, _i(bAssign), bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("reward"));
+         j = JsonObjectSet(j, "type", JsonString("quest"));
+         j = JsonObjectSet(j, "tag", JsonString(sTag));
+         j = JsonObjectSet(j, "assign", JsonBool(bAssign));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
 void SetQuestStepRewardXP(int nXP, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_XP, "", _i(nXP), bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("reward"));
+         j = JsonObjectSet(j, "type", JsonString("xp"));
+         j = JsonObjectSet(j, "xp", JsonInt(nXP));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
 void SetQuestStepRewardMessage(string sMessage, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_MESSAGE, "", sMessage, bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("reward"));
+         j = JsonObjectSet(j, "type", JsonString("message"));
+         j = JsonObjectSet(j, "message", JsonString(sMessage));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
-void SetQuestStepRewardReputation(string sFaction, int nChange, int bParty = FALSE)
+void SetQuestStepRewardReputation(string sFaction, int nValue, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_REPUTATION, sFaction, _i(nChange), bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("reward"));
+         j = JsonObjectSet(j, "type", JsonString("reputation"));
+         j = JsonObjectSet(j, "faction", JsonString(sFaction));
+         j = JsonObjectSet(j, "value", JsonInt(nValue));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
-void SetQuestStepRewardVariableInt(string sVarName, string sOperator, int nValue, int bParty = FALSE)
+void SetQuestStepRewardVariableInt(string sVarName, string sComparison, int nValue, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_VARIABLE, "INT:" + sVarName, sOperator + ":" + _i(nValue), bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("reward"));
+         j = JsonObjectSet(j, "type", JsonString("variable"));
+         j = JsonObjectSet(j, "varname", JsonString(sVarName));
+         j = JsonObjectSet(j, "comp", JsonString(sComparison));
+         j = JsonObjectSet(j, "value", JsonInt(nValue));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
-void SetQuestStepRewardVariableString(string sVarName, string sOperator, string sValue, int bParty = FALSE)
+void SetQuestStepRewardVariableString(string sVarName, string sComparison, string sValue, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_VARIABLE,"STRING:" + sVarName, sOperator + ":" + sValue, bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("reward"));
+         j = JsonObjectSet(j, "type", JsonString("variable"));
+         j = JsonObjectSet(j, "varname", JsonString(sVarName));
+         j = JsonObjectSet(j, "comp", JsonString(sComparison));
+         j = JsonObjectSet(j, "value", JsonString(sValue));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
 void SetQuestStepRewardFloatingText(string sText, int bPartyOnly = FALSE, int bChatDisplay = FALSE, int bParty = FALSE)
 {
-    quest_AddReward(QUEST_CATEGORY_REWARD, QUEST_VALUE_FLOATINGTEXT, _i(bPartyOnly) + ":" + _i(bChatDisplay), sText, bParty);
+    json j = JsonObjectSet(JSON_OBJECT, "category", JsonString("reward"));
+         j = JsonObjectSet(j, "type", JsonString("float"));
+         j = JsonObjectSet(j, "text", JsonString(sText));
+         j = JsonObjectSet(j, "partyOnly", JsonBool(bPartyOnly));
+         j = JsonObjectSet(j, "chatDisplay", JsonBool(bChatDisplay));
+         j = JsonObjectSet(j, "party", JsonBool(bParty));
+    quest_AddReward(j);
 }
 
 int AddQuestResolutionSuccess(int nStep = -1)
