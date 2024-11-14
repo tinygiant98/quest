@@ -55,35 +55,31 @@ json quest_GetSchemaTemplate(string sPath = "", int bIncludeItemTemplates = FALS
             ),
             schema_defaults AS (
                 SELECT t.*,
-                    CASE
-                        WHEN t.parent IS NULL THEN ''
-                        ELSE
-                            CASE
-                                WHEN json_extract(t.value, '$.type') IS NULL THEN
-                                    COALESCE(json_extract(t.value, '$.fields'), t.value)
-                                ELSE
-                                    CASE
-                                        WHEN json_extract(t.value, '$.default') IS NOT NULL THEN
-                                            CASE json_extract(t.value, '$.type')
-                                                WHEN 'string' THEN json_quote(json_extract(t.value, '$.default'))
-                                                ELSE json_extract(t.value, '$.default')
-                                            END
-                                        ELSE
-                                            CASE json_extract(t.value, '$.type')
-                                                WHEN 'integer' THEN 0
-                                                WHEN 'float' THEN 0.0
-                                                WHEN 'string' THEN json_quote('')
-                                                WHEN 'boolean' THEN false
-                                                WHEN 'array' THEN
-                                                    IIF(@includeItemTemplates = 1,
-                                                        json_array(json_extract(@itemTemplates, '$.' || SUBSTR(json_extract(t.value, '$.items.$ref'), 8))),
-                                                        json_array()
-                                                    )
-                                                WHEN 'object' THEN 
-                                                    COALESCE(json_extract(t.value, '$.fields'), json_object())
-                                            END
-                                    END
-                            END
+					CASE
+						WHEN json_extract(t.value, '$.type') IS NULL THEN
+							COALESCE(json_extract(t.value, '$.fields'), t.value)
+						ELSE
+							CASE
+								WHEN json_extract(t.value, '$.default') IS NOT NULL THEN
+									CASE json_extract(t.value, '$.type')
+										WHEN 'string' THEN json_quote(json_extract(t.value, '$.default'))
+										ELSE json_extract(t.value, '$.default')
+									END
+								ELSE
+									CASE json_extract(t.value, '$.type')
+										WHEN 'integer' THEN 0
+										WHEN 'float' THEN 0.0
+										WHEN 'string' THEN json_quote('')
+										WHEN 'boolean' THEN false
+										WHEN 'array' THEN
+											IIF(@includeItemTemplates = 1,
+												json_array(json_extract(@itemTemplates, '$.' || SUBSTR(json_extract(t.value, '$.items.$ref'), 8))),
+												json_array()
+											)
+										WHEN 'object' THEN 
+											COALESCE(json_extract(t.value, '$.fields'), json_object())
+									END
+							END
                     END AS new_value,
                     replace(t.fullkey, '.fields', '') AS new_fullkey,
                     ROW_NUMBER() OVER (ORDER BY parent, id) AS row_num
@@ -91,7 +87,7 @@ json quest_GetSchemaTemplate(string sPath = "", int bIncludeItemTemplates = FALS
                 ORDER BY parent, id
             ),
             schema_folded AS (
-                SELECT row_num, json_object() AS result
+                SELECT row_num, new_value AS result
                     FROM schema_defaults
                     WHERE row_num = 1
                 
@@ -106,10 +102,11 @@ json quest_GetSchemaTemplate(string sPath = "", int bIncludeItemTemplates = FALS
         FROM schema_folded
         WHERE row_num = (SELECT MAX(row_num) FROM schema_folded);
     ";
+
     sqlquery q = quest_PrepareQuery(s);
 
     json jExpanded = GetLocalJson(GetModule(), "QUEST_SCHEMA_DEFS_EXPANDED");
-    if (bIncludeItemTemplates == TRUE && jExpanded == JSON_NULL)
+    if (bForce || (bIncludeItemTemplates == TRUE && jExpanded == JSON_NULL))
     {
         SqlBindJson  (q, "@schema", quest_GetSystemSchema(bForce));
         SqlBindString(q, "@path", "defs");
@@ -125,8 +122,9 @@ json quest_GetSchemaTemplate(string sPath = "", int bIncludeItemTemplates = FALS
         SqlBindJson  (q, "@itemTemplates", jCompact);
 
         jExpanded = SqlStep(q) ? SqlGetJson(q, 0) : JSON_NULL;
-        SetLocalJson(GetModule(), "QUEST_SCHEMA_DEFS_EXPANDED", jExpanded);
         SqlResetQuery(q, TRUE);
+
+        SetLocalJson(GetModule(), "QUEST_SCHEMA_DEFS_EXPANDED", jExpanded);
     }
 
     SqlBindJson  (q, "@schema", quest_GetSystemSchema(bForce));
@@ -160,6 +158,8 @@ json quest_SplitPath(string sPath)
 /// @param sKey The key to search for.
 /// @param sTemplate The json object to search for sKey.  If missing,
 ///     the full system schema will be searched.
+/// @note If an array is present in the resultant path, the array index
+///     will be replaced with a reference to the last element in the array.
 string quest_GetPath(string sKey, json jTemplate = JSON_NULL)
 {
     string s = r"
@@ -414,6 +414,29 @@ void quest_OnClientEnter()
     // check pc quest versions against module versions and see what to do...
 }
 
+/// @private Sorts array found at sKey in j by sSortKey.
+/// @returns The sorted array, or an empty array on error.
+json quest_SortArray(json j, string sKey, string sSortKey)
+{
+    string sPath = quest_GetPath(sKey, j);
+    string s = r"
+        SELECT json_group_array(value) AS sorted_array
+        FROM (
+            SELECT value
+            FROM json_each(@object, @path)
+            ORDER BY json_extract(value, @sortKey)
+        );
+    ";
+    sqlquery q = quest_PrepareQuery(s);
+    SqlBindString(q, "@path", sPath);
+    SqlBindString(q, "@sortKey", "$." + sSortKey);
+    SqlBindJson(q, "@object", j);
+
+    return SqlStep(q) ? SqlGetJson(q, 0) : JSON_ARRAY;
+}
+
+/// @private Retrieves the entire quest_data fields from either
+///     the `quest_module` or `quest_player` tables.
 json quest_GetData(string sTag, object oPC = OBJECT_INVALID)
 {
     string s = r"
@@ -440,6 +463,14 @@ int quest_CountChanges()
     return SqlStep(q) ? SqlGetInt(q, 0) : 0;
 }
 
+/// @private Determine the index of an array element given a specified
+///     key and value within that array.
+/// @param sKey The key containing an array-unique value.
+/// @param jValue The value to search sKey for.
+/// @param sTag The quest to search for the array in.  If missing, the
+///     query currently being defined will be used.
+/// @param oPC The player in question.  If missing, the module quest data
+///     will be used as the source.
 int quest_GetArrayIndex(string sKey, json jValue, string sTag = "", object oPC = OBJECT_INVALID)
 {   
     sTag = (sTag == "" ? quest_GetBuildQuest() : sTag);
@@ -497,7 +528,7 @@ int quest_GetArrayIndex(string sKey, json jValue, string sTag = "", object oPC =
     return SqlStep(q) ? SqlGetInt(q, 0) : -1;
 }
 
-/// @private Determine is a specific quest exists.
+/// @private Determine if a specific quest exists.
 /// @param sTag The tag of the quest to search for.
 /// @warning This function does not determine if quest data was
 ///     populated, only if sTag exists in the `quest_module` table.
@@ -608,7 +639,7 @@ int quest_SetProperty(string sKey, json jValue, string sTag = "", int nIndex = -
     sTag = (sTag == "" ? quest_GetBuildQuest() : sTag);
     if (sTag == "" || !quest_Exists(sTag))
     {
-        QuestError("Quest '" + sTag + "' does not exist; aborting");
+        QuestError("Quest '" + sTag + "' does not exist; aborting", __FUNCTION__);
         return FALSE;
     }
 
@@ -699,7 +730,7 @@ int quest_SetProperty(string sKey, json jValue, string sTag = "", int nIndex = -
     ///     via a table trigger as defined in `quest_CreateTables()`.  The incrementation
     ///     occurs after the step is added and can't be returned with a RETURNING
     ///     statement, so we need to retrieve the value manually.
-    /// @note Since we should only have sKey == 'steps' when adding a step, the
+    /// @note Since we should only have sKey == 'questSteps' when adding a step, the
     ///     index can safely be ignored for retrieving the step ordinal.
     if (sKey == "questSteps")
         return JsonGetInt(quest_GetProperty(QUEST_KEY_STEP_ORDINAL, sTag));
@@ -707,7 +738,7 @@ int quest_SetProperty(string sKey, json jValue, string sTag = "", int nIndex = -
     return TRUE;
 }
 
-/// @private Retrieve a json object containing the default quest-level data,
+/// @private Retrieve a json object containing the default schema-level data,
 ///     including default settings.  This object is sourced from the quest
 ///     system schema.
 /// @param sPath The path to the schema object to retrieve.  If missing, the
@@ -719,22 +750,31 @@ json quest_GetTemplate(string sPath = "", int bIncludeItemTemplates = FALSE)
     return quest_GetSchemaTemplate(sPath, bIncludeItemTemplates);
 }
 
-/// @private Convenience function for retrieving a quest template.
-json quest_GetQuestTemplate(int bIncludeItemTemplates = FALSE)
+/// @private Convenience function for retrieving a quest template for inclusion
+///     in `quest_module`.
+json quest_GetModuleTemplate(int bIncludeItemTemplates = FALSE)
 { 
     return quest_GetTemplate("module", bIncludeItemTemplates);
 }
 
+/// @private Convenience function for retrieving a quest template for inclusion
+///     in `quest_player`.
+json quest_GetPlayerTemplate(int bIncludeItemTemplates = FALSE)
+{
+    return quest_GetTemplate("player", bIncludeItemTemplates);
+}
+
 /// @private Convenience function for retrieving an item template.
-/// @param sKey The key of the item object to retrieve.
+/// @param sKey The key of the item object to retrieve.  If missing, all defs
+///     will be returned as a single object.
 json quest_GetItemTemplate(string sKey, int bIncludeItemTemplates = FALSE)
 {
-    return quest_GetTemplate("defs." + sKey, bIncludeItemTemplates);
+    return quest_GetTemplate("defs" + (sKey == "" ? "" : "." + sKey), bIncludeItemTemplates);
 }
 
 /// @private Add a quest to the `quest_module` table.  This is the beginning of the quest
 ///     definition process.
-/// @param sTag The tag of the quest being added.  Must be unique.
+/// @param sTag The tag of the quest being added.  Must be module-unique.
 /// @param sTitle The title of the associated journal entry.
 /// @returns TRUE/FALSE whether the quest was successfully added.
 int quest_AddQuest(string sTag, string sTitle = "")
@@ -859,16 +899,18 @@ int quest_AddVariable(string sKey, json jValue, string sPath = "questVariables",
 /// @private Retrieve the script associated with a specific event.
 /// @param sScriptEvent QUEST_EVENT_ON_*.
 /// @note If no script is set for sScriptEvent, the system will attempt
-///     to find a script set for all events in the script.onAll key.
+///     to find a script set for all events in the scripts.onAll key.
 ///     If neither script is set, an empty string is returned.
-string quest_GetScript(string sScriptEvent)
+string quest_GetScript(string sScriptEvent, string sTag = "")
 {
+    sTag = (sTag == "" ? quest_GetBuildQuest() : sTag);
     string s = r"
         SELECT COALESCE(
             json_extract(quest_data, '$.questScripts.$1'), 
             json_extract(quest_data, '$.questScripts.onAll')
         )
-        FROM quest_module;
+        FROM quest_module
+        WHERE quest_tag = @sTag;
     ";
     s = SubstituteSubString(s, "$1", sScriptEvent);
     sqlquery q = quest_PrepareQuery(s);
@@ -876,44 +918,291 @@ string quest_GetScript(string sScriptEvent)
     return SqlStep(q) ? SqlGetString(q, 0) : "";
 }
 
+/// @private Get the total individual or party item count for a specific item tag.
+/// @note Accomplishing this task via sqlite takes approximately 400 times longer!
+int quest_GetItemCount(object oPC, string sTag, int bParty = FALSE)
+{
+    object o = GetFirstFactionMember(oPC, TRUE);
+    int n; while (GetIsObjectValid(o))
+    {
+        if (bParty || o == oPC)
+        {
+            object oItem = GetFirstItemInInventory(o);
+            while (GetIsObjectValid(oItem))
+            {
+                if (GetStringLowerCase(GetTag(oItem)) == GetStringLowerCase(sTag))
+                    n++;
+                oItem = GetNextItemInInventory(o);
+            }
+        }
+        o = GetNextFactionMember(oPC, TRUE);
+    }
+
+    return n;
+}
+
+/// @private Retrieve either a unix timestamp or a duration.
+/// @note If passed, t should generally be a time value in the past.  If t is
+///     in the future, the result of this function will be negative.
+int quest_Time(int t = 0)
+{
+    sqlquery q = quest_PrepareQuery("SELECT strftime('%s', 'now')");
+    return (SqlStep(q) ? SqlGetInt(q, 0) : 0) - t;
+}
+
+/// @private Evaluate a simple conditional relationship between
+///     nBase and nCompare.
+int quest_EvaluateCondition(int nBase, int nCompare, string sOp)
+{
+    if ((sOp == "=" || sOp == "==") && nBase == nCompare)
+        return TRUE;
+    else if (sOp == ">" && nBase > nCompare)
+        return TRUE;
+    else if (sOp == ">=" && nBase >= nCompare)
+        return TRUE;
+    else if (sOp == "<" && nBase < nCompare)
+        return TRUE;
+    else if (sOp == "<=" && nBase <= nCompare)
+        return TRUE;
+    else if (sOp == "!=" && nBase != nCompare)
+        return TRUE;
+    else
+        return FALSE;
+}
+
+/*
+// Awards quest sTag step nStep [p]rewards.  The awards type will be limited by nAwardType and can be
+// provided to the entire party with bParty.  nCategoryType is a QUEST_CATEGORY_* constant.
+void quest_DistributeAllotments(object oPC, string sTag, int nStep, string sType, int nType = AWARD_ALL)
+{
+    int nValueType, nAllotmentCount, bParty;
+    string sKey, sValue, sData;
+
+    QuestDebug("Awarding quest step allotments for " + quest_QuestToString(sTag) +
+        " " + quest_StepToString(nStep) + " of type " + CategoryTypeToString(sCategory) +
+        " to " + quest_PCToString(oPC));
+
+    json jAllotments = quest_GetProperty("stepAwards", sTag, nStep);
 
 
+    sqlquery sPairs = GetQuestStepPropertySets(nQuestID, nStep, nCategoryType);
+    while (SqlStep(sPairs))
+    {
+        nAllotmentCount++;
+        nValueType = SqlGetInt(sPairs, 0);
+        sKey = SqlGetString(sPairs, 1);
+        sValue = SqlGetString(sPairs, 2);
+        sData = SqlGetString(sPairs, 3);
+        bParty = SqlGetInt(sPairs, 4);
 
+        QuestDebug("  " + HexColorString("Allotment #" + _i(nAllotmentCount), COLOR_CYAN) + " " +
+            "  Value Type -> " + ColorValue(ValueTypeToString(nValueType)));            
 
+        switch (nValueType)
+        {
+            case QUEST_VALUE_MESSAGE:
+            {
+                if ((nAwardType & AWARD_MESSAGE) || nAwardType == AWARD_ALL)
+                {
+                    string sMessage;
 
+                    // If this is a random quest, we need to override the
+                    // preward message
+                    if (StringToInt("";//_GetQuestStepData(nQuestID, nStep, QUEST_STEP_RANDOM_OBJECTIVES)) != -1 &&
+                        nCategoryType == QUEST_CATEGORY_PREWARD)
+                    {
+                        string sQuestTag = quest_GetTag(nQuestID);
+                        string sCustomMessage = GetPCQuestString(oPC, sQuestTag, QUEST_CUSTOM_MESSAGE, nStep);
+                        if (sCustomMessage == "")
+                            QuestDebug("Custom preward message for " + quest_QuestToString(nQuestID) + " " + quest_StepToString(nStep) +
+                                " not created; there is no preward message to build from");
+                        else
+                        {
+                            sMessage = sCustomMessage;
+                            QuestDebug("Overriding standard preward message for " + quest_QuestToString(nQuestID) + " " +
+                                quest_StepToString(nStep) + " with customized preward message for random quest creation: " +
+                                ColorValue(sMessage));
+                        }                            
+                    }
 
+                    if (sMessage == "")
+                        sMessage = sValue;
+                    
+                    sMessage = HexColorString(sMessage, COLOR_CYAN);
+                    SendMessageToPC(oPC, sMessage);
+                }
+                continue;
+            }
+            case QUEST_VALUE_FLOATINGTEXT:
+            {
+                if ((nAwardType & AWARD_FLOATINGTEXT || nAwardType == AWARD_ALL))
+                {
+                    string sMessage = sValue;
+                    int nPartyOnly = StringToInt(quest_GetKey(sKey));
+                    int nChatDisplay = StringToInt(quest_GetValue(sKey));
+                    _AwardFloatingText(oPC, sMessage, nPartyOnly, nChatDisplay, bParty);
+                }
+                continue;
+            }
+            case QUEST_VALUE_GOLD:
+            {
+                if ((nAwardType & AWARD_GOLD) || nAwardType == AWARD_ALL)
+                {
+                    int nGold = StringToInt(sValue);
+                    _AwardGold(oPC, nGold, bParty);
+                }
+                continue;
+            }
+            case QUEST_VALUE_XP:
+            {
+                if ((nAwardType & AWARD_XP) || nAwardType == AWARD_ALL)
+                {
+                    int nXP = StringToInt(sValue);
+                    _AwardXP(oPC, nXP, bParty);
+                }
+                continue;
+            }
+            case QUEST_VALUE_ALIGNMENT:
+            {
+                if ((nAwardType & AWARD_ALIGNMENT) || nAwardType == AWARD_ALL)
+                {
+                    int nAxis = StringToInt(sKey);
+                    int nShift = StringToInt(sValue);
+                    _AwardAlignment(oPC, nAxis, nShift, bParty);
+                }
+                continue;
+            }  
+            case QUEST_VALUE_ITEM:
+            {
+                if ((nAwardType & AWARD_ITEM) || nAwardType == AWARD_ALL)
+                {
+                    string sResref = sKey;     
+                    int nQuantity = StringToInt(sValue);
+                    _AwardItem(oPC, sResref, nQuantity, bParty);
+                }
+                continue;
+            }
+            case QUEST_VALUE_QUEST:
+            {
+                if ((nAwardType & AWARD_QUEST) || nAwardType == AWARD_ALL)
+                {
+                    int nValue = StringToInt(sValue);
+                    int nFlag = StringToInt(sValue);
+                    _AwardQuest(oPC, nValue, nFlag, bParty);
+                }
+                continue;
+            }
+            case QUEST_VALUE_REPUTATION:
+            {
+                if ((nAwardType & AWARD_REPUTATION) || nAwardType == AWARD_ALL)
+                {
+                    string sFaction = sKey;
+                    int nChange = StringToInt(sValue);
 
+                    object oFactionMember = GetObjectByTag(sFaction);
+                    AdjustReputation(oPC, oFactionMember, nChange);
+                }
+                continue;
+            }
+            case QUEST_VALUE_VARIABLE:
+            {
+                if ((nAwardType & AWARD_VARIABLE || nAwardType == AWARD_ALL))
+                {
+                    string sType = quest_GetKey(sKey);
+                    string sVarName = quest_GetValue(sKey);
+                    string sOperator = quest_GetKey(sValue);
+                    sValue = quest_GetValue(sValue);
 
+                    if (sType == "STRING")
+                    {
+                        string sPC = GetLocalString(oPC, sVarName);
+
+                        if (sOperator == "=")
+                            sPC = sValue;
+                        else if (sOperator == "+")
+                            sPC += sValue;
+                        
+                        if (sOperator != "x" && sOperator != "X")
+                        {
+                            QuestDebug("Awarding variable " + sVarName + " with value " + sPC +
+                                "to " + quest_PCToString(oPC));      
+                            SetLocalString(oPC, sVarName, sPC);
+                        }
+                        else
+                        {
+                            QuestDebug("Deleting variable " + sVarName + " from " +
+                                quest_PCToString(oPC));
+                            DeleteLocalString(oPC, sVarName);
+                        }
+                    }
+                    else if (sType == "INT")
+                    {
+                        int nPC = GetLocalInt(oPC, sVarName);
+                        int nValue = StringToInt(sValue);
+
+                        if (sOperator == "=")
+                            nPC = nValue;
+                        else if (sOperator == "+")
+                            nPC += nValue;
+                        else if (sOperator == "-")
+                            nPC -= nValue;
+                        else if (sOperator == "++")
+                            nPC++;
+                        else if (sOperator == "--")
+                            nPC--;
+                        else if (sOperator == "*")
+                            nPC *= nValue;
+                        else if (sOperator == "/")
+                            nPC /= nValue;
+                        else if (sOperator == "%")
+                            nPC %= nValue;
+                        else if (sOperator == "|")
+                            nPC |= nValue;
+                        else if (sOperator == "&")
+                            nPC = nPC & nValue;
+                        else if (sOperator == "~")
+                            nPC = ~nPC;          
+                        else if (sOperator == "^")
+                            nPC = nPC ^ nValue;
+                        else if (sOperator == ">>")
+                            nPC = nPC >> nValue;
+                        else if (sOperator == "<<")
+                            nPC = nPC << nValue;
+                        else if (sOperator == ">>>")
+                            nPC = nPC >>> nValue;
+                        
+                        if (sOperator != "x" && sOperator != "X")
+                            SetLocalInt(oPC, sVarName, nPC);
+                        else
+                            DeleteLocalInt(oPC, sVarName);
+                    }
+                }
+            }
+        }
+    }
+
+    if (IsDebugging(DEBUG_LEVEL_DEBUG))
+    {
+        QuestDebug("Found " + _i(nAllotmentCount) + " allotments for " + quest_QuestToString(nQuestID) + " " + quest_StepToString(nStep) +
+            (nAllotmentCount > 0 ?          
+                "\n  Category -> " + ColorValue(CategoryTypeToString(nCategoryType)) +
+                "\n  Award -> " + ColorValue(AwardTypeToString(nAwardType)) : ""));
+        
+        if (nAllotmentCount > 0)
+            QuestDebug("Awarded " + _i(nAllotmentCount) + " allotments to " + quest_PCToString(oPC) + (bParty ? " and party members" : ""));
+        else
+            QuestDebug("No allotments to award, no action taken");
+    }
+}
+*/
 
 
 
 /*
-
-
-
-int GetLastInsertedID(string sTable)
-{
-    string s = r"
-        SELECT seq 
-        FROM sqlite_sequence 
-        WHERE name = @sTable;
-    ";
-    sqlquery sql = quest_PrepareQuery(s);
-    SqlBindString(sql, "@sTable", sTable);
-    
-    return SqlStep(sql) ? SqlGetInt(sql, 0) : -1;
-}
-
 string GetQuestTimeStamp()
 {
     sqlquery sql = quest_PrepareQuery("SELECT CURRENT_TIMESTAMP;");
     return SqlStep(sql) ? SqlGetString(sql, 0) : "";
-}
-
-int GetQuestUnixTimeStamp()
-{
-    sqlquery sql = quest_PrepareQuery("SELECT strftime('%s', 'now')");
-    return SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
 }
 
 string GetGreaterTimeStamp(string sTime1, string sTime2)
@@ -1060,136 +1349,6 @@ int quest_DeleteQuest(string sTag)
     return nCount;
 }
 
-
-
-/// @private Determine if sField exists in sTable.
-int quest_FieldExists(string sTable, string sField)
-{
-    string s = r"
-        SELECT COUNT(*)
-        FROM pragma_table_info('$1')
-        WHERE name = @sField;
-    ";
-    s = SubstituteSubString(s, "$1", sTable);
-    sqlquery sql = quest_PrepareQuery(s);
-    SqlBindString(sql, "@sField", sField);
-
-    return SqlStep(sql) ? SqlGetInt(sql, 0) : FALSE;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/// @private Sets quest data into the `quest_quests` table.
-/// @param sField Field/column to set.
-/// @param sValue Value to set sField to.
-/// @param nID -1 if used during the quest definition process,
-///     otherwise the unique record ID of the quest.
-/// @param sTable Table to retrieve quest data from.
-void quest_SetData(string sField, string sValue, int nID = -1, string sTable = "quest_quests")
-{
-    if (nID == -1)
-        nID = GetLocalInt(GetModule(), QUEST_BUILD_QUEST);
-
-    if (nID == 0)
-    {
-        QuestError("quest_SetQuestData():  Attempted to set quest data for invalid quest" +
-            "\n  Quest ID -> " + ColorValue(_i(nID)) +
-            "\n  Table    -> " + Colorvalue(sTable) +
-            "\n  Field    -> " + ColorValue(sField) +
-            "\n  Value    -> " + ColorValue(sValue));
-        return;
-    }
-
-    if (!quest_FieldExists(sTable, sField))
-    {
-        QuestError("quest_SetQuestData();  Attempted to set quest data for invalid field" +
-            "\n  Quest ID -> " + ColorValue(_i(nID)) +
-            "\n  Table    -> " + Colorvalue(sTable) +
-            "\n  Field    -> " + ColorValue(sField) +
-            "\n  Value    -> " + ColorValue(sValue));
-        return;
-    }
-
-    json j = JsonArrayInsert(JSON_ARRAY, JsonString(sTable));
-    JsonArrayInsertInplace(j, JsonString(sField));
-
-    string s = r"
-        UPDATE $1
-        SET $2 = @sValue
-        WHERE id = @nID;
-    ";
-    s = SubstituteString(s, j);
-
-    sqlquery sql = quest_PrepareQuery(s);
-    SqlBindString(sql, "@sValue", sValue);
-    SqlBindInt(sql, "@nID", nID);
-    SqlStep(sql);
-
-    if (IsDebugging(DEBUG_LEVEL_DEBUG))
-        HandleSqlDebugging(sql, "SQL:set-field", _i(nQuestID), sField, "module", sValue);
-}
-
-/// @private Retrieve quest-specific data.
-/// @param sTag Unique quest tag.
-/// @param sField Field/column to retrive quest data from.
-/// @param sTable Table to retrieve quest data from.
-/// @returns Requested quest data as a string.
-string quest_GetData(string sTag, string sField, string sTable = "quest_quests")
-{
-    int nID = quest_GetID(sTag);
-    if (nID == -1)
-    {
-        QuestError("quest_GetQuestData():  Attempted to get quest data for invalid quest" +
-            "\n  Quest ID -> " + ColorValue(_i(nID)) +
-            "\n  Field    -> " + ColorValue(sField));
-        return "";
-    }
-
-    if (!quest_FieldExists(sTable, sField))
-    {
-        QuestError("quest_GetQuestData();  Attempted to get quest data for invalid field" +
-            "\n  Quest ID -> " + ColorValue(_i(nID)) +
-            "\n  Field    -> " + ColorValue(sField));
-        return "";
-    }
-
-    json j = JsonArrayInsert(JSON_ARRAY, JsonString(sField));
-    JsonArrayInsertInplace(j, JsonString(sTable));
-
-    string s = r"
-        SELECT $1
-        FROM $2
-        WHERE id = @nID;
-    ";
-    s = SubstituteString(s, j);
-
-    sqlquery sql = quest_PrepareQuery(s);
-    SqlBindInt(sql, "@nID", nID);
-
-    string sResult = SqlStep(sql) ? SqlGetString(sql, 0) : "";
-    
-    if (IsDebugging(DEBUG_LEVEL_DEBUG))
-        HandleSqlDebugging(sql, "SQL:retrieve-field", _i(nID), sField, "module", sResult);
-
-    return sResult;
-}
-
 /// @private Set PC-specific quest data into the `quest_pc_data` table.
 /// @param oPC Player character object.
 /// @param nID Unique quest record ID.
@@ -1249,50 +1408,6 @@ int quest_SetPCData(object oPC, int nID, string sField, string sValue)
     return nCount;
 }
 
-// TODO Not Used?
-sqlquery quest_GetQuestPrerequisites(int nID)
-{
-    string s = r"
-        SELECT nPropertyType, sKey, sValue
-        FROM quest_prerequisites
-        WHERE quests_id = @nID;
-    ";
-    sqlquery sql = quest_PrepareQuery(s);
-    SqlBindInt(sql, "@nID", nID);
-
-    return sql;
-}
-
-sqlquery quest_GetPrerequisiteTypes(int nID)
-{
-    string s = r"
-        SELECT nValueType, COUNT(sKey)
-        FROM quest_prerequisites
-        WHERE quests_id = @nID
-        GROUP BY nValueType
-        ORDER BY nValueType;
-    ";
-    sqlquery sql = quest_PrepareQuery(s);
-    SqlBindInt(sql, "@nID", nID);
-
-    return sql;
-}
-
-sqlquery quest_GetPrerequisitesByType(int nID, int nType)
-{
-    string s = r"
-        SELECT sKey, sValue
-        FROM quest_prerequisites
-        WHERE quests_id = @nID
-            AND nValueType = @nType;
-    ";
-    sqlquery sql = quest_PrepareQuery(s);
-    SqlBindInt(sql, "@nID", nID);
-    SqlBindInt(sql, "@nType", nType);
-
-    return sql;
-}
-
 /// @private Count number of steps assigned to a given quest.
 int quest_CountSteps(int nID)
 {
@@ -1320,81 +1435,6 @@ int quest_IsPropertyStackable(int nPropertyType)
         return FALSE;
     else
         return TRUE;
-}
-
-int CountQuestPrerequisites(string sTag)
-{
-    int nID = quest_GetID(sTag);
-
-    string s = r"
-        SELECT COUNT(id)
-        FROM quest_prerequisites
-        WHERE quests_id = @nID;
-    ";
-    sqlquery sql = quest_PrepareQuery(s);
-    SqlBindInt(sql, "@nID", nID);
-
-    int nCount = SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
-    HandleSqlDebugging(sql);
-
-    return nCount;
-}
-
-int quest_TableExists(string sTable)
-{
-    string s = r"
-        SELECT name
-        FROM sqlite_master
-        WHERE type = 'table'
-            AND name = @sTable;
-    ";
-    sqlquery sql = quest_PrepareQuery(s);
-    SqlBindString(sql, "@sTable", sTable);
-    return SqlStep(sql);
-}
-
-int quest_CountPCVariables(object oPC, string sTag)
-{
-    string s = r"
-        SELECT COUNT(*)
-        FROM quest_pc_variables
-        WHERE quest_uuid = (
-            SELECT quest_uuid
-            FROM quest_pc_data
-            WHERE pc_uuid = @sUUID
-                AND quest_tag = (
-                    SELECT sTag
-                    FROM quest_quests
-                    WHERE id = @nID
-                )
-            ORDER BY ...
-        );
-    ";
-}
-
-int CountQuestVariables(object oTarget, string sTable)
-{
-    string s = r"
-        SELECT COUNT(*) 
-        FROM $1;
-    ";
-    s = SubstituteSubString(s, "$1", sTable);
-    
-    sqlquery sql = quest_PrepareQuery(s);
-    return SqlStep(sql) ? SqlGetInt(sql, 0) : 0;
-}
-
-int quest_Exists(string sTag)
-{
-    string s = r"
-        SELECT COUNT(id)
-        FROM quest_quests
-        WHERE quest_tag = @sTag;
-    ";
-    sqlquery sql = quest_PrepareQuery(s);
-    SqlBindString(sql, "@sTag", sTag);
-
-    return SqlStep(sql) ? SqlGetInt(sql, 0) : FALSE;    
 }
 
 int quest_HasMinimumSteps(int nID)
@@ -1694,23 +1734,6 @@ int GetPCHasQuest(object oPC, string sTag)
     HandleSqlDebugging(sql);
 
     return nHas;
-}
-
-string quest_GetUUID(object oPC, string sTag)
-{
-    string s = r"
-        SELECT quest_uuid
-        FROM quest_pc_data
-        WHERE pc_uuid = @sUUID
-            AND quest_tag = @sTag
-            AND nCompleteTime = 0;
-    ";
-
-    sqlquery sql = quest_PrepareQuery(s);
-    SqlBindString(sql, "@sUUID", GetObjectID(oPC));
-    SqlBindString(sql, "@sTag", sTag);
-
-    return SqlStep(sql) ? SqlGetString(sql, 0) : "";
 }
 
 int quest_IsComplete(object oPC, string sTag)

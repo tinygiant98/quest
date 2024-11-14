@@ -354,6 +354,9 @@ const string QUEST_SYSTEM_SCHEMA = r"
                         },
                         ""pcCompleteType"": {
                             ""type"": ""integer""
+                        },
+                        ""pcVersion"": {
+                            ""type"": ""integer""
                         }
                     }
                 },
