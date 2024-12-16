@@ -1238,7 +1238,7 @@ int AddQuest(string sTag, string sJournalTitle = "")
 /// @returns TRUE if a record was deleted, FALSE otherwise.
 int DeleteQuest(string sTag)
 {
-    quest_EmitDeprecation(__FUNCTION__);
+    //quest_EmitDeprecation(__FUNCTION__);
 
     return 0; //quest_DeleteQuest(sQuesTag);
 }
@@ -1471,7 +1471,7 @@ int GetIsQuestAssignable(object oPC, string sTag)
             QuestDebug("  PC Gold Balance -> " + ColorValue(_i(GetGold(oPC))));
             QuestDebug("  GOLD | " + ColorValue(sOperator + " " + _i(nGold)));
             
-            bQualifies = quest_Evaluate(GetGold(oPC), nGold, sOperator);
+            bQualifies = quest_EvaluateCondition(GetGold(oPC), nGold, sOperator);
 
             QuestDebug("  GOLD resolution -> " + ResolutionToString(bQualifies));
 
@@ -1486,9 +1486,9 @@ int GetIsQuestAssignable(object oPC, string sTag)
             string sOperator = JsonGetString(JsonObjectGet(p, "comp"));
 
             QuestDebug("  PC Total Levels -> " + ColorValue(_i(GetHitDice(oPC))));
-            QuestDebug("  LEVEL | " + sOperator + " " + ColorValue(_i(nMaximumLevel)));
+            //QuestDebug("  LEVEL | " + sOperator + " " + ColorValue(_i(nMaximumLevel)));
             
-            if (quest_Evaluate(GetHitDice(oPC), nLevel, sOperator))
+            if (quest_EvaluateCondition(GetHitDice(oPC), nLevel, sOperator))
                 bQualifies = TRUE;
             
             QuestDebug("  LEVEL resolution -> " + ResolutionToString(bQualifies));
@@ -1573,11 +1573,11 @@ int GetIsQuestAssignable(object oPC, string sTag)
                         bQualifies = TRUE;
                         break;
                     default:
-                        if (nClass1 == nClass && quest_EvalSimpleCondition(nLevels1, nLevels, sOperator))
+                        if (nClass1 == nClass && quest_EvaluateCondition(nLevels1, nLevels, sOperator))
                             bQualifies = TRUE;
-                        else if (nClass2 == nClass && quest_EvalSimpleCondition(nLevels2, nLevels, sOperator))
+                        else if (nClass2 == nClass && quest_EvaluateCondition(nLevels2, nLevels, sOperator))
                             bQualifies = TRUE;
-                        else if (nClass3 == nClass && quest_EvalSimpleCondition(nLevels3, nLevels, sOperator))
+                        else if (nClass3 == nClass && quest_EvaluateCondition(nLevels3, nLevels, sOperator))
                             bQualifies = TRUE;
                         
                         break;
@@ -1611,7 +1611,7 @@ int GetIsQuestAssignable(object oPC, string sTag)
                 QuestDebug("  REPUTATION | " + sFaction + " | Standing " + 
                     sOperator + " " + _i(abs(nRequiredStanding)));
 
-                if (quest_EvalSimpleCondition(nCurrentStanding, nRequiredStanding, sOperator))
+                if (quest_EvaluateCondition(nCurrentStanding, nRequiredStanding, sOperator))
                     bQualifies = TRUE;
                 else
                 {
@@ -1647,7 +1647,7 @@ int GetIsQuestAssignable(object oPC, string sTag)
                     bQualifies = FALSE;
                     break;
                 }
-                else if (nItemQuantity > 0 && quest_EvalSimpleCondition(nItemCount, nItemQuantity, sOperator))
+                else if (nItemQuantity > 0 && quest_EvaluateCondition(nItemCount, nItemQuantity, sOperator))
                     bQualifies = TRUE;
 
                 QuestDebug("  ITEM resolution -> " + ResolutionToString(bQualifies));
@@ -1677,7 +1677,7 @@ int GetIsQuestAssignable(object oPC, string sTag)
 
                 if (nRequiredCompletions > 0)
                 {
-                    if (bPCHasQuest == TRUE && quest_EvalSimpleCondition(nPCCompletions, nRequiredCompletions, sOperator))
+                    if (bPCHasQuest == TRUE && quest_EvaluateCondition(nPCCompletions, nRequiredCompletions, sOperator))
                         bQualifies = TRUE;
                     else
                     {   
@@ -1793,7 +1793,7 @@ int GetIsQuestAssignable(object oPC, string sTag)
                 QuestDebug("  PC XP -> " + ColorValue(_i(nPC) + "xp"));
                 QuestDebug("  XP | " + ColorValue(sOperator + " " + _i(abs(nXP)) + "xp"));
 
-                if (quest_EvalSimpleCondition(nPC, nXP, sOperator))
+                if (quest_EvaluateCondition(nPC, nXP, sOperator))
                     bQualifies = TRUE;
                 else
                     bQualifies = FALSE;
@@ -1823,7 +1823,7 @@ int GetIsQuestAssignable(object oPC, string sTag)
                 if (nScore <= 0)
                     QuestDebug(HexColorString("  ABILITY prerequisite has an invalide valid; must be >= 0", COLOR_RED_LIGHT));
 
-                if (quest_EvalSimpleCondition(nPC, nScore, sOperator))
+                if (quest_EvaluateCondition(nPC, nScore, sOperator))
                     bQualifies = TRUE;
                 else
                 {
@@ -1853,7 +1853,7 @@ int GetIsQuestAssignable(object oPC, string sTag)
                 QuestDebug("  SKILL | " + SkillToString(nSkill) + " | Score " + 
                     sOperator + " " + _i(nRank));
 
-                if (nRank > 0 && quest_EvalSimpleCondition(nPC, nRank, sOperator))
+                if (nRank > 0 && quest_EvaluateCondition(nPC, nRank, sOperator))
                     bQualifies = TRUE;
                 else if (nRank == 0 && nRank > 0)
                 {
