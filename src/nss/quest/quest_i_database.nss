@@ -941,7 +941,7 @@ void IncrementPCQuestFailures(object oPC, int nQuestID, int nTimeStamp)
     string sQuestTag = GetQuestTag(nQuestID);
     sQuery = "UPDATE quest_pc_data " +
              "SET nFailures = nFailures + 1, " +
-                 "nLastCompleteTime = @time " +
+                 "nLastCompleteTime = @time, " +
                  "nLastCompleteType = @type " +
              "WHERE quest_tag = @tag;";
     sql = SqlPrepareQueryObject(oPC, sQuery);
